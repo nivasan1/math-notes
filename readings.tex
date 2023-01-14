@@ -1,0 +1,124 @@
+
+
+\documentclass{amsart} 
+\usepackage{scrextend, amssymb,amsmath,latexsym,times,tikz,hyperref,mathrsfs,enumitem,soul,pgfplots, listings}
+%\usepackage{showlabels}
+\setstcolor{red}
+\setul{0pt}{2pt}
+
+\lstset{
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=magenta}
+
+\newcommand{\btu}{\bigtriangleup}
+
+\numberwithin{equation}{section}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{dfn}[thm]{Definition}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{obs}[thm]{Observation}
+\newtheorem{step}[thm]{}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{sublemma}{}[thm]
+\newtheorem{question}[thm]{Question}
+\newtheorem{answer}[thm]{answer}
+\newtheorem{explanation}{Explanation}
+
+
+\newtheorem*{lemma*}{Lemma}
+
+\newcommand{\mgn}[1]{\marginpar{\begin{flushleft}\footnotesize
+      \textcolor{red}{#1}\end{flushleft}}}
+\newcommand{\mgnb}[1]{\marginpar{\begin{flushleft}\footnotesize
+      \textcolor{blue}{#1}\end{flushleft}}}
+\newcommand{\ba}{\backslash}
+
+\theoremstyle{definition}
+\newtheorem{example}{Example}
+
+\newcommand{\del}{\backslash}
+\DeclareMathOperator{\cl}{cl}
+\DeclareMathOperator{\cy}{cy}
+
+\DeclareMathAlphabet{\mathdutchcal}{U}{dutchcal}{m}{n}
+\usetikzlibrary{calc}
+\title{Proofs/Notes}
+\author{Nikhil Vasan}
+\date{September 2021}
+
+\begin{document}
+\maketitle
+\section{Overview}
+\section{Implementation}    
+The implementation of the burning of the baseFee will be done through introducing a dependency between the Distribution Keeper, and feeMarket Keeper as such, in x/Distribution/types/interfaces.go
+\begin{lstlisting}
+      //code example
+      type FeeMarketKeeper interface{ 
+        // fields entered here ..
+      }
+\end{lstlisting}
+\section{GFS}
+\subsection*{Architecture}
+Master is defined as follows
+\begin{lstlisting}
+    type Master {
+        // chunkData stored in memory
+        chunkHandles map[FID]*chunkData
+    }
+    // identifier for files stored in GFS
+    type FID = string
+    // definition of chunkData, maintains the data required for master when granting
+    // access to chunkServer for chunk requested
+    type chunkData {
+        // essentially IP address of chunk server
+        servers []*chunkServer
+        // primary, server with current lease for sequencing record appends / writes
+        primary *chunkServer
+    }
+\end{lstlisting}
+GFS handles writes / reads to chunks as follows. 
+\begin{enumerate}
+    \item[(1)] Client sends request to chunk server, with FID / offset
+    \item[(2)] Client identifies chunk for offset, sends primary for lease to client
+    \item[(3)] Client caches primary address, and transmits data as well as operation to be sequenced by primary
+\end{enumerate}
+In writes / appends, the primary is tasked with sequencing the operation to the file for all replicas. 
+In each case, it must be required that the data is atomically appended (not necessarily at end of chunk), 
+to file, primary sequences concurrent writes, and transmits sequence to replicas. All replicas gossip data
+to each replica in sequence $(rep 1 => rep 2 => ...)$, where $rep i$ is an ordering determined by latency, etc.
+\\ The Master maintains a log of all writes / reads. Readers of chunks obtain, read locks, ensure that version number for file is stored.
+Files with read-lock, ensure that name-space changes / leases to primary for writes cannot be executed until read-locks released.
+How to handle?
+\section{Distributed Algorithms}
+\begin{enumerate}
+  \item[\textit{fail-stop}] - Any \textit{process} can fail, but failures can be reliably deteceted by other processes.
+  \item[\textit{fail-silent}] - Process crashes never can be detected
+  \item[\textit{fail-noisy}] - Identification of Process failure is only eventual
+  \item[\textit{fail-recovery}] - \textit{processes} can fail / recover and participate in alg.
+  \item[\textit{fail-arbitrary}] - \textit{processes} can fail in perhaps arbitrar ways
+  \item[\textit{randomized}] - Proceses may make probablistic choices given a common source of randomness
+\end{enumerate}
+Denote set of processes in algorithm as $\Pi$, define \textit{rank}, a mapping $rank: \Pi \rightarrow \{1, \cdots , N\}$
+Processes send messages denoted $m_{p,i}$, where $i$ is a \textit{sequence number}, notice, combined w/ rank, a total ordering is defined (\textit{eg. lexicographic ordering on rank, sequence num.}) over hte messages
+
+
+\end{document}

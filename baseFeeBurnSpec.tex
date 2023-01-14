@@ -1,0 +1,84 @@
+
+
+\documentclass{amsart} 
+\usepackage{scrextend, amssymb,amsmath,latexsym,times,tikz,hyperref,mathrsfs,enumitem,soul,pgfplots, listings}
+%\usepackage{showlabels}
+\setstcolor{red}
+\setul{0pt}{2pt}
+
+\lstset{
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=magenta}
+
+\newcommand{\btu}{\bigtriangleup}
+
+\numberwithin{equation}{section}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{dfn}[thm]{Definition}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{obs}[thm]{Observation}
+\newtheorem{step}[thm]{}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{sublemma}{}[thm]
+\newtheorem{question}[thm]{Question}
+\newtheorem{answer}[thm]{answer}
+\newtheorem{explanation}{Explanation}
+
+
+\newtheorem*{lemma*}{Lemma}
+
+\newcommand{\mgn}[1]{\marginpar{\begin{flushleft}\footnotesize
+      \textcolor{red}{#1}\end{flushleft}}}
+\newcommand{\mgnb}[1]{\marginpar{\begin{flushleft}\footnotesize
+      \textcolor{blue}{#1}\end{flushleft}}}
+\newcommand{\ba}{\backslash}
+
+\theoremstyle{definition}
+\newtheorem{example}{Example}
+
+\newcommand{\del}{\backslash}
+\DeclareMathOperator{\cl}{cl}
+\DeclareMathOperator{\cy}{cy}
+
+\DeclareMathAlphabet{\mathdutchcal}{U}{dutchcal}{m}{n}
+\usetikzlibrary{calc}
+\title{Proofs/Notes}
+\author{Nikhil Vasan}
+\date{September 2021}
+
+\begin{document}
+\maketitle
+\section{Overview}
+This section describes the modifications proposed for the Canto implementation of the EIP-1559. As opposed to the 
+evmos implementation of EIP-1559, we intend to burn the baseFeePerBlock * gasUsed 
+\section{Implementation}    
+The implementation of the burning of the baseFee will be done through introducing a dependency between the Distribution Keeper, and feeMarket Keeper as such, in x/Distribution/types/interfaces.go
+\begin{lstlisting}
+      //In x/distribution/types/interfaces.go
+      type FeeMarketKeeper interface{ 
+            GetBaseFee(ctx sdk.Context) *big.Int
+            GetBlockGasWanted(ctx sdk.Context) uint64
+      }
+\end{lstlisting}
+
+
+\end{document}

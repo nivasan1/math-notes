@@ -1,0 +1,711 @@
+
+
+\documentclass{amsart} 
+\usepackage{scrextend, amssymb,amsmath,latexsym,times,tikz,hyperref,mathrsfs,enumitem,soul,pgfplots,listings}
+%\usepackage{showlabels}
+\setstcolor{red}
+\setul{0pt}{2pt}
+
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=magenta}
+
+\newcommand{\btu}{\bigtriangleup}
+
+\numberwithin{equation}{section}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{dfn}[thm]{Definition}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{obs}[thm]{Observation}
+\newtheorem{step}[thm]{}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{sublemma}{}[thm]
+\newtheorem{question}[thm]{Question}
+\newtheorem{answer}[thm]{answer}
+\newtheorem{explanation}{Explanation}
+
+
+\newtheorem*{lemma*}{Lemma}
+\lstset{
+  language=Go,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+\newcommand{\mgn}[1]{\marginpar{\begin{flushleft}\footnotesize
+      \textcolor{red}{#1}\end{flushleft}}}
+\newcommand{\mgnb}[1]{\marginpar{\begin{flushleft}\footnotesize
+      \textcolor{blue}{#1}\end{flushleft}}}
+\newcommand{\ba}{\backslash}
+
+\theoremstyle{definition}
+\newtheorem{example}{Example}
+
+\newcommand{\del}{\backslash}
+\DeclareMathOperator{\cl}{cl}
+\DeclareMathOperator{\cy}{cy}
+
+\DeclareMathAlphabet{\mathdutchcal}{U}{dutchcal}{m}{n}
+\usetikzlibrary{calc}
+\title{Proofs/Notes}
+\author{Nikhil Vasan }
+\date{September 2021}
+
+\begin{document}
+\maketitle
+\section{Casper FFG}
+\begin{dfn}
+\textbf{CheckPoint}: Let $B \in \mathcal{B}$, then $B$ is a checkpoint iff $B = B_{genesis}$ or $h(B) \equiv 0 (100)$, where $h: \mathcal{B} \rightarrow \mathbb{N}$ is the height function of the block-tree
+\end{dfn}
+The $\textit(Checkpoint Height)$ $\tilde{h} : \mathcal{B} \rightarrow \mathbb{Z}$, is defined as follows 
+\begin{equation} 
+  for B \in \mathcal{B}, \tilde{h(B)} = \lfloor h(B) \rfloor
+\end{equation}
+Let $\mathcal{V}$ be the set of validators for the chain, then $d: \mathcal{V} \rightarrow [0,1]$ is the deposit mapping, mapping validators to their respective deposits.
+\begin{dfn}
+  \textbf{Vote} : A signed message, $\langle v, s,t, h(s), h(t) \rangle$, where $s,t \in \mathcal{B}$, and $h(s) >= h(t) + 1 $, $s \in child(t)$
+\end{dfn}
+Notice, that when a block $b \in \mathcal{B}$ is referred, generally, one refers to the merkle root hash of the contents of the block, as communication complexity would scale rapidly with the number of messages sent / $|\mathcal{V}|$. Further definitions follow, 
+\begin{dfn}
+  We define
+  \begin{enumerate}
+ \item[\textit{supermajority link}]: $SL \in \mathcal{B}^2$, where $(a,b) \in \mathcal{B}$ iff $sum_{v \in \mathcal{V}_{vote(a,b)}}  d(v) >= 2/3$ \\ 
+ \item[\textit{conflicting}]: $B_1, B_2 \in \mathcal{C}$ (checkpoints) are conflicting iff, $B_1 \not \in child(B_2)$ and $B_2 \not \in child(B_1)$
+ \item[\textit{justified}]: $c \in \mathcal{C}$ is justified if (1) it is the root, or there exists $s \in SL$ where $s = (c',c)$, where $c'$ is justified.
+ \item[\textit{finalized}]: $c \in \mathcal{C}$ is justified if (1) it is the genesis block or (2) it is justified, and there is a \textit{supermajority link} $c \rightarrow c'$ where $c'$ is a \textit{direct child} of $c$, that is $h(c') = h(c) + 1$
+  \end{enumerate}
+\end{dfn}
+\begin{dfn}[\textit{slashing conditions}]
+  A validator, $v \in \mathcal{V}$, is slashed, $d(v) = 0$ if, a validator publishes two votes $\langle v, s_1, t_1, h(s_1), h(t_1) \rangle$, $\langle v, s_2, t_2, h(s_2), h(t_2) \rangle$
+  \begin{enumerate}
+    \item[(1)] $h(t_1) = h(t_2)$ \\
+    \item[(2)] $h(s_1) < h(2_1) < h(t_2) < h(t_1)$
+  \end{enumerate}
+\end{dfn}
+\section{Proof of safety and Plausible Liveness}
+\begin{thm}[(\textbf{Accountable Safety})]
+    Two conflicting checkpoints $a_m$ and $b_n$ cannot both be finalized.
+\end{thm}
+\begin{proof}[2.1]
+Fix $a_m, b_n \in \mathcal{C}$ where both $a_m \not \in chain(b_n)$ and $b_n \not \in chain(a_m)$. Intending contradiction, suppose both $a_m$ and $b_n$ are finalized. Naturally $h(a_m) \not= h(b_n)$, thus, we may assume WLOG that $h(a_m) > h(b_n)$. Denote $b_{n + 1}$ denote the checkpoint finalizing $b_n$, where $h(b_{n+1}) = h(b_n) + 1$, a similar case follows for $a_{m+1}$. Denote $a' \in chain(a_n)$ to be the first ancestor of $a_n$ where $h(a') < h(b_n)$. Naturally $a'_n$ the block finalizing $a_n$ satisfies $h(a'_n) > h(b_{n+1})$, violating slashin condition \textbf{II}.
+\end{proof}
+  
+\begin{dfn}
+  Denote $\mathcal{DS}: \mathcal{V} \rightarrow \mathbb{Z}$, the mapping between validators and their start dynasty. Where $\mathcal{DS}(v) = d + 2$, when $v$ has submitted a deposit message at blockc with slot 2. The mapping $\mathcal{DE}(v): \mathcal{V} \rightarrow \mathbb{Z}$ maps validators to their end dynasty. 
+\end{dfn}
+
+\section{Gasper}
+
+\section{Tendermint}
+Concensus for each block at height $h_p$ proceeds in rounds, $round_p$, three types of messages for each round are passed
+\begin{dfn} 
+  The messages defined are... \\
+  \begin{enumerate} 
+    \item[(\textbf{Proposal})]: $\langle PROPOSAL, h_p, round_p, proposal, validRound_p \rangle$, where $proposal$ is the value on which all nodes will come to concensus upon, given the size of the msg, to reduce message complexity of later messages, $id(v)$ a proof of fixed size is passed between nodes \\
+    \item[(\textbf{Prevote})]: $\langle PREVOTE, h_p, round_p, id(v) \rangle$, this message type defines a vote for the corresponding value $decode_p(id(v))$, in the first round of voting,, notice $id(v) == nil$ if $isValid(v) == false$. \\
+    \item[(\textbf{PreCommit})]: $\langle PRECOMMIT, h_p, round_p, id(v) \rangle$, this message defines the standard type for the second round of voting
+  \end{enumerate}
+\end{dfn}
+At each round a set of 5 state variables are maintained by all $correct$ processes
+\begin{dfn}
+These variables are reset at the beginning of each concensus instance \\
+\begin{enumerate}
+  \item[($h_p$)] Identifier of the current concensus instance... height \\ 
+  \item[($round_p$)] Round number for this concensus instance \\ 
+  \item[($decision_p...$)]: the set of finalized blocks, where $decison_p(h_p) = Tendermint(v)$ (block to finalize at current height)
+  \item[($lockedValue / lockedRound$)]: These values store the most recent value precommited and the round at which the pre-commit was sent at which the process $p$ received $2f + 1$ prevotes for a value $v$, and the value $v$, that is 
+  \begin{lstlisting} 
+    prevotes := make([]Prevote)
+
+    if len(prevotes) >= 2 * f + 1 { 
+      lockedRound = curRound
+      lockedValue = value
+      broadcast(Precommit{
+        step: PRECOMMIT,
+        height: curHeight,
+        round: curRound
+        id: hash(curValue),
+      })
+    }
+  \end{lstlisting}
+  \item[($validValue / validRound$)] These values serve a similar purpose to the lockedRound/Value, except these values record the first value that represents a possible decision value.\\ 
+\end{enumerate}
+\end{dfn}
+
+\begin{thm}
+  For all $f \geq 0$ all sets of $2f + 1$ processes, have at least $f + 1$ process in common
+\end{thm}
+\begin{thm}
+  Notice, $n = 3f + 1$, where $n$ is the total number of processes participating in the network. Therefore,
+  \begin{proof} 
+    2(2f + 1) = 3f + 1 + f + 1 = n + f + 1 
+  \end{proof}
+  therefore by the pigeonhole principle, there is at least $f + 1 - f = 1$ correct nodes in common between two sets.
+\end{thm}
+
+\begin{thm} 
+  If $f + 1$ correct processes lock value $v$ in round $r_0$ then in all round $r > r_0$ they send $PREVOTE$ for $id(v)$ or nil 
+\end{thm}
+\begin{proof}
+  The proof is by induction on $i$, where $r_i$ designates the current round. For $r_1$, the $f + 1$ processes that had locked $v$, $validValue = v$, thus if they are the proposer they broadcast $\langle PREVOTE, h_p, r_1, id(v) \rangle$, if they are not the proposer, and receive a Proposal for $v'$ where $v' \not= v$ notice $lockedRound \not= -1$ and $lockedValue \not= v'$ thus they broadcast a prevote for $nil$.
+  Assuming the hypothesis holds for $n$, then for round $r_{n + 1}$, $validValue = v$ and $validRound = r_0$. That is, it is impossible for $2f + 1$ Prevotes to be signed for a conflicting value $v'$, thus, the locked value will remain the same, and by the hypothesis, all nodes will broadcast prevotes for $nil$ or $v$.
+\end{proof}
+
+\section{Cosmos Fee Distribution}
+Suppose a delegator $x$ delegates $x$ stake to validator $v$ at block $i$ and withdraws at block $h$, then the accum is defined as follows
+\begin{equation}
+  accum = x \Sigma_{k = i}^h \frac{f_i}{s_i}
+\end{equation}
+where $f_i$ represents the total tx fees each block, and $s_i$ represents the delegated stake for the validator at each block. 
+Notice, the delegated stake only changes whenever a delegation is changed, as such, we may desigate the periods between delegation modifications as a $period$
+\begin{dfn}
+  \textbf{Period}: Time between a validator's stake $\textbf{S}_v$ changing
+\end{dfn}
+The new calculation is as follows 
+\begin{equation} 
+  accum_{d} = \Sigma_{k = p_{init}}^{p_{final}} \frac{T_p}{S_p}
+\end{equation}
+where $T_p$ is the total tx fees per period, and $S_p$ is the total stake per period.
+Notice, this calculation lends itself to a recursive expression 
+\begin{equation}
+  entry_f  = entry_{f-1} + \frac{T_f}{s_f}
+\end{equation}
+Each entry is a state object indexable by $f$ (Period Number). The maximal number of entries stored in state is 
+\begin{equation} 
+  curPeriod - min_{d \in \mathcal{D}}(Period(d))
+\end{equation}
+where $d \in \mathcal{D}$ represents iteration over all delegations. Each delegators reward earned from withdrawing may be represented as follows
+\begin{equation}
+  accum = x(entry_k - entry_f)
+\end{equation}
+\section{LP Token Pricing ($xy = k$) CFMM}
+Consider a pool obeying the following invariant, $r_0 * r_1 = k$, where $r_0$ is the reserves of $asset_0$ and $r_1$ is the reserve of $asset_1$. Notice, in this case
+the prices of $asset_0$ in terms of $asset_1$, is determined as follows
+\begin{equation}
+  p_0 = \frac{\Delta r_0}{\Delta r_1}, p_1 = \frac{1}{p_0}
+\end{equation}
+notice, $\Delta r_0$ may be determined as follows, 
+\begin{align}
+  (r_1 + \Delta r_1) (r_0 - \Delta r_0) &= k = r_0 * r_1 \\
+  \Delta r_0 &= r_0 - \frac{k}{r_1 + \Delta r_1} = \frac{r_0(r_1 + \Delta r_1)}{r_1 + \Delta r_1} - \frac{r_0 * r_1}{r_1 + \Delta r_1} \\
+  &= \frac{r_0 \Delta r_1}{r_1 + \Delta r_1}
+\end{align}
+substituting this value into $p_0$, one obtains
+\begin{equation}
+  p_0 = \frac{\Delta r_0}{\Delta r_1} = \frac{r_0 \Delta r_1}{r_1 + \Delta r_1} * \frac{1}{\Delta r_1} = \frac{r_0}{r_1 + \Delta r_1}
+\end{equation}
+Let $TVL = r_0 * p_0 + r_1 * p_1$, in this case, we may parametrize $TVL$ in terms of $\Delta r_1$ and $r_0, r_1$, 
+\begin{equation} 
+  TVL = r_0 * p_0 + r_1 = r_0 * \frac{r_0}{r_1 + \Delta r_1} + r_1
+\end{equation}
+
+\section{Math}
+
+\begin{thm}
+    $ \forall x_1, x_2, x_1 \leq x_2 \rightarrow f(x_1) \leq f(x_2), f(f(x)) = x$ implies that, $f(x) = x$,
+\end{thm}
+\begin{proof}
+
+\end{proof} 
+\begin{thm}
+  Let $E$ be a non-empty subset of an ordered set; suppose $\alpha$ is a lower bound of $E$
+  and $\beta$ is an upper bound of $E$. Prove that $\alpha \leq \beta$.
+\end{thm} 
+  \begin{proof}
+      Denote $\leq$ the ordering over $E$, that is, $\leq$ a transitive relation. As such, fix $e \in E$.
+      Notice, as $\alpha$ is a lower-bound of $E$, it follows that $\alpha \leq e$, furthermore, 
+      $e \leq \beta$, combining the relations, and applying the transitivity of $\leq$, 
+      obtains $\alpha \leq \beta$, as was to be shown.
+  \end{proof}
+\begin{thm} 
+  Let $A$ be a non-empty set of real numbers which is bounded below. Let $-A$ be the set of all numbers $-x$, where $x\in A$.
+  It follows \begin{equation} inf A = -sup(-A) \end{equation}
+\end{thm}
+\begin{proof}
+  The least upper bound (greatest lower bound) property of $\mathbb{R}$ indicates that $inf(A) = \alpha$ exists (A is non-empty and bound below). Furthermore,
+  Let $l \in \mathbb{R}$ be a lower bound for $A$, that is, $\forall x \in A, x \geq l$, thus $\forall x \in A, -l \geq -x$, and $-l$ 
+  is an upper-bound of $-A$, as $-A$ is non-empty and bound above $sup(-A) = \beta$ exists in $\mathbb{R}$.
+  Suppose $-\beta  > \alpha$, as $-\beta$ is a lower bound of $A$ ($\forall x \in -A, x \leq -\beta \rightarrow \forall x' = -x \in A, x \geq \beta$), this contradicts $\alpha = inf(A)$. 
+  A similar proof follows for the other direction. Thus $-\beta = \alpha$.
+\end{proof}
+
+Fix $b > 1$
+\begin{enumerate}
+  \item[(6a)] If $m,n,p,q$are integers, $n > 0$, $q > 0$, and $r = m/n = p/q$, prove that 
+  \begin{equation}
+    (b^m)^{1/n} = (b^p)^{1/q}
+  \end{equation}
+  \begin{proof}
+    Notice $(b^{1/n})^m = (b^{1/q})^p = b^{m/n} = b^{p/q} = b^r$
+  \end{proof}
+  \item[(6b)] Prove that $b^{r + s} = b^r b^s$ if $r$ and $s$ are rational.
+  \begin{proof}
+    Let $r = m/n$ and $s = p/q$, thus $b^{r+s} = b^{m/n + p/q} = b^{\frac{mq + np}{nq}} = (b^{mq}b^{np})^{\frac{1}{nq}}=b^rb^s$
+  \end{proof}
+  \item[6c] If $x$ is real, define $B(x)$ t be the set of all numbers $b^t$, where $t$ is rational and $t \leq x$. 
+  Prove that 
+  \begin{equation}
+    b^r = sup(B(r))
+  \end{equation}
+  \begin{proof}
+    Fix $x \in \mathbb{Q}$, thus $x = m/n$ for $m,n \in \mathbb{Z}$. Consider $B(x)$, naturally $B(x)$, is non-empty,
+    furthermore, $B(x) \subset \mathbb{R}$, finally, $B(r)$ is bound above by $b^r$, and thus $\alpha = sup B(x)$ exists.
+    Suppose, $\alpha \not= b^x$. WLOG (the other direction guarantees a similar maximal / minimal element), suppose $\alpha > b^x$
+    Notice, the archimedian proprty of real numbers guarantees
+  \end{proof}
+\end{enumerate}
+
+\begin{enumerate}
+  \item[7d] If $w$ is such that $b^w < y$, then $b^{w + (1/n)} < y$ for sufficiently large $n$.
+  \begin{proof}
+      Via $7c$, it suffices to show that $\frac{b - 1}{yb^{-w} -1} < n$, for some $n$. Thus, $b-1 < n(yb^{-w } -1)$, for some $n$.
+      Notice, as $b, (yb^{-w} -1) \in \mathbb{R}_{>0}$, there exists, $n \in \mathbb{Z}$, where $b - 1 <  n(yb^{-w} - 1)$.
+  \end{proof}
+  \item[7e] If $b^w > y$,then $b^{w - 1/n} > y$ for sufficiently large $n$.
+\end{enumerate}
+let $A$ be a set, then $A$ is infinite, if $A$ is equivalent to one of its proper subsets.
+
+\begin{thm}
+  Every infinite subset of a countable set $A$ is countable
+\end{thm}
+\begin{proof}
+  Suppose $E \subset A$. Let $f: \mathbb{N} \rightarrow E$, as follows. Denote $f(1) = e_1$, where $e_1 \in E$, and
+  for all $e \in E, e > e_1$, set $f(i)$ to be the smallest $e_i \in E$, such that $e_i > f(i - 1)$. Suppose $i, j \in \mathbb{N}$, where $i \not= j$. 
+  WLOG, $i < j$, in which case, $f(i) < f(j)$, thus $f(i) \not= f(j)$, and $f$ is injective. Suppose $\exists e \in E \subset A$, for which, no pre-image exists
+  in $\mathbb{N}$, this is a contradiction.
+\end{proof}
+
+\begin{thm}
+  Let $A$ be a countable set, and let $B_n$ be the set of all n-tuples of $A$, that is $A^n$.
+\end{thm} 
+\begin{proof}
+  The hypothesis holds trivially for $n = 1$, as $A^1 = A$ which is countable. Suppose the theorem
+  holds for $n -1$, then $x \ in B^n, x = (b,a), b \in B^{n-1} a \in A$, notice, for all $b \in B^{n-1}$, 
+  the set $(b,a), a \in A$ is countable. Thus $B^n = \Cup_{b \in B^{n-1}} (b, a)$, this is a countable union
+  of countable sets, and is countable by $(15)$. Thus $B^n$ is countable. The proof follows by induction.
+\end{proof}
+
+\begin{dfn}
+  Let $A$ be a set, a function $f: A \rightarrow \mathbb{R}_{\geq 0}$ is a metric function if 
+  \begin{enumerate}
+    \item[1] $p,q \in A, d(p,q) = 0 \iff p = q$,\\
+    \item[2] $p,q \in A, d(p,q) = d(q,p)$,\\ 
+    \item[3] $d(p,q) \leq d(p,r) + d(r,q)$\\
+  \end{enumerate}
+  A metric space, is a tuple $(A, \sigma)$, where $A$ is a set and $\sigma$ is a metric function over $A$
+\end{dfn}
+
+\begin{dfn}
+  A subset $E \subset \mathbb{R}^k$ is convex, if for all $x, y \in E$, $\lambda x + (1-\lambda)y \in E$.
+\end{dfn}
+
+\begin{thm}
+  Balls are convex
+\end{thm}
+
+\begin{proof}
+  Fix a ball $E \subset \mathbb{R}^k$ with center $z \in \mathbb{R}^k$. Fix $x, y \in E$, fix $0 < \lambda < 1$, Thus,
+  \begin{align}
+    |z - (\lambda x + (1 - \lambda)y| &= |\lambda (z - x) + (1 - \lambda)(z - y)| \leq \lambda| z - x| + (1 - \lambda)|z - y| \\
+    &< \lambda r + (1-\lambda)r = r
+  \end{align}
+  Thus $(\lambda x + (1-\lambda)y) \in E$, and $E$ is a convex set. 
+\end{proof}
+Let $X$ be a metrix space, 
+\begin{enumerate}
+  \item[(a)] A \textit{neighbourhood} of $p$, $N_r(p) := \{q \in X: d(q, p) < r\}$\\
+  \item[(b)] A point $p$ is a \textit{Limit Point} of the set $E$ if, $\forall r, \exists (q)(q \not= p) \in N_r(p), q \not \in E$\\
+  \item[(c)] $p \in E$ is an \textit{Isolated Point} of $E$, if $p$ is not a limit point of $E$ \\
+  \item[(d)] $E$ is \textit{closed} if every limit point $p$ is an element of $E$ \\
+  \item[(e)] A point $p \in E$ is an \textit{interior} point of $E$, if $\exists r, N_r(p) \subset E$ \\
+  \item[(f)] $E$ is \textit{open} if every point of $E$ is an interior point of $E$ \\ 
+  \item[(g)] The \textit{complement} of $E$,  $E^c := \{p \in X, p \not \in E \}$ \\
+  \item[(h)] $E$ is \textit{perfect}, if $E$ is closed, and every point of $E$ is a limit point of $E$ \\
+  \item[(i)] $E$ is \textit{bounded} if $\exists M \in \mathbb{R}$ and $q \in X$ such that, $d(p,q) < M, \forall p \in E$ \\
+  \item[(j)] $E$ is \textit{dense} in $X$ if every point of $p \in X$ is a limit point of $E$ or $p \in E$.\\
+\end{enumerate}
+
+\begin{thm}
+  If $X$ is a metric space, and $E \subset X$, then
+  \begin{enumerate}
+    \item[(a)] $\bar{E}$ is closed \\
+    \item[(a)] $\bar{E} = E$ iff $E$ is closed \\
+    \item[(c)] $\bar{E} \subset F$ for every closed set $F \subset X$ such that $E \subset F$.
+  \end{enumerate}
+\end{thm}
+\begin{proof}
+  For $(a)$, let $p \in \bar{E}^c$, that is $p \not \in E \wedge p \not \in \bar{E}$, as such, $\exists r > 0 \in \mathbb{R}$, 
+  where for all $q \in N_r(p), (p \not= q), q \not \in E$. If $N_r(p ) \cap \bar{E} = \{x..\}$. Then $\forall r \in \mathbb{R}, \exists x \in N_r(p) \cap \bar{E}$, thus, $x \in \bar{E}$, 
+  $x \not \in \bar{E}^c$. As such, $ \forall x \in \bar{E}^c, \exists r \in \mathbb{R}, N_r(x) \subset \bar{E}^c $, and $\bar{E}^c$ is open, thus
+  $\bar{E}^{c^c} = \bar{E}$ is closed. \\
+  For $(b)$. Suppose $E$ is closed, then $x \in E' \subset E$ implies that $x \in E$, 
+  $\bar{E} = E' \cup E = E$. Suppose $\bar{E} = E$, then suppose $x \in E' \subset \bar{E} = E$, and $x \in E$,
+  therefore, $E$ is closed.
+  For $(c)$,
+\end{proof}
+\begin{dfn}
+  \textbf{Open Cover} - Let $X$ be a metric space, $E \subset X$. Then an \textit{Open Cover}
+  of $E$, is $\{G_{\alpha}\}, \forall \alpha,  G_{\alpha} \subset \mathcal{O}(X) $, and $E \subset \cup_{\alpha} G_{\alpha} $
+\end{dfn}
+\begin{dfn}
+  \textbf{Compactness} - A set $E$ of metric space $X$, is \textit{Compact} if every open cover of $E$, $\{G_{\alpha}\}_{\alpha}$,
+  has finitely many indices $\alpha_1, \cdots, \alpha_n$, where $E \subset \cup_{i} ,G_{\alpha_i}$
+\end{dfn}
+\begin{dfn}
+  Suppose $K \subset Y \subset X$. THen $K$ is compact relative to $X$ iff $K$ is 
+  compact relative to $Y$
+\end{dfn}
+\begin{proof}
+  Suppose $K$ is compact in $X$, then $K \subset \cup_{i = 1 ... n} G_{\alpha_i}$, where $\{G_{\alpha}\}$ are open relative to $Y$.
+  As such, $G_\alpha' \cap Y = G_\alpha$ where $G_\alpha'$ are open in $X$, and $ K \subset \cup_i G_{\alpha_i}'$, as $\{G_{\alpha_i}'\}$ 
+  is an open cover of $K$ in $X$, there exists $\alpha_1...\alpha_n$, where $K \subset G_{\alpha_1}' \cup ... \cup G_{\alpha_n}'$. As such,
+  $K \cap Y = K \subset (G_{\alpha_1}' \cup ... \cup G_{\alpha_n}') \cap Y = G_{\alpha_1} ... G_{\alpha_n}$, and every open cover relative to Y
+  has a finite subcover, thus $K$ is compact in $Y$.\\
+  Suppose $K$ is compact in $Y \subset X$, then for every open cover $\{G_{\alpha}\}_{\alpha}$ in $Y$,
+  there exist $G_{\alpha}' $ open in $X$, where $G_{\alpha}' \cap Y = G_{\alpha}$. And, $K \subset \cup_{\alpha_i} G_{\alpha} \subset \cup_i G_{\alpha_i}'$,
+  and $K$ is compact in $X$.
+\end{proof}
+
+\begin{dfn}
+  Compact subsets of metric spaces are closed.
+\end{dfn}
+\begin{proof}
+  Let $K$ be a compact subset of a metric sapce $X$. Fix $p \in K^c$, and $q \in K$, 
+  let $V_q$ be a neighbourhood of $p$ with $r < 1/2d(p,q)$, notice $V_q \cap W_q = \emptyset$.
+  Notice, $ K \subset \cup_{q \in K} W_q$, as $K$ is compact, $K \subset \cup_{i = 1...n} W_{q_i}$, furthermore,
+  $V = \cap_{i = 1...n} V_{q_i}$, $V \cap W = \emptyset$, and $r = min_{i = q..n}(d(p, q_i)), N_r(p) \subset V$, thus
+  there exists $N_r(p) \subset K^c$, for all $p \in K^c$, and $K^c$ is open.
+\end{proof}
+
+\begin{dfn}
+  Closed subsets of compact sets are compact
+\end{dfn}
+\begin{proof}
+  Let, $L \subset K \subset X$, where $X$ is a metric space, $K$ is compact, and $L$ is closed.
+  Fix $V_{\alpha}$, an open cover of $K$, notice $( \cup_{\alpha} V_{\alpha} ) \cup L^c$ covers $K$, thus
+  there exists a finite-subcover $V_{\alpha_i} \cup L^c$, as $L \not \subset L^c$, $V_{\alpha}$ has a finite subcover
+  covering $L$, and $L$ is compact.
+\end{proof}
+
+\begin{thm}
+  If $F$ is closed and $K$ is compact, then $F \cap K$ is compact.
+\end{thm}
+\begin{proof}
+  Notice, $F \cap K \subset K$ is closed, thus, $F \cap K$ is compact.
+\end{proof}
+
+\begin{thm}
+  If $\{K_{\alpha}\}$ is a collection of compact sets of metric space $X$, such that, 
+  the intersection of every finite subcollection of $K_{\alpha}$ is non-empty, then $\cap K_{\alpha}$ is
+  not empty.
+\end{thm}
+\begin{proof}
+  Suppose $\cap_{\alpha} K_{\alpha} = \emptyset$, then $\cup_{\alpha} K_{\alpha}^c = X$, as such, there exists 
+  $K \in {K_{\alpha}}$, $K \subset \cup_{\alpha} K_{\alpha}^c$, notice, $\{K_{\alpha}^c \}$ is an open-cover
+  of $K$, and $K \subset \cup_{i = 1..n} K_{\alpha_i}^c$, however, $K \cap (\cap_{i = 1..n} K_{\alpha_i}) \not= \emptyset$, 
+  a contradiction.
+\end{proof}
+
+
+\begin{thm}
+  Let $\{I_n\}$ be an infinite collection of intervals in $\mathbb{R}^1$, where $I_{n+1} \subset I_{n}$, then $\cap_i I_i \not= \emptyset$
+\end{thm}
+\begin{proof}
+  Let $I_n = [a_n, b_n]$, let $E = \{a_n \in \mathbb{R}: I_n = [a_n, b_n]\}$, then $E \subset \mathbb{R}$, and is bound above, namely by
+  $b_1$. Fix $sup(E) = x$. Fix $n$, then $I_n = [a_n, b_n]$, naturally, $a_n \leq x$. Suppose $b_n < x$, then there exists, $a_m \in E, a_m > b_n$, and, $I_m \cap I_n = \emptyset$, 
+  this is impossible, and $x \leq b_n$, thus $x \in I_n$, and $x \in \cap_i I_i$. 
+\end{proof}
+
+\begin{thm}
+  Suppose $\{I_n\}$ is a seq. of $k-cells$, where $I_{n+1} \subset I_n$, then, $\cap_i I_i \not= \emptyset$.
+\end{thm}
+\begin{proof}
+  For $I_n$, let $I_{n,i} = [a_{n,i}, b_{n,1}]$, where $I_n = \times_{1 \leq i \leq k} I_{n,i}$
+  then, for each $\{I_{n,i}\}$, where $1 \leq i \leq k$, there exists, $x_i \in \cap_{1 \leq i \leq k} I_{n, i}$, let
+  $\vec{x} = (x_1,..., x_k)$, then $\vec{x} \in \cap_i I_i$.
+\end{proof}
+
+\begin{thm}
+  Every $k-cell$ is compact
+\end{thm}
+\begin{proof}
+    Let $I \subset \mathbb{R}^k$, where $I = \times_{1 \leq i \leq k} I_i$, where $I_i = [a_{i}, b_i]$. Fix
+    \begin{equation} \delta = (\Sigma_{1 \leq i \leq k} (a_i - b_i)^2)^{1/2}\end{equation} as such, for $x,y \in I$
+    \begin{equation}
+      |x - y| = (\Sigma_{1 \leq i \leq k} (x_i - y_i)^2)^{1/2} \leq \delta
+    \end{equation}
+    Fix $c_j = (a_j + b_j)/2$, notice, $I_j \subset [a_j, c_j] \cup [c_j, b_j]$, as such, we have ${Q_i}$, a set of $2^k$ k-cells, where
+    $\cup_{i} Q_i \supset I$. If $I$ is not compact, then for open-cover $\{G_{\alpha}\}_{\alpha}$, there exists $Q_i$ such that
+    for any finite subcollection $\{G_{\alpha_i}\}_{\alpha_i}$, $\cup_i G_{\alpha_i} \not \supset Q_i$, continue this process indefinitely,
+    and one obtains, $\{I_n\}$, where $I_n \supset I_{n+1}$ (where $I_n$ is the k-cell obtained from the nth round of this subdvision process). Furthermore,
+    for $x, y \in I_n$, $|x - y| \leq 1/2^n\delta$, and $I_n \not \subset \cup_{\alpha_i} G_{\alpha_i}$. Notice, that $7.18$ leaves $x \in \cap_i I_i$, there exists
+    $G_{\alpha}$ where $x \in G_{\alpha}$ ($\{G_{\alpha}\}$ is an open cover of I). For $n$ large enough, $I_n \subset G_{\alpha}$ (some neighbourhood of $x$ is contained in $G_{\alpha}$), 
+    this is a contradiction. 
+\end{proof}
+
+\begin{thm}
+  Any infinite subset $L \subset K$, where $K$ is compact, must have a limit pt. $x \in K$.
+\end{thm}
+
+\begin{proof}
+  Suppose $L \subset K$ is infinite, and no limit point of $L$ exists in $K$, that is, for all $k \in K$ for any neighbourhood of $k$, $V_k \backslash \{k\} \cap L = \emptyset$ 
+  consider the open cover of $K$, $\{V_k\}_{k \in K}$, no finite subcollection of $\{V_k\}$ covers $L \subset K$, a contradiction.
+\end{proof}
+\begin{thm}[Heine-Borel]
+  For, metric space $X \subset \mathbb{R}^k$, and $E \subset X$ $E \subset X$ the following statements are equivalent
+  \begin{enumerate}
+    \item[(a)] $E$ is closed and bounded. \\
+    \item[(b)] $E$ is compact. \\
+    \item[(c)] Any infinite subset of $E$, has a limit point in $E$.
+  \end{enumerate}
+\end{thm}
+\begin{proof}
+  For $(a) \rightarrow (c)$, if $E$ is closed and bounded, then $E \subset I$, where $I$ is a k-cell. 
+  As $I$ is compact, and $E$ is closed, it follows that $E$ is compact. $(b) \rightarrow (c)$. For $(c) \rightarrow (a)$, 
+  suppose $E$ is not bounded, then let $E' = \{|x_n| > n, n = 1,2,3,\cdots\}$, $E' \subset E$. Suppose $x \in \mathbb{R}^k$ is a limit point of $E'$, then
+  for all $r > 0$, $N_r(x) \cap S \not= \emptyset$, fix $n', n' + 1$, where $|x_{n'}| < |x|$, and $x_{n' + 1}| > |x|$, then set
+  $r < min(|x_{n'} -r|, |x_{n' + 1} - r|)$, and $N_r(x) \cap S = \emptyset$, a contradiction, thus $E$ must be bounded.
+  Suppose $E$ is not closed, fix $x_0$ a limit pt. of $E$, where $x_0 \not\in E$. Let $S = \{x_n \in E: |x_n - x_0| < 1/n, n \in \mathbb{N}\}$.
+  Naturally $S$ is infinite, furthermore if $y$ is also a limit pt. of $S$, then
+  \begin{equation}
+    |x_0 - y| \leq |x_0 - x_n| + |x_n - y| < 1/n + |x_n - y|
+  \end{equation}
+  If $|x_0 - y| = \epsilon > 0$, then for $n \in \mathbb{N}$, where $1/n < \epsilon$, $r < \epsilon - 1/n$, $N_r(y) \cap S = \emptyset$, otherwise,
+  $|x_n - x_0| < 1/n$, and $|x_n - y| < r$, a contradiction. Thus $x_0 = y$, and $E$ must be closed. 
+\end{proof}
+
+\begin{thm}
+  Let $P$ be a non-empty \textit{perfect} set in $\mathbb{R}^k$. Then $\mathbb{R}^k$ is \textit{un-countable}.
+\end{thm}
+\begin{proof} 
+  $P$ is non-empty, and has a limit-point, thus $P$ is infinite. Suppose $P$ is countable, label $P = \{x_1, x_2, \cdots \}$, construct
+  neighbourhoods $\{V_n\}$, where $\overline{V}_{n+1} \subset V_n$, $x_n \not \in \bar{V}_{n+1}$, and $V_n \cap P$ is non-empty, for $V_1$, fix
+  some neighbourhood of $x_1$. Naturally, $V_1 \subset P$, and $\bar{V}_1 \subset P$, as $P$ is closed, and $V_1 \cap P \not= \emptyset$. Suppose $V_n$ exists
+  where $V_n \cap P \not= \emptyset$. Notice, if $x_{n+1} \not\in V_n$, let $V_{n+1} = N_{r/2}(x_n)$, where $V_n = N_r(x_n)$, otherwise, 
+  a similar (yet with diff. radius) neighbourhood can be constructed around $x_{n+1}$, so that, $x_n \not \in V_{n+1}$. \\
+  Set $K_n = \overline{V}_n \cap P$, $\overline{V}_n$ is closed and bounded, thus compact, and
+  $K_n$ is the inter. of a closed and compact set, it is itself compact. Furthermore, $K_{n+1} \subset K_n$, furthermore
+  $\bigcap_{i} K_i \cap P = \emptyset$, this is a contradiction.
+\end{proof}
+
+\begin{dfn}
+  \textit{The Cantor Set} - A perfect set in $\mathbb{R}^1$ which contains no segment. Let $E_n = \cup_{0 \leq i < \lfloor n^2/2\rfloor} [\frac{2 * i}{n^2}, \frac{2 * i + 1}{n^2}]$.
+  A few properties
+  \begin{enumerate}
+    \item[(a)] $E_1 \supset E_2 \supset \cdots \supset E_n$\\
+  \end{enumerate}
+  Finally, the \textit{Cantor Set} is $\cap_{n} E_n$
+\end{dfn}
+As $E_1$ is compact, $E_n \subset E_1$, is a closed subset of a compact set, and is itself, compact. Furthermore,
+as $E_i \not= \emptyset$, and the intersection of any finite collection of $\cap_i \{E_i\} = E_{i'}$, where $i' = min(j \in \mathbb{N}, E_j \in \{E_i\})$, 
+$\cap_n E_n$ is non-empty.     
+
+\begin{thm}
+  The \textit{Cantor Set} is \textit{perfect}.
+\end{thm}
+\begin{proof}
+  The \textit{Cantor Set} contains no segment.
+\end{proof} 
+
+\begin{dfn}
+  \textit{Separated Set} - Let $A, B \subset X$, where $X$ is a metric space, then $A, B$ are separated
+  iff, $\overline{A} \cap B = \overline{B} \cap A = \emptyset$ 
+\end{dfn}
+\begin{dfn}
+  \textit{Connected Set} - $E \subset X$, a metric space. $E$ is \textit{connected} iff,
+  $E$ is not the union of two connected sets.
+\end{dfn} 
+
+\begin{enumerate}
+  \item[(1)] Prove that the empty set is a subset of every set. 
+  \begin{proof}
+    Suppose $\emptyset \not \subset A$, in which case, $A \cap \emptyset = \emptyset$, a contradiction.
+  \end{proof}
+  \item[(2)] Prove that the set of \textit{algebraic} numbers is countable.
+  \begin{proof}
+    For $n \in \mathbb{N}$, denote $A_n = \{z \in \mathbb{C}: P(z)_n = 0 \}$, where $P_n(z) = a_0z^n + \cdots + a_{n-1}z + a_n$. Notice, there are
+    at most $|\mathbb{Z}^n|$, polynomials of degree $n$, as such, $\cup_n A_n \subset \cup_n P_n$, thus $\cup_n A_n$ is countable, as it is at most an infinite subset, of a
+    \textit{countable} set.
+  \end{proof} 
+  \item[(3)] Prove that there exist real numbers which are not algebraic.
+  \begin{proof}
+    Suppose otherwise, then $\mathbb{R} \subset \mathbb{A}$, and $\mathbb{R}$ is countable.
+  \end{proof}
+  \item[(4)]Is the set of all irrational real numbers countable?
+  \begin{proof}
+    Notice, $\mathbb{R} = \mathbb{Q} \cup \mathbb{R}\backslash \mathbb{Q}$, $\mathbb{Q}$ is countable, thus $\mathbb{R} \backslash \mathbb{Q}$ is un-countable.
+  \end{proof}
+  \item[(5)] Construct bounded set of real numbers with exactly three limit points. \\
+  \begin{proof}
+    $\{0 + 1/n: n \in \mathbb{N} \} \cup \{2 + 1/n: n \in \mathbb{N} \} \cup \{4 + 1/n: n \in \mathbb{N} \}$, notice, $0,2,4$ are the only limit points.
+  \end{proof}
+  \item[(6)] Let $E'$ be the set of all limit points of a set $E$. Prove that $E'$ is closed. Prove that $E$ and $\bar{E}$ have the same limit points. Do
+  $E$ and $E'$ have the same limit points?
+  \begin{proof}
+    Let $p \in E'^c$, thus there exists $N_r(p)$, where $N_r(p) \cap E = \emptyset$. Suppose $m \in N_r(p) \cap E'$.
+    Then $d(m, p) < r$, furthermore, for all $\epsilon_{>0}, N_{\epsilon}(m) \cap E = \emptyset$, denote, $p_{\epsilon} \in N_{\epsilon} \cap E$.
+    As, $d(p,m) + d(m,p_{\epsilon}) > d(p,p_{\epsilon})$, it follows that, $d(m,p_{\epsilon}) > d(p,p_{\epsilon}) - d(p, m)$, thus,
+    $0 < d(p, p_{\epsilon}) - d(p,m) = \mu$, $d(m, p_{\epsilon}) > \mu$, for all $\epsilon$. This is a contradiction, and $N_r(p) \cap E' = \emptyset$, and $E'^c$, is open.
+    Thus $E'$ is closed.
+  \item[(6a.)]
+  \begin{proof}
+    Let $p \in E'$, then there exists $r >0$, such that, $N_r(p) \cap E' \not = \emptyset$, let $p' \in N_r(p) \cap E'$, 
+    Notice, $N_r(p)$ is an isolated point, thus there exists $N_{r'}(p') \subset N_r(p)$. As $p' \in E'$, there exists $s \in E, s \not= p'$, where
+    and $s \in N_{r'}(p') \subset N_r(p)$, and $p \in E'$, thus $E'' \subset E'$, and $E'$ is closed.
+  \end{proof}
+  \end{proof}
+  \item[(7)] Prove that $E$ and $\overline{E}$, always have the same limit points.
+  \begin{proof}
+    Fix $p \in \overline{E}'$, as $p \in \overline{E}$ is closed, $p \in \overline{E}$, thus $p \in E$ or $p \in E'$, in either case, $p$ is a limit point of $E$.
+    Suppose $p \in E'$, then $p \in \overline{E}$, and is a limit point of $\overline{E}$.
+  \end{proof}
+  \item[(8)] Do $E$ and $E'$ always have the same limit points?
+  \begin{proof}
+    let $p \in \overline{E'}$, then $p \in E'$, and $p$ is a limit point of $E$. The reverse is obvious.
+  \end{proof}
+  \item[(9)] Is every point of an open set $E \subset \mathbb{R}^2$ a limit point of $E$. What about for closed sets in $\mathbb{R}^2$.
+  \begin{proof}
+    Yes, no.
+  \end{proof}
+  \item[(10)] Let $A_1, A_2, \cdots, A_n$ be subsets of a metric space. If $B_n = \bigcup_n A_n$, then $\overline{B_n} = \bigcup_n \overline{A_n}$ .
+  \begin{proof}
+    Notice, $B \subset \bigcup \overline{A_n}$. Suppose $p \in \bigcup \overline{A_n} \backslash \overline{B_n}$, then $p \in B_n'$, and $p \in \overline{B_n}$, 
+    thus $\bigcup \overline{A_n} \backslash \overline{B_n} = \emptyset$, and $\bigcup \overline{A_n} \subset \overline{B_n}$, furthermore, $\bigcup \overline{A_n}$ is closed. As such,
+    $\bigcup \overline{A_n} = \overline{B_n}$. 
+  \end{proof}
+  \item[(11)], if $B = \bigcup_{i=1}^{\infty} A_i$, prove that $\overline{B} \supset \cup_{i=1}^{\infty} \overline{A_i}$. Show by example that the inclusion can be proper.
+  \begin{proof}
+    let $p \in \cup_{i = 1}^{\infty} \overline{A_i}$, and $p \not \in \overline{B}$, then there exists $\epsilon_{>0}$, where $N_{\epsilon}(p) \cap B \subset \{p\}$. Thus, for all $i$, $A_i \cap N_{\epsilon}(p) \cap A_i \subset \{p\}$, thus $p \not\in \bigcup \overline{A_i}$, a contradiction
+  \end{proof}
+  \item[(12)] Show, by an example that the inclusion can be proper.
+  \begin{proof}
+    Let $A_i = [-\infty, 1-1/i] \cup [1 + 1/i, \infty]$, $B = \cup_i A_i$, then $1 \in \overline{B}$, is not a limit pt. of $A_i$
+  \end{proof}
+  \item[(13)] Let $E^o$ denote the set of all interior points of a set $E$. Prove that $E$ is always open.
+  \begin{proof}
+    Let $D = (E^o)^c$, suppose $p \in D'$, then for all neighbourhoods $V$ of $p$, there exists $l \in D$, thus $V \not \subset E^o$, and $p \in D$, thus $D$ is closed,
+    and $D^c = E^o$ is open.
+  \end{proof}
+  \item[(14)] Prove that $E$ is open iff $E^o = E$.
+  \begin{proof}
+    Suppose $E$ is open, then $p \in E$ implies that $p \in E^o$ , and $E \subset E^o$, that $E^o \subset E$ holds unilaterally.
+    Suppose $E^o  = E$. Then $p \in E$, means that $p$ is an interior point, thus $E$ is open.
+  \end{proof}
+  \item[(15)] If $G \subset E$ and $G$ is open, prove that $G \subset E^o$.
+  \begin{proof}
+    Let $p \in G$, then every neighbourhood  of $p$, $V_p \subset G \subset E$, thus $p \in E^o$. As such, $G \subset E^o$.
+  \end{proof}
+  \item[(16)] Prove that the complement of $E^o$ is the closure of the complement of $E$.
+  \begin{proof}
+    Let $D = (E^o)^c$, notice $D$ is closed, and $E^c \subset D$, thus $\overline{E^c} \subset D$. Suppose $p \in D$, then either,
+    $p \in E^c$, or $p \in D \backslash E^c$, then for all neighbourhoods of $p$, $V_p$, $V_p \cap E^c \not= \emptyset$,thus $D \subset \overline{E^c}$, and $D = \overline{E^c}$.
+  \end{proof}
+  \item[(17)] Do $E$ and $\overline{E}$ always have the same interiors.
+  \begin{proof}
+    It suffices to show that $\overline{E^c} = \overline{\overline{E}^c}$, naturally $\overline{\overline{E}c} \subset \overline{E^c}$.
+    Suppose $p \in \overline{E^c}$, then $p \in E'$, or $E^c \backslash E'$, if $p \in E'$, then $p \in (\overline{E}^c)'$, and in the other case, $p \in \overline{E}^c$, thus $\overline{E^c} \subset \overline{\overline{E}^c}$,
+    and $\overline{E^c} = \overline{\overline{E}^c}$
+  \end{proof}
+  \item[(18)] Do $E$ and $E^o$ always have the same closures?
+  \begin{proof}
+    No, consider $\{1,2,3\}$, or any finite set.
+  \end{proof}
+  \item[(19)] Let $X$ be an infinite set. For $p \in X$ and $q \in X$, define
+  \begin{equation}
+    d(p, q) = \begin{cases} 1,& (p \not=q) \\ 
+    0, & (p = q)
+    \end{cases}
+  \end{equation}
+  Prove that this is a metric. Which subsets of the resulting metric space are open? Which are
+  closed? Which are compact?
+  \begin{proof}
+    Consider $p, q, r \in X$, then $d(p, r) \leq 1 \leq d(p, q) + d(q, r)$, furthermore, $d(p,q) = d(q, p)$, $\cdots$. Let $E \subset X$, and $E$ is not empty.
+    then, $E$ is open. To see this, fix $p \in E$, then there exists $N_r(p) \subset E$, where $r < 1$. Furthermore, for $E \subset X$, let $p \in E'$, 
+    then for all $r > 0$, $N_r(p) \cap E \backslash{p} \not= \emptyset$, however, for $r < 1$, this set is empty. Thus for $E \subset X$, $E' = \emptyset$.
+    Naturally $E' \subset E$, and $E$ is closed. Only finite sets are compact. Otherwise, if $E$ is infinite, let $\{p_i\}$, where each $p_i \in E$ is an open-cover, 
+    and not subset of $\{p_i\}$ is an open cover of $E$.
+  \end{proof}
+  \item[(20)] Is $d(x,y) = (x -y)^2$ a metric?
+  \begin{proof}
+    No, for $x,y,z \in \mathbb{R}$, where $y > x$ and $y > z$
+  \end{proof}
+  \item[(21)] $d(x,y) = \sqrt{|x - y|}$
+  \begin{proof}
+    Yes
+  \end{proof}
+  \item[(22)] $d(x,y) = |x^2 - y^2|$
+  \begin{proof}
+    Yes
+  \end{proof}
+  \item[(23)] $d(x,y) = |x - 2y|$ 
+  \begin{proof}
+    No
+  \end{proof}
+  \item[(24)] $d(x,y) = \frac{|x - y|}{1 + |x - y|} $
+  \begin{proof}
+
+  \end{proof} 
+  \item[(25)] Let $K \subset \mathbb{R}$ consist of $0$ and $1/n$, where $n = 1,2 \cdots$. Prove $K$ is compact from the definition.
+  \begin{proof}
+    Notice $[0, 1] \subset \mathbb{R}$ is compact, and $K \subset [0,1]$ and is closed, thus it is compact.
+  \end{proof}
+  \item[(25a)]
+  \begin{proof}
+    Fix $A_i$, an open cover where for $i \not= j, A_i \cap A_j \not= \emptyset$ (a set $A_i$ can be obtained for every \textit{OC} of $K$).
+    Fix $0 \in A_{\alpha_0}$, then as $A_{\alpha_0}$ is open, let $r > 0, N_r(0) \subset A_{{\alpha}_0}$, then fix $min_{n \in \mathbb{N}, r < 1/n}$, 
+    subsequently, there exists $A_{\alpha_i}$, where $1/n \in A_{\alpha_i}$, the process may be repeated, to obtain a finite open cover
+    $\{A_{\alpha_i}\}$
+  \end{proof}
+  \item[(26)] construct a compact set of real numbers whose limit points form a countable set.
+  \begin{proof}
+    $A = \{0\} \cup \{1/n, n \in \mathbb{N}\} \cup \{1/m + 1/n, n \in \mathbb{N}\}$, notice, $A \subset [0,2]$, and is closed,
+    as such, it is compact. Furthermore, its limit points are $0, 1/m,1 + 1/m,  m \in \mathbb{N}$.
+  \end{proof}
+  \item[(27)] Give an example of an open cover of $(0,1)$ which has no finite subcover.
+  \begin{proof}
+    $A_i = N_{1/2i}(1-i), i \in \mathbb{N}$
+  \end{proof}
+  \item[(28)] Show that theorem $2.36$, and its corollary become false if the word ``compact`` is replaced by ``closed``  or ``bounded``''.
+  \begin{proof}
+    \textit{bounded}: Let $K_i = [-1/i, 0) \cup (0, 1/i]$ \\
+    \textit{closed}: 
+  \end{proof}
+  \item[(29)] Regard $\mathbb{Q}$,
+  \item[(30)] If $A$ and $B$ are disjoint closed sets in some metric space $X$, prove that they are separated.
+  \begin{proof}
+    Notice, $\emptyset = \bar{A} \cap \bar{B} \supset \bar{A} \cap B = \emptyset$, a similar proof exists that $A \cap \bar{B} = \emptyset$.
+  \end{proof}
+  \item[(31)] Prove the same for disjoint open sets.
+  \begin{proof}
+    Let $A, B \subset X$, be disjoint open sets. Suppose $b \in \bar{A} \cap B$, then $b \in A' \cap B$, thus $b \in B$ and is not an interior pt. of $B$, a contradiction.
+  \end{proof}
+  \item[(32)]  Fix $p \in X$, $\delta > 0$, define $A$ to be the set of all $q \in X$ for which $d(p,q) < \delta$, define $B$ to be the set of all $l$ where $d(p,l) > \delta$. Prove that $A$ and $B$ are separated.
+  \begin{proof}
+    $A, B$ are open sets, the proof follows from $32$.
+  \end{proof}
+  \item[(33)] Prove that every connected metrc space with at least two points is uncountable\\
+  \item[(35)] Let $A, B$ be separated subsets of $\mathbb{R}^k$, fix $a \in A, b \in B$, and define
+  \begin{equation}
+    p(t) = (1 -t)a + tb
+  \end{equation}
+  where $t \in \mathbb{R}$, put $A_0 = p^{-1}(A), B_0 = p^{-1}(B)$. Prove that $A_0$ and $B_0$ are separated subsets of $\mathbb{R}$. 
+  \begin{proof}
+    Let $l \in \bar{A_0} \cap B$, then $p(l) \in B$, and, for all $\epsilon$, $l + \epsilon \in A_0$, thus $p(l + \epsilon) = p(l) + \epsilon * (a + b) \in A$, however, there exists some $N_{\delta}(p(l)) \cap A = \emptyset$ as $p(l) \not \in A'$, thus $d(p(l), p(l + \epsilon)) > \delta,  \epsilon * \|(a + b) \| > \delta$, 
+    and $\epsilon > \delta / \|a + b\| > 0$, contradicting that $l \in \overline{A_0}$. A similar proof holds that $\bar{B_0} \cap A_0 = \emptyset$.
+  \end{proof}
+  \item[(36)] Prove that there exists $t_0 \in (0,1)$ such that $p(t_0) \not \in A \cup B$
+\end{enumerate}
+\end{document}
+
