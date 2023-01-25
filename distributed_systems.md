@@ -1249,6 +1249,7 @@ thm blagh (p q : Prop) : p -> q
     - By default uses equalities in the forward direction, i.e for $x = y$, the rewriter looks for terms in the current goal that match $x$, and replaces them with $y$
         - Can preface equality with $\leftarrow$ (`\l`) to reverse application of equality
     - Can specify `rw <equality> at <hypothesis>`  to specify which hypothesis is being re-written
+- 
 ## Simplifier
 - 
 ## Interacting with Lean
@@ -1277,8 +1278,9 @@ thm blagh (p q : Prop) : p -> q
     - `Prop` types can only eliminate to other `Prop`s  
 - Structures / records  
     - Convenient means of defining `conjunctive`  types by their projections
-## Inductive Types Defined in Terms of Themselves
+## Inductive Types Defined in Terms of Themselves (Recursive Types)
 -  Consider the natural numbers
+
 ```
 inductive nat : Type 
     | zero : nat
@@ -1288,7 +1290,49 @@ inductive nat : Type
     - In this case, $$nat.rec\_on (\Pi (a : nat), C n) (n : nat) := C(0) \rightarrow (\Pi (a : nat), C a \rightarrow C nat.succ(a)) \rightarrow C(n)$$, i.e given $C 0$, and a proof that $C(n) \rightarrow C(succ(n))$
 - Notice, each function $\Pi$-type definition over the natural numbers is an inductive definition
     - Can also define the co-domain as a $Prop$, and can construct proofs abt structures that are mapped to naturals via induction
-- 
+- Notes abt inductive proofs lean
+    - What is `succ n`?
+    - Trick: View terms as `succ n` as regular natural numbers, and apply theorems abt the naturals accordingly
+## Mathematics in Lean
+### Sets
+- Given $A : set \space U$, where $U : Type_u$, and $x : U$, $x \in A$ (`\in` lean syntax), is equivalent to set inclusion
+    - $\subseteq$ (`\subeq`), $\emptyset$(`\empty`), $\cup$(`\un`) $\cap$(`\i`)
+- $A \subseteq B$, is equivalent to proving the proposition $(A B : set U), x : \forall x : U, x \in A \rightarrow x \in B$ (i.e intro hx, intro hex, and find a way to prove that $x \in B$),
+    - **Question** - How to prove that $x \in A$? Must somehow follow from set definition?
+- Similarly for equality $\forall x : U (x \in A \leftrightarrow x \in B) \leftrightarrow A = B$
+    - *axiom of extensionality*
+    - Denoted in lean as `ext`, notice in lean, this assertion is an implication, and must be applied to the `\all` proof
+- Set inclusion is a proposition
+- $x \in A \land x \in B \rightarrow x$ and $x \in A \cap B$ are definitionally equal
+- **Aside** - `left / right` are equivalent to application of constructor when the set of 
+- Lean identifies sets with their logical definitions, i.e $x \in \{x : A | P x\} \rightarrow P x$, and vice versa, $P x \rightarrow \{x \in \{...\}\}$
+- Use `set.eq_of_subset_of_subset` produces $A = B$, from
+    - $A \subseteq B$
+    - $B \subseteq A$
+- Indexed Families
+- Define indexed families as follows $A : I \rightarrow Set \space u$, where $I$ is some indexing set, and $A$ is a map, such that $A\space i := Set \space u$, 
+    - Can define intersection as follows $\bigcap_i A \space i := \{x | \forall i : I, x \in A \space i\} := Inter \space A$,
+        - In the above / below definitions, there is a bound variable `i`, that is, a variable that is introduced in the proposition, and used throughout,
+    - Union: $\bigcup A \space i := \{x | \exists i : I, x \in A \space i\} := Union \space A$, notice, $x \in \bigcup_i A \space i$, is equivalent to the set definition in the lean compiler
+        - *I dont know if this is true in all cases*? May need to do some massaging on lean's part
+- *ASIDE* - For sets in lean, say $A := \{x : Sort u | P \space x\}$, where $P : Sort_u \rightarrow Prop$, $x \in A \rightarrow P \space x$
+    - In otherwords, set inclusion implies that the inclusion predicate is satisfied for the element being included
+- *Back to Indexed Families*
+- Actual definition of indexed is different from above, have to use `simp` to convert between natural compiler's defn and practical use
+- Notice
+    - $A = \{x : \alpha | P x\} \space: set\space \alpha := \alpha \rightarrow Prop$, and $P x$ implies that $x \in A$
+        - The implication here is implicit, largely can be determined by `simp`?
+- Can use `set` notation and sub-type notation almost interchangeably
+    - `subtypes` are defined as follows $\{x : \mathbb{N} // P x \}$, thus to construct the sub-type, one has to provide an element $x : \mathbb{N}$, and a proof of $P x$
+- **Question**
+    - In lean, how to show that where $A = \{x : \alpha| P x \}$, how to use $x \in A$ interchangeably with $P \space x$ 
+        - Is this possible? Does this have to be done through the simplifier?
+    - Can alternatively resort to using `subtype notation`
+        - That is, to prove $\forall x : A, P \space x := \lambda \langle x, hx \rangle, hx$
+            - i.e use the set as a sub-type, instantiate an element of the sub-type
+                - Explanation - `sub-type` is an inductively defined type, of a witness, and a proof
+- Interesting that given set $ U =\{x : \mathbb{R} | \forall a \in A, a \leq x\}$, the term $(x \in U) a := a \in U \rightarrow a \leq x$
+## Order Relations in Lean
 ### CROSS CHAIN DEX AGGREGATOR
 - Scheduler (encoding arbitrary logic into scheduler)
 - 
@@ -1320,6 +1364,48 @@ inductive nat : Type
     - blockchain that sources any binary to be executed in a trusted environment
         - Potentially arbitrary replication of any service / data? (BFT Zookeeper)
         - How to make the idea of SUAVE generalizable enough for an arbitrary application?
+## Data Intensive Apps Book
+### Foundations
+ - Removing duplication of data w/ same meaning in DB - normalization
+    - Two records store data w/ the same meaning ($trait - philanthropy$), as trait changes, any appearance of philanthropy will change
+        - Instead store $trait - ID, ID -> philanthropy$, change value at ID once !!
+ - Normalization - Rquires a *many-to-one* relationship
+- Document databases - joins are weak
+    - 
+- JSON data model has better localilty 
+    - multi-table requires multiple queries + join
+    - JSON - All relevant data is in one place (just query JSON obj.)
+- What about for larger highly-coupled data-sets
+    - I.e several JSON objects make use of ID field defined separately?
+        - How to decouple these objects?    
+            - RELATIONAL MODEL - I assume this is generally much larger scaled than document-based
+- *one-to-many* - relation is analogous to a tree, where edges are relations
+    - JSON naturally encapsulates as a single object + sub-objects?
+- **normalization requires many-to-one** relationships  
+    - I.e multiple tables must have rows whose values are enumerated in keys
+        - The keys referenced are contained in a single table
+- Normalization / many-to-one - does not fit well in document databases
+    - Joins are weak, in document based model you just grab the object it self
+        - Data that is referential of other data is not useful in document-based data
+- General practice
+    - Identify entities of objects used (data-structures in code)
+    - Identify relationships between these objects
+    - if data is self referential (one-to-many) -> use document-based
+    - Otherwise use relational (generally easier to work-with )
+- **network-model**
+    - document -> each object has a single parent
+    - network -> each object has n-parejts 
+        - Supports many-to-many relationships thru access-paths (follow references from parent to leaf) -> unbounded size of queries
+            - Can't specify direct pointers to non-child entities
+- **relational**
+    - Similar to network databases -> path to entities are automatically determined by table-relationships (query optimizer)
+        - Much more user friendly for highly referential data
+- **document-based**
+    - Do not require a schema for entries   
+        - Unstructured tree-like data that can be loaded all at once (schema-on-read, schema is interpreted after reads)
+        - **relational is schema on write**
+- 
+- 
 ## CELESTIA?
 - 
 ## SGX Research?
@@ -1346,3 +1432,21 @@ inductive nat : Type
 ## Databases
 ## ZK
 ## Data-mining
+# Git Notes
+- `branch`
+    - Collection of commits, each `HEAD` retains references to the index / objects associated with the state of the latest commit on that branch
+- `tags`
+    - Maintains immutable references to object state / index of a particular history of the project (immutable snapshot of head of some branch) 
+    - `git tag -l`
+    - `git switch -c <new> <tag_name> ` - Checkout state of some tag, and create a new branch head off of this state
+- All objects in history are *content-addressable*
+    - Commits are identified by the `sha-1` hash of their contents
+- `git branch <branch>`, Create a new branch named branch, with the HEAD of the new branch as the head of the current branch
+    - `git branch -d` delete a branch
+- `git switch` - Preferred alternative to `git checkout` (checkout references commits whereas switch references branch HEADs)
+## Object Database
+- Stores **object**, in a content-adddressed format (objects are indexed by the sha-1 hash of their contents), These are the possible variants of an object
+    - `blob` - binary large object, basically represents the individual changes to files 
+    - `tree` - multiple blobs, stored in a tree structure (the directory structure that the blobs reference)
+    - `commit` - A `tree` of all the changes from the last commit, a reference to the previous commit
+    - 

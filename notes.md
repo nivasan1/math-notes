@@ -977,7 +977,7 @@ foo := Foo{w}
         - **Channel Handler**
             - Receives alerts specified for a specific channel-id and routes them to the node operator via the channel associated with the channel-id (Slack, tg, etc.)
 - **System Monitor**
-    - Left off here: `https://github.com/SimplyVC/panic/blob/40cdb9f87723a75ed364fc76a006fdcc8343fdd1/alerter/src/monitors/node/cosmos.py#L398`
+    - Left off here: `https://github.com/SimplyVC/panic/blob/40cdb9f87723a75ed364fc76a006fdcc8343fdd1/alerter/src/monitors/node/cosmos.#L398`
     - Monitor uses a `TendermintRPCAPIWrapper`
     - `get_status` - Fetches data from the status endpoint from the node
 - **Implementation**
@@ -1080,11 +1080,520 @@ foo := Foo{w}
 - What to do about `Config` objects
     - Alerts config, the severity metric `is_node_peered_with_sentinel`?
         - Can possibly make this optional? No either way, has to be included, and it can be enabled / disabled via the UI
+## Polygon Architecture Notes
+### Polygon Layers
+- **Ethereum Layer** - Set of contracts on mainnet
+- **Heimdall Layer**
+    - Monitor staking contracts on ethereum, commit polygon network checkpoints to eth mainnet. Based on tendermint
+- **Bor**
+    - Block producing bor nodes, shuffled by Heimdall nodes
+## Staking and Plasma Contracts
+- Staking contracts enable users to stake `Matic` and become a validator of polygon txs
+## Heimdall
+- Aggregates blocks produced by `Bor`, creates merkle-root hash of all blocks produced, publishes root hash of intermediary blocks to mainnet
+    - I assume publishing of root-hash solves the data-availability problem? Where are the intermediary txs / merkle tree stored (need aunts / uncle nodes to form proof)?
+    - State of chain is immutable at checkpoints (possible fork of state between check-points?)
+- Periodically shuffles block-producers for `bor` consensus layer.
+## Architecture
+- Each node is architected with 2 layers, `bor` + `heimdall`
+- Sprint = 64 blocks
+- Span = 100 sprints
+- **Delineation**
+    - **Heimdall**
+        - Proof-of-stake validation
+        - Handles validator set updates / management (interacts with contracts on EVM) 
+        - Checkpointing of blocks
+    - **Bor**
+        - VM
+        - Proposer / producer set selection
+- Every sprint has a new proposer
+    - Selection of proposer per sprint is determined by tendermint consensus
+    - Validator set to use between sprints is given at each span from Heimdall
+- System call interface (between Heimdall <> Bor)
+    - System call interface is as follows, implemented via privileged contract-calls
+    - `proposeState`
+        - propose `stateID` if not already proposed
+    - `commitState`
+        - Notify `StateReceiver` contract of current `stateID`
+        - remove the current `proposedState`
+            - I assume this signifies a commit of the current pending state between span?
+    - `proposeSpan`
+        - Update proposal for `span`
+    - `proposeCommit`
+        - Update span / time_period
+        - Update validators / producers for `sprint`
+- More on system-call
+    - Only accessible to `system-address`
+    - Manipulates contract state outside of a regular EVM tx
+- **Heimdall**
+    - `Begin` \ `EndBlock` of `Heimdall` processes updates to validator set and relays to `peppermint`
+    - **PepperMint**
+        - Modified tendermint with `secp256k1` signin
+- **Bor Consensus**
+    - Proposers are selected from `producers` sent by bor at each sprint
+        - Proposer selection for each block in a sprint (all blocks in sprint have same proposer) is determined by tendermint proposer selection with voting weights / set from `Heimdall`
+        - `Bor` also selects back-up proposers
+    - Each producer in the sprint has a defined priority, any of them may sign and broadcast headers, but their signature is weighted by their priority
+        - i.e backup proposers can sign and broadcast blocks whenever
+        - Blocks within sprint are delayed by a designated `Period`
+        - Does this mean that potentially anyone can sign / broadcast block within sprint?
+            - Forks are possible, but resolved by `difficulty` assignment
+    -
 ## Tests
 ### Monitor
 - If the node is a `mev_tendermint_node` 
     - Check that the `is_peered_with_sentinel` field is set correctly
 - If the node is not a `mev_tendermint` node
     - Check that the field is not set
+- **Checking Diff**
+    - New monitorable for `is_peered_with_sentinel` added
 ### Transformer
 ### Alerter
+## Tue. Jan. 17
+- Write tests for `data_transformer`
+- Write tests for `alerter`
+- Consider refactoring test cases for `monitor`
+- Set up monitoring on a local validator running mev-tendermint, 
+## Data Transformer
+- On each message from message queue
+    - Process and validate the sent data (as json), receive node_id, and node_parent_id
+    - **Question**
+        - Should `Redis` be used to load state of the node's peering status with the sentinel?
+            - Currently this doesn't matter as any-time the node is not peered, the alert is raised. I.e if the node goes down, and comes back up, the previous state is irrelevant for the current alerting status
+            - Alternatively - Could set a threshould of ~10 seconds that the node is able to be not peered with sentinel?
+                - In this case, we have to load state from `redis`
+        - Think about edge-cases where not saving data about node status may be harmful?
+            - What if the node transitions from being a `mev-tendermint` node to not being one
+## Test Cases For Transformer!!
+1. If the node is not a `mev-tendermint` node, `is_peered_with_sentinel` should not be set in the returned response for process tendermint rpc data for alerting
+    - `test_process_transformed_data_for_alerting_returns_expected_data` - Can modify or make test similar to this one
+        - Add new `transformed_data` format, copy all results, and add new field
+        - Add new processed data result
+2. Only should be getting `is_peered_with_sentinel` if the node is a `mev-tendermint-node`
+    - This is covered in above test?
+- Functions to consider `process_transformed_tendermint_rpc_data_for_alerting`, 
+    - What does adding this test-case account for?
+        - Case when `is_peered_with_sentinel` exists
+3. Consider test of updating state, test that the expected monitorable is set?
+    - `test_update_state_updates_state_correctly_if_result`
+        - Update the expected state to have `is_peered_with_sentinel` set to true
+    - Pass expected transformed data `mev` and check that the values are set correctly
+4. Testing parsing of data?
+    - Add a test with raw data `is_peered_with_sentinel`
+    - `test_process_raw_data_updates_state_if_no_processing_errors`
+        - Add a new `raw_data` format with mev metrics added
+## Test Cases For Alerter!!
+### CosmosNode Alerting Factory Tests
+- These should pass automatically?
+- **Bug**
+    - `PeeredWithSentinel` - Should not be a `ClassifySolvableAlertCondition
+    - This actually may be ok?
+        - `CosmosNodeAlertingFactory` is instantiated each time a tendermint-rpc metric is processed by the alerter
+            - This means that alerting factory is refreshed on each `consume` of tendermint-rpc data
+    - When `is_peered_with_sentinel` is disabled, no alerts
+        - `test_process_tendermint_rpc_result_does_not_classify_if_metrics_disable`
+    - Test that alert is raised correctly in `test_process_tendermint_rpc_result_classifies_correctly_if_data_valid`
+### Cosmos Node Alerter tests
+ - Test that when given correct `tendermint_rpc_data` alert is fired
+## Look into run_alerter.py
+- How is the config set? How to change config before running test on validator?
+- `queue_data_selector_helper.py`
+    - `_add_nodes` - Could this be how the node config is instantiated?
+    - Store and retrieve configs from `mongoDB`
+        - Stored according to a `NodeSubModel` Data model
+    - `get_all_configs_available`
+        - Given a `MongoAPI` query for all config objects from the DB
+            - Determine validity of all chain / node configs + channels in DB
+        - Instantiates config objects as necessary, returns an array of all the config objects + their routing keys (these should not be changed)
+    - Data from `get_all_configs_available` is routed via `RabbitMQ` to the respective services
+- What about for adding to alerts config?
+    - `SeverityAlertSubConfig`?
+        - Each alert input as an individual entry here?
+- Removing `is_mev_tendermint_node` from config?
+    - **Pro**
+        - Don't have to mess with UI
+        - 
+### What code to go back through and clean up b4 PR
+- Go back through and clean up monitor tests
+- Attempt to follow similar path as in `data_transformer` tests
+    - Find tests that need to be modified (what is the desired functionality to test
+        - Test that `_get_tendermint_rpc_data` retrieves the expected data in the correct cases
+            - Only set `is_peered_with_sentinel` if it exists
+                - i.e If the `mev-info` field of `/status` response exists
+        - Test `_get_tendermint_rpc_data` gets the correct data
+            - Returns `is_peered_with_sentinel` if it is present in the response
+        - Test that `is_mev_tendermint` field of `meta-data` response is set correctly
+            - I.e only if `is_peered_with_sentinel` is returned in the `_get_tendermint_rpc_data` response
+        - Check that all of this comes together in `_monitor`
+## Secure Txs in DB
+### Schema
+```
+CREATE TABLE public.secure_txs (
+    sender TEXT NOT NULL,
+    height INT NOT NULL DEFAULT -1,
+    tx_hash TEXT NOT NULL,
+    submitted_timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+    committed_timestamp TIMESTAMP,
+    code INT NOT NULL DEFAULT -1,
+    failed_delivery BOOLEAN NOT NULL DEFAULT FALSE
+    PRIMARY KEY (tx_hash)
+);
+```
+- What do we get from this?
+    - Can query txs by sender_address, height, timestamp
+    - Can query all txs that didn't end up on chain
+    - Can query all txs that ended on chain but failed
+    - Can query all txs that ended on chain successfully
+    - Can corroborate time from submitted to time committed on chain
+- What else could we possibly want?
+    - Front-end graphing
+        - Graph volume of secure txs over time / height
+    - User analytics
+        - Associate each tx with a user, valuable
+        - Search for a specific user's tx
+    - Performance
+        - Question - What about txs that we send, but aren't received by proposers? These will just be logged as if they were never sent, is this desired behavior?
+            - What do we do about bundles? 
+                - Any bundles added to `winning_bundles` will be added to `WBQ`, and are expected to end on chain
+                    - two outcomes
+                        1. Added to `WinningBundleQueue`    
+                            - Sent to validator, expected to end up on chain. Final succcess of bundle is determined from `validator-registration` chain query
+                                - In this case, we know that we sent the bundle to the validator, if any of the txs don't end up on chain, we know that the proposer did not receive the bundle, etc.
+                        2. Not added to `WinningBundleQueue`
+                            - Bundle hash will be logged in `losing_bundles`, not sent to validator / not expected to end up on chain
+                - SecureTxs
+                    - Two outcomes
+                        1. Tx is never sent to a validator
+                            - Code will be `-1`
+                        2. Tx is sent to a validator, but a validator does not include in block
+                            - We have no way of tracking this, the tx remains in the DB until it is committed again
+                                - Perhaps never, in which case, we get `-1` as the code still
+                        3. Tx is sent to a validator, reaped, and ends up on chain
+                            - The code will be >= 0 in this case, this is expected, we can determine outcomes based on the code for the tx
+        - We have the time taken between the secTx being submitted, and it ending up on chain
+            (answer) - This is a separate concern / issue, and should be treated as such
+                - **Possible solution** - for each tx, log the `ResponseDeliverTxs` in failingBundles? 
+                    - If the `ResponseDeliverTx.Code` is `-1` we know the tx did not end up on chain, failure in gossip / reap logic
+                    - Otherwise, one of the txs in the bundle failed, and we can determine specifically what the failure resulted from / consult chain for more detail
+        - With current schema is there a better way?
+            - Add second table `failed_secure_tx`, 
+                - Add a field to the `secure_tx` `failed_delivery`, only set to true if bundle has been delivered more than once
+                    - Also can add a slice of cons_addresses of proposers delivered to (any more proposers delivered to than one, and we know its a failure)
+- Possible case
+    - Receive proposal
+        - Next validator to propose is a skip val --> start simulation
+    - Simulation started
+        - Simulate and select bundle
+    - New proposal is received, next proposer is skip, winning_bundles hasn't been reset,
+        - All bundles in `ppbq` fail, `wbq` isn't updated, 
+    - FireSentinel, `wbq` is added to mempool, although the winning bundle would fail on chain
+- Solution
+    - We should purge `winningBundleQueue` whenever we receive a new proposal
+## Failure Introspection
+- **Purpose** - For `bundles` and `secure txs` we need to know and classify all possible failures that can happen after the sentinel has fired.
+    - Knowing the above, we can intelligently collect data to diagnose when these failures happen.
+### Bundles
+- Bundle exists in `winningBundles` and has been sent to a proposer, but was not included in block. There are two cases to consider
+    - The validator did not receive the bundle
+        - This is an error in networking
+            - The peer may have been un-responsive at the time that the bundle was sent? Etc.
+                - We can monitor the sentinel's connection status to all peers granularly
+    - The validator did receive the bundle
+        - This is an error in `mev-tendermint`'s reap-logic (if this were to happen)
+            - We have no way of monitoring what is happening on the `mev-tendermint` node, without adding new metrics and asking that all validators expose them
+- Bundle exists in `winningBundles`, has been sent to a proposer, and has failed on chain
+    - This indicates an error in sentinel simulation
+- Currently, both of the above issues are grouped into a single table, `failing_bundles`. For entries in `failing_bundles` there is no non-trivial way (without a chain-query) to determine which of the above error buckets caused the bundle to be added to `failing_bundles` 
+    - We also only check to see if the `paymentTx` ended up on chain, so we actually have no way of recording the second error bucket
+### Secure Txs
+- SecureTx has been sent to a proposer, and has not ended up in the block
+    - This is due to the same reasons as for a `bundle`
+        - Error in networking
+        - Error in reap-logic
+- SecureTx has been sent to a proposer, has ended up in a block, but has failed.
+    - Currently we do not simulate `secure_txs` but in the future we will, and this indicates a failure in simulation
+- We now have the ability to distinguish both of the above errors from each other in the `secure_txs` table
+    - We have `deliver_tx_code` field, this enables us to determine if the tx failed in `DeliverTx`
+    - We have `proposers_delivered_to`, this enables us to determine which proposers have received the `secure_tx`. If more than one proposer is present here we know that each send (except for the send to the last validator) failed for the first reason
+### Notes
+- We may need more detail regarding failures of the first kind (proposer did not receive bundles / secTxs after the sentinel has sent them).
+    - We cannot monitor what is happening on the `mev-tendermint` nodes
+    - We can monitor the state of the peers each `proposer` is associated with, this is logged in the `connections` table, however, there is currently no way of correlating `winning_bundles` / `secure_txs` with the `connections` table
+- We need to account for all txs in a bundle / their `DeliverTx` response codes when adding `bundle` entries into the `failing_bundles` table
+
+- **Implementation**
+- **Solution 1**
+    1. On ingress add `secure tx` to the DB
+        - Sets the sender
+        - Sets the `tx_hash`
+        - Sets the `submitted_timestamp`
+        - This will be done in `BroadcastSecureTx`
+    2. Gather all `secureTxs` added to the `mempool` at `addWinningBundlesAndSecureTxs`
+        - For each `secureTx` gathered, add the proposer to fire for to the set of proposersFiredTo in the secureTx
+    3. Gather data on `Update` into the `secureTx`
+- **Solution 2**
+    - Change the `secureTxMap` data structure
+        - Each `secureTx` now has fields needed for the `secureTx` table
+            - Insertions will update these fields with the necessary data
+            - Add method to mark committed
+            - Add method to mark expired
+            - Add method for a batch delete
+    - `SecureTxStore` interface will be as follows
+    ```
+    type SecureTxStore interface {
+        // called from the ingress thread after checkTx to add a secureTx to the set of securetxs
+        AddSecureTx(tx Tx, gasWanted int64, expiryHeight int64, sender string)
+        // ranges over the set of secureTxs with the predicate specified, used when adding securetxs to the mempool
+        Range(rangePred func() bool)
+        // Removes all securetxs with expiryHeight >= expiryHeightToPrune, all pruned txs will be logged in the database
+        PruneSecureTxs(expiryHeightToPrune int64)
+        // marks the given txHash as committed if it exists in the set of secureTxs
+        MarkCommitted(txHash string, DeliverTxResCode int64)
+    }
+
+    type SecureTx struct {
+        Tx           types.Tx
+        GasWanted    int64 // amount of gas this tx states it will require
+        ExpiryHeight int64 // height at which this tx should expire (no longer be broadcast)
+        submitted_timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+        committed_timestamp TIMESTAMP,
+        deliver_tx_code INT,
+        proposers_delivered_to TEXT,
+        sender TEXT NOT NULL,
+    }
+
+    func (*st) AddProposerDeliveredTo(proposer string) {}
+    ```
+    1. On ingress, `BroadcastSecureTx` will call `AddSecureTx` on `SecureTxStore`
+        - Add SecureTx
+            - This will add a new `secure_tx` to the `SecureTxStore`, setting default `submit_time` sender, `gasWanted` expiryHeight, etc. .
+    2. On `addSecureTxToMempool` 
+        - Range with func
+            - Adds a new proposer on the `SecureTx` object (this is done in a for-each)
+    3. On `Update`
+        - Mark Committed for all txs in the `SecureTxStore` if they already exist
+    4. Solution
+        - Just use a mutex to protect the objects?
+            - What specifically needs to be protected here?
+                - MarkCommitted?
+                - PruneSecureTxs?
+        - `sync.Map` and mutexes on individual 
+## PR Fixes
+- Any modified test cases should be reverted to original, and new test-cases should be created to specifically target the functionality to be tested
+- Add a test-case for the `AlertStore` and newly defined alerts
+- Modify `DataStore` as necessary
+- Start fixing the test cases, separating hijacked test-cases into new ones
+
+## Failure Introspection
+- DB docs
+    - Add docs for `skip txs`
+- Properly updating `failing_bundles` table
+    - May need a change to schema?
+- What is needed from this table?
+    - For any failures for the bundle, want to know the error codes for the failures?
+        - Committed failures
+        - Not ended up on chain failures
+    - for each failure, can map deliver tx order by the order entry in the db?
+    ``` 
+    failed_txs    | codes
+    tx1, tx2, tx3 | -1, 4, 4
+    ``` 
+- In the above case, `-1` indicates a bundle tx did not end up as committed
+    - How 
+## Logging SecureTxs in the DB
+- For each tx, what needs to be logged?
+    - `sender`
+    - `tx_hash` 
+    - `submitted_timestamp`
+    - `height` (in case of non-committed txs, this will be the expiry)
+- **Question**
+    - What is the proper way to instantiate in `ClistMempool`?
+        - Pass in `peerDB` to `ClistMempool`, `peerDB` is a dependency of the `ClistMempool`
+    - Add a new getter to the `SecureTxManager`?
+    - Adding metrics to the `SecureTxManager`?
+            - Does this improve abstraction?
+    - Have to change schema for all deployments
+    - What should be recorded, proposer address or peer?
+        - Only should be set on `broadcastTxRoutine` 
+            - This means that whatever proposer the `secureTx` is fired to should be receiving the `secureTx`
+                - Advantage of logging peers (no real advantage here)?
+                    - Should make for easier queries?
+                    - Data is aggregated, can be removed if we don't want? Makes schema annoying
+                - Have `committed_timestamp` (this is whenever the secure tx has been added to the mempool)
+                    - Possible to corroborate connections table data against the peer fire
+                        - Can determine which nodes were connected to sentinel with the same `api_key` as the proposer that was fired to
+        - Solution, instead of making changes in `broadcastBundleRoutine`
+            - Change `FireSentinel` to only add `securetxs` to mempool if the next proposer is a skip val
+## Panic PR
+- Write test to determine SentinelPeeringAlert is logged in the `AlertStore`
+## Updates to `failing_bundles` insertion logic
+- How to go about doing this?
+    - Could migrate `/sentinel` package into the `sentinel-core` directory? Make this as a single PR
+    - Make changes to `Update` logic as a PR on top of this
+- Will be composed of 4 PRs
+    - 1 PR to migrate `/sentinel` into `/sentinel-core` in `monorepo`
+        - Not necessary but a good change imo. Doing this
+    - 1 PR to handle update logic in `CListMempool.Update()`
+    - 1 PR to auction for changes to `failing_bundles` schema
+    - 1 PR to validator-registration to remove the `failing_bundles` update logic
+        - Dependency
+### Failing Bundles Schema change
+- Current Schema
+```
+	cons_address text NOT NULL,
+	bundle_hash text NOT NULL,
+	PRIMARY KEY (bundle_hash)
+```
+- Proposed changes
+```
+	cons_address text NOT NULL,
+	bundle_hash text NOT NULL,
+    failed_txs text NOT NULL, // in the case that no txs ended up on chain, all of the txs will be logged here
+    failure_res_codes text NOT NULL // this will be a comma separated list of deliver_tx response code (-1 indicates tx was not in block)
+	PRIMARY KEY (bundle_hash)
+```
+- **Questions**
+    - Choose to handle this in `ClistMempool.Update()`?
+        - Have data from WinningBundle Queue / Block / ABCI Responses
+            - Map tx-hash to deliver-tx response from block in `CListMempool.Update()`
+            - Pass this along with copy of WinningBundleQueue to failure-examination thread
+                - Call this fn `examine-failures`
+                - Method with `CListMempool` as receiver
+            - Iterate through bundle, index into data, and determine for each bundle if any txs failed (not included on chain), 
+        - Handle update in separate thread from `Update()` to prevent un-necessary latency in consensus
+    - Handle this in `ValidatorRegistration` service?
+        - Have data from winning_bundles
+        - Doing it here will def reduce implementation complexity
+            - Is it registration-service's job to be doing this?
+                - Definitely not, profit updating and logging of failed bundles is def not smth that falls upon registration service
+- **Analysis**
+    - What does this updating achieve?
+        - From now on, any time a tx from winning bundles is not included in a block, or ends up invalid on chain it is logged (perhaps should add a new metric)?
+            - We can alert on this data
+            - We can better introspect failures of this nature (either in simulation or in gossip)
+    - What are consequences here?
+        - Possibly additional complexity in `CListMempool()`?
+            - Better abstraction outside of the `CListMempool()`?
+                - Is that necessary for this PR ?
+    - What is the purpose of this PR?
+        - Fix error handling logic (consequences of abstraction can be addressed later)
+- **Plan**
+    1. Make PR to move `/sentinel` into `/sentinel-core`
+        - One directory temporarily (payments stuff has already been moved into `sentinel-core`) this is the MVP for PR
+            1. `/db` (done) + tested
+    2. Make changes to `sentinel-monorepo` `CListMempool` Update logic to handle above cases
+        - Make schema changes to `failing_bundles`
+        - These changes can be tested in isolation, so its cool
+    3. Make changes to `validator-registration`
+- **Question**
+    - What updates happen when the proposer is not a skip-val?
+
+### Failure Introspection
+- DB docs
+    - Add docs for `skip txs`
+- Properly updating `failing_bundles` table
+    - May need a change to schema?
+- What is needed from this table?
+    - For any failures for the bundle, want to know the error codes for the failures?
+        - Committed failures
+        - Not ended up on chain failures
+    - for each failure, can map deliver tx order by the order entry in the db?
+    ``` 
+    failed_txs    | codes
+    tx1, tx2, tx3 | -1, 4, 4
+    ``` 
+- In the above case, `-1` indicates a bundle tx did not end up as committed
+    - How
+- Updates to `winning_bundles`  + `failing_bundles` happens atomically
+    - I.e create a tx, and aggregate queries into a batch, and execute atomically?
+- Handle updates in `updateIngressedBundlesInDB`
+## PR Changes
+- `targetValidator` set in `simulateProposalThenBundles` not necessary to set in `FireSentinel`
+    - What is purpose of `heightForProposalSentinelLastFiredFor`?
+        - Only updated in `FireSentinel` set to `HeightToFireNext`
+            - Either equal to latest proposal received, or 1 greater
+                - Only greater than heightProposalLastSeen after `FireSentinel` and before proposal has been received
+                - Any bundles ingressed after `finalizeCommit` 
+- move `TxKey` defn into a utils pacakge?
+## Addressing PR Review panic
+- Explicitly defined booleans must be converted to instance variables on the test-cases modified
+    - Specifically: `alerter/test/alerter/alerters/node/test_cosmos.py`
+- Any test-cases that have been altered should be reverted, and a new test-case should be added with desired functionality
+- Modify `AlertStore` + `CosmosNodeStore`
+### Tests to review
+- `/alerter/test/alerter/alerters/node/test_cosmos.py`
+- `/alerter/test/alerter/factory/test_cosmos_node_alerting_factory.py`
+- `/alerter/test/alerter/managers/test_cosmos.py`
+- 
+## Builder module thoughts
+- **Partial-Block Building** - Leaves out `prefix` / `suffix` of block for protocol relevant txs and mempool txs respectively
+- **Accountability of Builders** - Builders sign portion of block they publish, leaves them available to be punished
+    - Proposer doesn't include txs that were included in auction -> they will be slashed
+- **TLDR**
+    -
+## Grouping Bundle Tables by time when data will be updated?
+- Using bundle_hash as a foreign key between bundles table and other data
+## Data Model could be too coupled?
+ - Add more tables?
+    - Auction_data (height, proposer, timestamp, was_skip_val)
+    - Secure_txs (secure_tx_id) (create identifier and use identifier as bundle_hash in determination)
+    - txs store all txs
+    - bundles
+    - Fire_data (height, hash)
+- What is the advantage to this vs. having a larger amt. of data spread between multiple tables?
+## DB Transactions
+ - 
+## Readings
+### IBC Paper
+### Shared Sequencer Set
+### Heterogeneous Paxos
+### Narhwal + Tusk
+- Separate tx dissemination from ordering
+  - Storage of causal histories of txs
+- **Mempool Separate from Consensus**
+- **Narwhal-HS**
+    - Broadcast txs in batches (blocks)
+    - Consensus on hashes of blocks from mempool
+- Create a random coin **Tusk** for asynchronous consensus
+### Narwhal
+- DAG-based mempool abstraction
+  - Structured, persistent, BFT distributed storage for partially ordering txs
+- **Block** - list of txs + digest of prev. block
+    - Blocks gossipped / stored in rounds
+### Properties
+- **Integrity** - Any certificate $d$ generated by a $write(d, b)$, for any w $read(d)$ from arbitrary correct processes, the returned block is the same
+- **Block-Availability** - Any $read(d)$ that happens after a successful $write(d, b)$ eventually succeeds
+- **2/3-Causality** - A successful $B = read_causal(d)$, where $B$ contains at least $2/3$ of the blocks written before $write(d, b)$ was invoked. 
+    - Is this referencing chain-forks? I assume dis-honest parties
+    - Can it be the case that any $read_causal(D)$ can have diff returns from diff nodes?
+        - If they are not honest
+- **1/2-Chain Quality** - At least $1/2$ of the blocks in the returned set $B$ of a succesful $Read_causal(d)$ invocation were written by honest parties.
+### What does this mean?
+- Consensus only needs to order block-certificates
+### Intuition
+- **Gossip** - Double transmission, node receives tx -> sends to all other nodes etc.
+- Solve this by broadcasting blocks instead of txs, consensus happens on hashes of blocks
+    - **Integrity-Protected** - All nodes must have the same block (can't be forged)
+- **Availability** - Hashes of blocks need to represent available blocks (can't verify signature otherwise)
+- **Causality** - Propose a single certificate for multiple mempool blocks
+- **Chain Quality** - Each proposal requires signatures of $> 2/3$ nodes from prev. round, that way, nodes can at most be 1 ahead / all other node will be permitted eventually to catch-up (liveness property)
+- **scale-out** - Mempool-block producers can arbitrarily scale-out
+- Multiple blocks broadcast and certificates formed each round. All blocks in next round contain certificates that proposer of block recognizes
+    - Not all proposers have to have all blocks (but at least > $N - f$ nodes have persisted any block (otherwise there would be no certificate))
+- Each block must include a quorum of certificates from past round (only one certificate per node?)
+    - Wrong, one certificate per block, each certificate contains signatures from honest majority of validators
+![Alt text](Screen%20Shot%202023-01-24%20at%2010.57.56%20PM.png)
+- As above, each node builds a block containing certificates of blocks from prev. rounds
+- Certificates broadcast and included in next round
+    - For each certificate, at least an honest majority of producers will include certificate in next round
+## Narwhal Core Design
+- Nodes maintain local-round (incremented by maintenance of BFT clock)
+- Node receive
+    - Txs from clients asynchronously and batch into blocks 
+    - Receive $N - f$ certificates of availability for blocks built in round $r$, and move to next round
+- Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
+-
+
+### Ouroboros Paper
+### Gasper
+### Celestia Research
