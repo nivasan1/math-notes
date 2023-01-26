@@ -1541,8 +1541,209 @@ CREATE TABLE public.secure_txs (
     - bundles
     - Fire_data (height, hash)
 - What is the advantage to this vs. having a larger amt. of data spread between multiple tables?
-## DB Transactions
- - 
+# Database Stuff
+- How to handle firing data?
+    - How do we know that a secure_tx was fired more than once?
+- Can map height -> secure_tx_id?
+    - What is the purpose of this? We want to know what secure_txs were fired when?
+- Should we assume that any winning bundle is automatically sent to proposer?
+    - This is a valid assumption
+- How to deal with failures of secure_txs?
+    - I.e a secure-tx fails on chain?
+        - In this case, the failure is recorded, the secure tx is purged
+    - What if the secure_tx is a repeated tx?
+        - What happens in this case? Not really relevant, we can just remove these on ingress / in consumption
+- What about failures where the secure_tx is sent more than once?
+    - In this case we can have a send_count field of the secure_tx?
+        - Do we want to know what heights the secure_tx was sent, but not received?
+- If we want to know heights, we should create a many-to-many mapping
+## GENERAL PRACTICES
+- **TERMS**
+    - **Entity**
+        - An entity will always be represented as a table
+        - Each row in a table that is an entity stores only data that is relevant to the unique instance of the entity the row describes
+            - Data within a row should not be duplicated among multiple entities
+        - Rows in an entity-table correspond to instances of the entity, these tables are indexed by a unique identifier of the entity
+            - This identifier is the primary key for the table
+    - **Relation**
+        - Relations relate two entity tables by enabling a join between these tables.
+        - **Mapping (table between foreign keys)**
+            - In this case a table exists, where each column is a foreign-key from an entity table
+                - An example is bundle_txs (bundle_hash <-> tx_hash)
+        - **Referential idx (foreign key)** 
+            - In this case, entity table A and entity table B are related via embedding the primary-key of A (resp. B) as a foreign key in B (resp. A).
+            - An example being, secure_txs.tx_hash -> txs, similarly bundle_txs.tx_hash -> txs
+## What tables should exist?
+- `bundles`
+    - Entity storing data specific to an individual bundle
+    - Foreign key height to `auction_data`
+- `auction_data`
+    - Entity storing auction data, uniquely indexed by height
+- `txs`
+    - Entity storing tx-data, uniquely indexed by tx_hash
+        - txs from failing_bundles have a NULL deliver_tx_response
+- `bundle_txs`
+    - Mapping relation between bundles and txs
+        - txs is a foreign_key that references the txs table
+            - Txs should not appear in bundle_txs when they don't exist in txs
+        - bundle_hash is a foreign key referencing bundles
+- `secure_txs`
+    - Entity storing data pertaining to a particular secure_tx 
+        - Has foreign_key -> txs, where tx_hash is a foreign key to txs
+        - Foreign key to `auction_data`
+- `secure_tx_transmissions`
+    - Many-to-many mapping, between `secure_tx_id` <> `auction_data`
+    - This is relevant for failure introspection of `secure_txs`
+- `validators`
+    - This table will store entities representing data for a validator (configurations, oper_address, cons_address, api_key, etc.)
+    - It will have the `api_key` as the primary key, in theory, the cons_address may also be used as a unique identifier for the validators
+    - It will use the `cons_address` as an index
+    - All of the data stored for each entity will be populated on validator sign-up, and modified later on requests from the validator
+- `nodes`
+    - This table will be representing the node entity
+    - It will reference the validators table via the `api_key` foreign_key
+    - It will use the `node_id` as the primary key of the table
+- `sessions`
+    - This table will represent the `session` entity 
+    - It will use the `session_key` as a primary key
+    - It will reference the validators table via the `oper_address` foreign key
+- `connections`
+    - This table will represent a connection entity
+    - It will reference the nodes table via the `node_id` foreign-key
+    - In theory, we may use the timestamp as a primary key, however, I doubt that this addition has any value from a practical perspective
+### How I see these tables being used in practice
+- Upon receiving / simulation a proposal (at this point we know who the proposer is)
+    - We update the auction_data table 
+        - The commit_timestamp will be null
+- bundles + secure_txs + txs + committed_timestamp are populated on `CListMempool.Update()`
+    - I assume this data will be aggregated in the sentinel and propagated to the data-layer service
+- We can determine a bundle is not a winning bundle if at least one of its txs has a NULL deliver_tx_response code
+    - At least one of the tx_hashes in the bundle will be unique to the bundle (it's sender will be different)
+- In determination of validator_profits, we can iterate through the txs table, choose successful txs, and search for skip_payout messages
+    - We can map these to heights via the height
+### Schemas
+``` sql
+CREATE TABLE public.auction_data (
+    height INT NOT NULL,
+    proposer TEXT NOT NULL, -- all auction_data referecnes valid auctions (proposer is a skip validator)
+    auction_timestamp TIMESTAMP NOT NULL,
+    commit_timestamp TIMESTAMP,
+    validator_profit NUMERIC(20), -- data pertaining to profit calculations
+    network_profit NUMERIC(20)
+    PRIMARY KEY (height)
+    FOREIGN KEY (proposer) REFERENCES (validators)
+)
+
+CREATE TABLE public.bundles (
+    bundle_hash TEXT NOT NULL,
+    submitter TEXT NOT NULL,
+    payment NUMERIC(20) NOT NULL,
+    desired_height INT NOT NULL,
+    PRIMARY KEY (bundle_hash)
+    FOREIGN KEY (height) REFERENCES (auction_data)
+);
+
+CREATE TABLE public.secure_txs (
+    secure_tx_id TEXT NOT NULL, -- unique hash of sender || submission_timestamp || tx_hash
+    submitter TEST NOT NULL,
+    submission_timestamp TIMESTAMP DEFAULT NOW(),
+    tx_hash TEXT NOT NULL,
+    removal_height INT NOT NULL,
+    FOREIGN KEY (tx_hash) REFERENCES (txs)
+    FOREIGN KEY (height) REFERENCES (auction_data)
+    PRIMARY KEY (secure_tx_id)
+)
+
+CREATE TABLE public.txs (
+    tx_hash TEXT NOT NULL,
+    deliver_tx_response INT, -- val < 0 => not present in block, > 0 => deliver_tx failure, 0 => success, NULL => tx of losing_bundle
+    committed_height INT NOT NULL,
+    PRIMARY KEY (tx_hash)
+    FOREIGN KEY (committed_height) REFERENCES (auction_data.height)
+)
+
+CREATE TABLE public.bundle_txs (
+    tx_hash TEXT NOT NULL, 
+    bundle_hash TEXT NOT NULL,
+    INDEX ON (bundle_hash)
+    FOREIGN KEY (bundle_hash) REFERENCES (bundles)
+    FOREIGN KEY (tx_hash) REFERENCES (txs)
+)
+
+CREATE TABLE public.secure_tx_transmissions (
+    secure_tx_id TEXT NOT NULL,
+    height_transmitted INT NOT NULL
+    FOREIGN KEY (secure_tx_tx) REFERENCES (secure_txs)
+    FOREIGN KEY (height_transmitted) REFERENCES (auction_data)
+)
+
+CREATE TABLE public.validators (
+    cons_address text NOT NULL,
+    oper_address text NOT NULL,
+    moniker text,
+    network_coverage float(53),
+    registration_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    api_key TEXT NOT NULL,
+    payment_address text NOT NULL,
+    payment_percentage int NOT NULL,
+    front_running_protection boolean DEFAULT TRUE,
+    last_update_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    PRIMARY KEY (api_key)
+)
+
+CREATE TABLE public.nodes (
+    node_id text NOT NULL,
+    api_key text NOT NULL,
+    version text,
+    registration_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    PRIMARY KEY (node_id)
+    FOREIGN KEY (api_key) REFERENCES validators
+)
+
+CREATE TABLE public.sessions (
+    session_key TEXT NOT NULL,
+    oper_address TEXT NOT NULL,
+    timeout TIMESTAMP NOT NULL,
+    signer TEXT NOT NULL
+    PRIMARY KEY (session_key) 
+    FOREIGN KEY (oper_address) REFERENCES (validators)
+)
+
+CREATE TABLE public.connections (
+
+)
+```
+ 
+# Data Layer (service will be called (data-tsar))
+- What is the purpose of this service?  
+    - Hide all interactions with DB behind a shared service
+    - Orchestrate all writes to the DB in a single place
+- What are the obstacles?
+    - Communication between services that need access to DB and the DB service
+        - Is there any ordering between writes that must happen? How to ensure that a request that comes in before another one is executed before?
+            - Validator regisers their node -> Validator is up to propose, and queries the DB to determine whether the validator is indeed a proposer?
+                - Implement some kind of write through cache in services, as well as a timestamped ordering between them?
+    - Consistency between services?
+        - How do we guarantee that order of reads / writes is maintained for each service?
+            - Can attach sequence numbers to each service that interacts with the data-layer?
+        - How do we guarantee that order of reads / writes is guaranteed between services?
+            - i.e val-reg writes, and sentinel reads?
+        - How do guarantee atomicity between services
+            - Validator initialization?
+    - How is the API consumed between services?
+        - GRPC, the API is not public, should be fast, and the query language should be versioned / ingestable by other services (i.e through a protobuf data-type that is exported from the data-layer package)
+## Alternative
+- Writing package for queries that is exported to sentinel / validator-registration?
+    - Does there even need to be a standalone service for this?
+        - Could we just write a standard client / expected return types for the queries?
+            - All the sequel is then abstracted from the services, and they just have to import the library and make use of it?
+## Pros / Cons
+ - Less service maintenance
+    - Don't have to worry abt creating / monitoring a whole new service
+ - Fewer un-reliables?
+    - All of the DB interaction will then be happening in process?
+        - Is this better?
+ - Con: There will be multiple services all writing to a single DB?
 ## Readings
 ### IBC Paper
 ### Shared Sequencer Set
