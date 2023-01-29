@@ -1610,7 +1610,7 @@ CREATE TABLE public.secure_txs (
 - `connections`
     - This table will represent a connection entity
     - It will reference the nodes table via the `node_id` foreign-key
-    - We will create an idx on the node_id and timestamp columns to make queries more efficient
+    - We will have an index on the node_id for searching via equality relation (i.e `SELECT ... FROM connections WHERE ... = node_id`)
 ### How I see these tables being used in practice
 - Upon receiving / simulation a proposal (at this point we know who the proposer is)
     - We update the auction_data table 
@@ -1621,6 +1621,9 @@ CREATE TABLE public.secure_txs (
     - At least one of the tx_hashes in the bundle will be unique to the bundle (it's sender will be different)
 - In determination of validator_profits, we can iterate through the txs table, choose successful txs, and search for skip_payout messages
     - We can map these to heights via the height
+- **We can create views that track data aggregated from these tables such as**
+    - failing / losing bundles
+    - secure_txs that have been fired more than once
 ### Schemas
 ``` sql
 CREATE TABLE public.auction_data (
@@ -1709,15 +1712,16 @@ CREATE TABLE public.sessions (
     FOREIGN KEY (oper_address) REFERENCES (validators)
 )
 
+CREATE TYPE status AS ENUM ('connected', 'disconnected')
+
 CREATE TABLE public.connections (
-    node_id TEXT NOT NULL
+    node_id TEXT NOT NULL,
     timestamp TIMESTAMP NOT NULL,
-    status ENUM('connected', 'disconnected') NOT NULL,
+    status status NOT NULL,
     FOREIGN KEY (node_id) REFERENCES (nodes)
-    INDEX ... USING hash (node_id)
+    INDEX ... using hash (node_id)
 )
 ```
- 
 # Data Layer (service will be called (data-tsar))
 - What is the purpose of this service?  
     - Hide all interactions with DB behind a shared service
@@ -1776,13 +1780,14 @@ CREATE TABLE public.connections (
     - Can it be the case that any $read_causal(D)$ can have diff returns from diff nodes?
         - If they are not honest
 - **1/2-Chain Quality** - At least $1/2$ of the blocks in the returned set $B$ of a succesful $Read_causal(d)$ invocation were written by honest parties.
+## Decision Digrams!!
 ### What does this mean?
 - Consensus only needs to order block-certificates
 ### Intuition
 - **Gossip** - Double transmission, node receives tx -> sends to all other nodes etc.
 - Solve this by broadcasting blocks instead of txs, consensus happens on hashes of blocks
     - **Integrity-Protected** - All nodes must have the same block (can't be forged)
-- **Availability** - Hashes of blocks need to represent available blocks (can't verify signature otherwise)
+- **Availability** - Hashes of blocks need         represent available blocks (can't verify signature otherwise)
 - **Causality** - Propose a single certificate for multiple mempool blocks
 - **Chain Quality** - Each proposal requires signatures of $> 2/3$ nodes from prev. round, that way, nodes can at most be 1 ahead / all other node will be permitted eventually to catch-up (liveness property)
 - **scale-out** - Mempool-block producers can arbitrarily scale-out
@@ -1802,6 +1807,7 @@ CREATE TABLE public.connections (
 - Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
 -
 ## Implementing narwhal core?
+## Filecoin
 ### Ouroboros Paper
 ### Gasper
 ### Celestia Research
