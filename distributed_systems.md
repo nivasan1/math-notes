@@ -1001,20 +1001,28 @@ type EventuallyPerfectFailureDetector interface {
 - can nest namespaces, exported across files
 ## Dependent Types
  - Dependent types
-    - Types depend on the types of other types
-    - Example $list \alpha$, where $\alpha : Type_{u}$ (a polymorphic type)
+    - A type that is parametrized by a different type, i.e generics in go / rust, 
+        - Example $list \space \alpha$, where $\alpha : Type_{u}$ (a polymorphic type)
+        - For two types $\alpha : Type_u, \space \beta : Type_{u'}$, $list \space \alpha$ and $list \space \beta$ are different types
 - Define function $cons$, a function that appends to a list
     - Lists are parametrized by the types of their items ($: Type_{u}$)
     - $cons$ is determined by the type of the items of the list, the item to add, and the $list \alpha$ itself
+        - I.e $cons \space \alpha : \alpha \rightarrow List \space \alpha \rightarrow List \space \alpha$
+            - However, $cons : Type \rightarrow \alpha \rightarrow List \space \alpha \rightarrow List \space \alpha$ does not make sense, why?
+                - $\alpha : Type $ is bound to the expression, i.e it is a place-holder for the first argument (the type of the list / element added)
 - **Pi type** - 
     - Let $\alpha : Type$, and $\beta : \alpha \rightarrow Type$, 
         - $\beta$ - represents a family of types (each of type $Type$) that is parametrized by $a : \alpha$, i.e $\beta a : Type$ for each $a : \alpha$
+        - I.e a function, such that the type of one of its arguments determines the type of the final expression
     - $\Pi (x : \alpha, \beta x)$ - 
         - $\beta x$ is a type of itself
         - Expression represents type of functions where for $a : \alpha$, $f a : \beta a$
             - Type of function's value is dependent upon it's input
-    - $\Pi x : \alpha, \beta \cong a \rightarrow \beta$
-        - $\Pi$ expressions only denote functions when the destination type is parametrized by the input
+    - $\Pi x : \alpha, \beta \space x \cong a \rightarrow \alpha$, where $\beta : \alpha \rightarrow \alpha$, 
+        - That is, $\beta : \lambda (x : \alpha) \beta \space x$
+            - In this case, the function is not dependent, b.c regardless of the input, the output type will be the same
+        - dependent type expressions only denote functions when the destination type is parametrized by the input
+            - Why can't a dependent type function be expressed in lambda notation?
     - **cons definition**
         - $list: Type_u \rightarrow Type_u$ 
         - $cons: \Pi \alpha : Type_u, \alpha \rightarrow list \alpha \rightarrow list \alpha$ 
@@ -1254,8 +1262,34 @@ thm blagh (p q : Prop) : p -> q
 - 
 ## Interacting with Lean
 ## Inductive Types
-- Every type other than universes, and every type constructor other than $\Pi$ is an inductive type. 
+- Every type other than universes, and every type constructor other than $\Pi$ is an inductive type.
+    - What does this mean? This means that the inhabitants of each type hierarchy are constructions from inductive types
+        - Remember $Type_1 : Type_2$, essentially, this means that an instance of a type, is a member of the next type hierarchy 
+            - Difference between membership and instantiation? Viewing the type as a concept rather than an object? 
+                - _UNIQUE CONCEPT_ - viewing types as _objects_
+                    - Similar to this example
+                        ```go
+                            // the below function is dependent upon the type that adheres to the Interface 
+                            func [a Interface] (x a ) {
+                                // some stuff
+                            }
+                        ``` 
+                    - In this case, the function is parametrized by the type given as a parameter
+                        - In this case, the type `a` is used as an object?
+                - 
 - Type is exhaustively defined by a set of rules, operations on the type amount to defining operations per constructor (recursing)
+- Proofs on inductive types again follow from `cases_on` (recurse on the types)
+    - Provide a proof for each of the inductive constructors
+- Inductive types can be both `conjunctive` and `disjunctive`
+    - `disjunctive` - Multiple constructors
+    - `conjunctive` - Constructors with multiple arguments
+- All arguments in inductive type, must live in a lower type universe than the inductive type itself
+    - `Prop` types can only eliminate to other `Prop`s  
+- Structures / records  
+    - Convenient means of defining `conjunctive`  types by their projections
+- Definitions on recursive types
+    - Inductive types are characterized by their constructors
+        - For each constructor, the
 - recursive type introduced as follows: 
     ```
     inductive blagh (a b c : Sort u - 1): Sort u 
@@ -1266,18 +1300,48 @@ thm blagh (p q : Prop) : p -> q
 - Defining function on inductive type is as follows
     ```
     def ba (b : blagh) : \N :=
-    b.cases_on _ (lamda a b c, ...) ... (lamda a b c, ...) 
+    b.cases_on b (lamda a b c, ...) ... (lamda a b c, ...) 
     ```
     - Required to specify outputs for each of the inductive constructors
-- Proofs on inductive types again follow from `cases_on` (recurse on the types)
-    - Provide a proof for each of the inductive constructors
-- Inductive types can be both `conjunctive` and `disjunctive`
-    - `disjunctive` - Multiple constructors
-    - `conjunctive` - Constructors with multiple arguments
-- All arguments in inductive type, must live in a lower type universe than the inductive type itself
-    - `Prop` types can only eliminate to other `Prop`s  
-- Structures / records  
-    - Convenient means of defining `conjunctive`  types by their projections
+    - In each case, each constructor for the inductive type characterizes an instance of the object by its diff. constructed types
+- How to do with `cases` tactic? (Hold off to answer later)
+    -
+- In this case, each constructor constructs a unique form of the inductive type
+- `structure` keyword defines an inductive type characterized by its arguments (a single inductive constructor)
+```
+structure prod (α β : Type*) :=
+mk :: (fst : α) (snd : β) 
+```
+- In the above case, the constructor, and projections are defined (keywords for each argument of constructor in elimination)
+- recusors `rec / rec_on ` are automatically defined (`rec_on` takes an inductive argument to induct on)
+- Sigma types defined inductively
+```
+inductive sigma {α : Type u} (β : α → Type v)
+| dpair : Π a : α, β a → sigma
+```  
+- What is the purpose of this constructor?
+    - In this case, name of constructor indexes constructor list
+    - Recursing on type?
+      - How to identify second type?
+    - Dependent product specifies a type where elements are of form $(a : \alpha, b \space:\space \beta \space \alpha)$
+      - $sigma \space list$? $list \space : Type_u \rightarrow Type_u$
+        - Denotes the type of products containing types, and lists of those types?
+- Ultimately, context regarding inductive type is arbitrary
+    - All that matters are the constructors (arguments)
+      - Leaves user to define properties around the types?
+- difference between $a : Type\space*$, and $a \rightarrow ...$, the second defines an instance of the type, i.e represents an inhabitant of the type
+  - ^^ using type as an object, vs. using type to declare membership
+  - What is the diff. between `Sort u` and `Type u`?
+    - `Sort u : Type u`, `Type u : Type u+1`
+- _environment_ - The set of proofs, theorems, constants, definitions, etc.
+  - These are not used as terms in the expression, but rather functions, etc.
+- _context_ - A sequence of the form `(a_i : \a_i) ...`, these are the local variables that have been defined within the current definition or above before the current expression
+- _telescope_ - The closure of the current _context_ and all instances types that exist currently given the current environment
+- 
+## Inductively Defined Propositions
+- Components of inductively defined types, must live in a unvierse $\leq$ the inductive types
+- Can only eliminate inductive types in prop to other values in prop, via re-cursors
+  - 
 ## Inductive Types Defined in Terms of Themselves (Recursive Types)
 -  Consider the natural numbers
 
@@ -1332,6 +1396,27 @@ inductive nat : Type
             - i.e use the set as a sub-type, instantiate an element of the sub-type
                 - Explanation - `sub-type` is an inductively defined type, of a witness, and a proof
 - Interesting that given set $ U =\{x : \mathbb{R} | \forall a \in A, a \leq x\}$, the term $(x \in U) a := a \in U \rightarrow a \leq x$
+    - Assume that $A \subseteq \mathbb{R}$ and $U \subseteq \mathbb{R}$
+- How to use split?
+    - Break inductive definition into multiple constructors?
+-
+# INDUCTIVE TYPES + INDUCTION IN LEAN
+ - Recap - Lean uses a formulation of _dependent types_
+    - There are several type hierarchies denoted, $Type \space i$, where $i = 0$ implies that the Type is a proposition.
+        - There are two mechanisms of composition of types, the first $\Pi \alpha : Type_i, \beta$ this permits for the construction of functions between types
+            - Notice, it is possible that $\beta : \Pi x : \alpha, Type_i$, in this case, the above function represents a dependent type
+ - Every type
+# STRUCTURES + CLASSES (TYPE CLASSES)
+## Type Classes
+- Originated in haskell -> associate operations on a class?
+    - Receivers + methods? Interfaces?
+- Characterizes a _family_ of types
+    - Individuals types are _instances_
+- Components
+    1. Family of inductive types
+    2. Declare instances of type-class
+    3. Mark implicit arguments w/ `[]` to indicate elaborator should identify implicit type-classes
+- Type classes similar to interfaces, use cases similar to generic functions over interface
 ## Order Relations in Lean
 ### CROSS CHAIN DEX AGGREGATOR
 - Scheduler (encoding arbitrary logic into scheduler)
@@ -1406,13 +1491,18 @@ inductive nat : Type
         - **relational is schema on write**
 - 
 - 
+## CLRS Book
+## OSes
+## Databases Book
+## Transactions Book
 ## CELESTIA?
 - 
 ## SGX Research?
 ### OS Book (code review)
 ### Irvine x86 Book 
 ### SGX API Gramine (code review?
- ### Lib P2P research
+### Paxos
+### Lib P2P research
 ### Heterogeneous Paxos
 - Environment of `blockchains` is `heterogeneuous`
     - What does this mean?
@@ -1426,11 +1516,14 @@ inductive nat : Type
         - What if diff. acceptors have diff. failures / roles in consensus
 - What is a learner? What is an **acceptor**
     -
-### Paxos
+## Tusk / Narwhal
+## Anoma
+## Gasper + L2 solns.
+
 ### Circom / ZK
+# ZK
 # Differential Privacy
 ## Databases
-## ZK
 ## Data-mining
 # Git Notes
 - `branch`

@@ -1610,7 +1610,7 @@ CREATE TABLE public.secure_txs (
 - `connections`
     - This table will represent a connection entity
     - It will reference the nodes table via the `node_id` foreign-key
-    - In theory, we may use the timestamp as a primary key, however, I doubt that this addition has any value from a practical perspective
+    - We will create an idx on the node_id and timestamp columns to make queries more efficient
 ### How I see these tables being used in practice
 - Upon receiving / simulation a proposal (at this point we know who the proposer is)
     - We update the auction_data table 
@@ -1710,7 +1710,11 @@ CREATE TABLE public.sessions (
 )
 
 CREATE TABLE public.connections (
-
+    node_id TEXT NOT NULL
+    timestamp TIMESTAMP NOT NULL,
+    status ENUM('connected', 'disconnected') NOT NULL,
+    FOREIGN KEY (node_id) REFERENCES (nodes)
+    INDEX ... USING hash (node_id)
 )
 ```
  
@@ -1744,6 +1748,9 @@ CREATE TABLE public.connections (
     - All of the DB interaction will then be happening in process?
         - Is this better?
  - Con: There will be multiple services all writing to a single DB?
+    - Choice - Migrate to a single DB service for all chains
+## DB Service
+ - DB Service will be serving a grpc interface that super-sets the peersDB interface + val-reg interface
 ## Readings
 ### IBC Paper
 ### Shared Sequencer Set
@@ -1794,7 +1801,7 @@ CREATE TABLE public.connections (
     - Receive $N - f$ certificates of availability for blocks built in round $r$, and move to next round
 - Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
 -
-
+## Implementing narwhal core?
 ### Ouroboros Paper
 ### Gasper
 ### Celestia Research
