@@ -1808,6 +1808,9 @@ CREATE TABLE public.connections (
 -
 ## Implementing narwhal core?
 ## Filecoin
+## Anoma
+- Intent centricity + homogeneous architectures / heterogeneous security
+- 
 ### Ouroboros Paper
 ### Gasper
 ### Celestia Research
