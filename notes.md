@@ -1755,6 +1755,114 @@ CREATE TABLE public.connections (
     - Choice - Migrate to a single DB service for all chains
 ## DB Service
  - DB Service will be serving a grpc interface that super-sets the peersDB interface + val-reg interface
+# Protobuf / GRPC Notes
+
+- **Field Presence**
+    - *no presence* - protobuf stores only field values (non-present values can be undefined) -> singular (default)
+    - *explicit presence* - All fields have explicit value, and whether they are present -> optional (have to specify)
+    - **Presence Disciplines** - Determine how services / data defined at the API (IDL) translate to their serialized counterpart
+        - *no presence* - Relies on field value at deserialization time to determine value of field (can imply what to de-serialize given the type of the receiver)
+        - *explicit presence* - Relies on explicit tracking state (relies n whatever is sent over the wire)
+    
+    ## Presence in tag-value stream (wire format) serialization
+    
+    - Serialized data takes the form of a tagged-self-delimiting set of values
+        - All values returned in the stream are *present*
+        - No information abt. non-present values are transmitted in serialized message
+- Oneof explicitly determine that the value of the field will either be one of the values
+    - Different from optional in that both values if optional can be present in payload
+    - Have to keep logic forward compatible
+        - All data-layers can be updated easily and frequently
+        - Clients (VR + sentinel) can't be updated as frequently, must be able to understand messages as they are redefined at the data-layer service level
+        - What abt. clients changing the nature of the data they need?
+            - I.e we want to keep the API as extensible as possible? So that as the schema changes, the set of data sent by VR + sentinel will not have to change as schemas change
+            / as we update service
+    - On the wire, field numbers `= i` are used as identifiers to determine which data-types correspond to what in the serialized message
+        - This means that each number defines to the parser the length (in bytes of the data-type) including null space in *explicit presence*
+        - In this case, changing the data-type associated with a field-number will not be *backwards-compatible* the entire message will fail to serialize
+            - Clients receiving data won't parse correctly
+        - New fields always added after the largest field number
+            - Removing fields corresponds to making them null in clients that haven't upgraded
+    - [https://protobuf.dev/programming-guides/dos-donts/](https://protobuf.dev/programming-guides/dos-donts/)
+- **Best Practices**
+    - TLDR: Design APIs for extensibility
+        - Clients should be able to read serialized data without updating as often as the server (*forwards compatible*)
+        - Servers should be able to serialize data that can be read by all clients without having to standardize its version (*backwards compatible*)
+    - Prefer composite data types to non-composite ones
+        - Instead of having a `repeated int prices = 1 ;`, prefer a `repeated price prices = i ;`
+            - This way the prices API can be extended as one sees fit (perhaps we need to change the price from an int to a float)
+    - New fields should be added as a new field number, and old fields should be marked as deprecated
+        - **NEVER REPLACE AN EXISTING FIELD** - This causes older versions to break in serialization
+    - Prefer use of `optional` field rules
+        - This lets clients by-pass the excluded field
+## Generating code from .proto defs
+- Compiler for protobuf
+    - `brew install protobuf`
+        - This adds `protoc` to PATH, for use in compiling `.proto` files
+    - For specifying paths to imports used in protobuf definition being compiled use `-I=<relative_path_to_directory>`
+    - For generating go-code: `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest `
+        - This adds flags to `protoc`, `--go_out`, `--go_opt`
+            - Argument to `--go_out=<dir>`, `<dir>` is the directory where the generated go code will live.
+            - Argument to `--go_opt=<option>=<arg>`
+                - This is likely not needed
+    - For generating stubs to services defined in protobuf, also need: `go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2`
+        - This adds flags to `protoc`, `--go-grpc_out`, ...
+    - Example: `protoc data-layer/proto/service.proto -I. --go-grpc_out=.`
+    - The above command requires that the `.proto` has the `go_option = <path_to_output dir>;` specified
+        - In this case, if the above command is run in the top-level directory, the generated code will be output in the directory specified in the `go_option` definition
+    - TLDR:
+        - If `go_option=mydir/proto`, the running the command in the parent of `mydir` will generate go code in `mydir/proto/<>.pb.go`
+- Explanation of flags
+    -
+## Organization Of Codebase
+ - Server implemenation will live in `server`
+ - Queries will live in `queries`?
+ - Expect creation of `views` for each query received from the val-reg server
+    - Are there any queries that would be benefitted from streams? Adds un-necessary complexity to the requests, would be better off not doing this now
+        - Perhaps in the future as more data is requested this would be better
+- Classes involved
+    - `server` - Receive / perform business logic on requests received from the client
+    - `DBStatementPreparer` 
+        - Prepare statements for queries, given the business logic
+        - Any expected views / set-up for each DB is performed in the start-up routine
+        - This is the only class that has any awareness of the schema
+        - Export views to be consumed by server / connection manager in hooking up DB connections
+        - Should this be the driver of the `DBConnManager` class?
+        - Advantages:
+            - Can handle rows from queries, b.c I imagine they will be different between versions of the DBStatementPreparer
+        - If the DBStatementPreparer has no knowledge of the `pgx` package, how can the iterator functions be defined?
+            - Iterator functions will be different dependent upon the `DBStatementPreparer` used    
+    - `DBConnManager` 
+        - Manage connections to the DBs
+            - Establish connection Hook 
+        - Define functions for executing queries, and performing function on rows returned
+            - These will be paginated by chain-id of DB action performed
+        - Handle transactions
+            - Takes as arguments arrays of prepared statements from `DBStatementPreparer`
+            - Takes conditions required to be met for tx to be committed?
+                - This can include data returned from the stream?
+        - Look more into `pgx` for documentation / best-practices
+    - `Metrics`
+        - `RequestsServiced`
+            - labelled by chain_id
+            - Incremented for each request
+        - `Liveness`
+            - Gauge incremented on start
+            - Decremented on close
+    - `Config`
+        - Config object, only handled by main
+        - Input into start command for the DBService
+- **Questions**
+    - What is the ideal separation of the
+## Patterns
+- Pattern for asynchronous calls to the DB
+    - Have DB take stream as argument
+    - Use value from stream as a parameter for the request
+        - If value is not satisfied, then don't commit, if it is then commit
+- Return value of commit to the caller
+    - So they can handle the revert logic, in case the commit fails
+- In case of val-reg <> sentinel
+    - There is no need 
 ## Readings
 ### IBC Paper
 ### Shared Sequencer Set
@@ -1762,6 +1870,9 @@ CREATE TABLE public.connections (
 ### Narhwal + Tusk
 - Separate tx dissemination from ordering
   - Storage of causal histories of txs
+- Assuems computationally bounded adversary to $f < n /3$
+    - Does this mean that liveness persists when there are several computationally bounded adversaries? I.e $> n / 3$ faulty processes?
+        - This is naturally false, as otherwise a byzantine quorum cannot be reached
 - **Mempool Separate from Consensus**
 - **Narwhal-HS**
     - Broadcast txs in batches (blocks)
@@ -1773,40 +1884,104 @@ CREATE TABLE public.connections (
 - **Block** - list of txs + digest of prev. block
     - Blocks gossipped / stored in rounds
 ### Properties
-- **Integrity** - Any certificate $d$ generated by a $write(d, b)$, for any w $read(d)$ from arbitrary correct processes, the returned block is the same
+- **happened-before** relation - 
+    - If block $b$ contains a certificate to block $b'$, then $b' \rightarrow b$
+- **Aside**
+    - $$\frac{N - f}{2} + f = \frac{N + f}{2} < N - f \rightarrow N + f < 2N - 2f \rightarrow N > 3f$$
+        - Reasoning, an irrefutable byzantine quorum (more than half of all correct processes + all faulty processes) must be less than or equal to the number of correct processes
+        - Assuming $N = 3f + 1$, then $2f + 1$ represents a byzantine quorum
+    - Block finalization for all blocks in round $r$ happens at $r + 1$, once a block receives a certificate, and that block contains certificates of all valid blocks in round $r$
+        - Can be the case that some nodes don't receive all certificates from $r$, and don't include them in the block they propose, while others do?
+- **Integrity** - Any certificate $d$ generated by a $write(d, b)$, for any w $read(d)$ from arbitrary correct processes, the returned block is either the same or non-existent
+    - In this case, the block either exists in the node's cache or it doesn't
 - **Block-Availability** - Any $read(d)$ that happens after a successful $write(d, b)$ eventually succeeds
-- **2/3-Causality** - A successful $B = read_causal(d)$, where $B$ contains at least $2/3$ of the blocks written before $write(d, b)$ was invoked. 
+- **2/3-Causality** - A successful $B = read\_causal(d)$, where $B$ contains at least $2/3$ of the blocks written before $write(d, b)$ was invoked. 
     - Is this referencing chain-forks? I assume dis-honest parties
     - Can it be the case that any $read_causal(D)$ can have diff returns from diff nodes?
         - If they are not honest
 - **1/2-Chain Quality** - At least $1/2$ of the blocks in the returned set $B$ of a succesful $Read_causal(d)$ invocation were written by honest parties.
-## Decision Digrams!!
 ### What does this mean?
 - Consensus only needs to order block-certificates
 ### Intuition
 - **Gossip** - Double transmission, node receives tx -> sends to all other nodes etc.
+    - Leader then includes tx in block (double broadcast)
 - Solve this by broadcasting blocks instead of txs, consensus happens on hashes of blocks
-    - **Integrity-Protected** - All nodes must have the same block (can't be forged)
-- **Availability** - Hashes of blocks need         represent available blocks (can't verify signature otherwise)
+    - Block already exists / is ordered
+    - **Integrity-Protected** - Hash of block is content-addressed (consensus forges agreement on a unique id of block)
+        - How to ensure that the block is available?
+- **Availability** - Hashes of blocks need represent available blocks (can't verify signature otherwise)
+    - Achieve this by broadcasting blocks to all nodes, nodes gossip block (or certificate / hash of block) to other nodes to prove they have it available
+    - Once byzantine quorum of nodes have broadcasted a block, all nodes can assume that they have it available and they proposer receives a certificate of the block w/ > 2f+1 signatures 
+    - Once this occurs, the certificate is re-broadcast and included in next blocks by all nodes that receive it
 - **Causality** - Propose a single certificate for multiple mempool blocks
+    - Each certificate proposed by leader proves availability of all blocks in causal history before it
 - **Chain Quality** - Each proposal requires signatures of $> 2/3$ nodes from prev. round, that way, nodes can at most be 1 ahead / all other node will be permitted eventually to catch-up (liveness property)
+    - Prevents a dishonest validator from spamming network with blocks to be committed, each block requires certificates of >2f + 1 blocks from prev round
 - **scale-out** - Mempool-block producers can arbitrarily scale-out
 - Multiple blocks broadcast and certificates formed each round. All blocks in next round contain certificates that proposer of block recognizes
-    - Not all proposers have to have all blocks (but at least > $N - f$ nodes have persisted any block (otherwise there would be no certificate))
-- Each block must include a quorum of certificates from past round (only one certificate per node?)
-    - Wrong, one certificate per block, each certificate contains signatures from honest majority of validators
+    - Not all proposers have to have all blocks (but at least > $(N + f) / 2$ nodes have persisted any block (otherwise there would be no certificate))
+- Each block must include a quorum of certificates from past round
+    - This provides censorship resistance, at least quorum of honest nodes must have received certificates for their blocks at round $r$
+- 
 ![Alt text](Screen%20Shot%202023-01-24%20at%2010.57.56%20PM.png)
 - As above, each node builds a block containing certificates of blocks from prev. rounds
 - Certificates broadcast and included in next round
     - For each certificate, at least an honest majority of producers will include certificate in next round
 ## Narwhal Core Design
 - Nodes maintain local-round (incremented by maintenance of BFT clock)
+    - Reliable Broadcast ()
+    - Reliable Storage
+    - Threshold Clocks
 - Node receive
     - Txs from clients asynchronously and batch into blocks 
     - Receive $N - f$ certificates of availability for blocks built in round $r$, and move to next round
-- Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
--
+- Valid blocks are
+    1. Signed by the creator, and are the first block sent by the creator for round $r$
+    2. Contain the round number $r$ of the current round, if a block is received with a highter $r$ than what is stored locally, the validator advances its local round
+    3. Contains $2f + 1$ certificates for round $r - 1$
+        - Validity of certificates is dependent upon the block digest, and $2f + 1$ signatures of the validators signing the certificate
+    - Once the above is met, the node stores the block, and signs the digest, round #, sender, and re-broadcasts (this is the **acknowledgement**)
+        - Creator receives these
+- Creator aggregates acknowledgements from $2f + 1$ vals, with digest, round #, and creator pub-key, and rebroadcasts as a **certificate**
+    ## Security argument for certificate 
+    - $2f + 1$ signatures $\rightarrow$ > $f + 1$ honest vals have checked + stored the block
+        - It is available? Depends upon the eventually-synchronous communication assumption?
+    - Quorum intersection prevents equivocation? Nodes cannot propogate another certificate from creator?
+    - Use induction from causality between blocks
+- **Use in Consensus**
+    - Eventually synchronous blockchains are not live in asynchronous periods
+        - Narwhal is asynchronous
+        - As long as vals have stored blocks for higher round consensus proceeds
+## Garbage Collection
+- How to know which blocks in DAG can be garbage collected, potentially have to store $N^r$ blocks where $r$ is the round number
+## Practical System 
+- On receiving a certificate for $r + 1$, the validator pulls all $2f + 1$ blocks w/ certificates, and those blocks are avaialable
+    - Blocks are only finalized once a certificate for the block certifying them is received by a validator
+    ## Scale out Architectures
+    - Can use many computers per validator
+        - Each computer is denoted as a `worker`
+    - Each worker streams transaction batches to other validators
+        - Upon receiving certificates for transaction batches, primary (validator node) aggregates and sends a certificate for all worker blocks to other validators
+    - Primary broadcasts blocks, where each `tx` is the digest of a worker block
+        - Same guarantees for avaialbility?
+- **Question**
+    - If a validator receives a certificate for a block, but the block is not available when it requests the block, how is this handled?
+## Tusk
+- Theoretical starting point is `DAG-rider`
+- Tusk, asynchronous consensus algorithm
+- Includes a VRF coin in each tusk block
+    - Upon receiving a tusk-block, creates an ordering from the DAG received by TUSK
+- Each validator interprets its local DAG, based on the shared random coin
+    - Validators divide random coin into `waves`
+- Rounds
+    1. First round all validators propose blocks
+    2. Validators vote on proposed blocks by including certificates in the blocks they propose
+    3. Validators propose blocks finalizing blocks from round 1, also receive value of random coin, and choose block from random leader at this round
+
 ## Implementing narwhal core?
+## Hotstuff / LibraBFT
+## Bullshark Paper
+## Gasper
 ## Filecoin
 ## Anoma
 - Intent centricity + homogeneous architectures / heterogeneous security
