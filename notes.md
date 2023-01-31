@@ -1853,7 +1853,19 @@ CREATE TABLE public.connections (
         - Config object, only handled by main
         - Input into start command for the DBService
 - **Questions**
-    - What is the ideal separation of the
+    - What is the ideal separation of the `DBStatementPreparer` and the `DBConnManager`
+        - Ideal outcome: `DBConnManager` - Handles all connections to the DB, this logic will not be changed across schema changes etc.
+                                         - Driver will be the `DBService` obj. - maintains refs. to `DBConnManager` and `DBStatementPreparer` 
+        - Ideal outcome: `DBStatementPreparer` - Handles creation of queries, this will be the only package that is exposed to the DB schema, idea is to isolate changes to here only as time progresses    
+                                               - `DBService` logic + `DBConnManager` logic will not change, even as the schemas are changed etc.
+    - Question: How to handle passing closures to the Query functions from `DBStatementPreparer`?
+        - These should be handled by the `DBStatementPreparer`? 
+            - Should these be included in the interface? Yes, should be returned by the getQueries method, (can define creation of these scan functions in helper functions that can be re-used)
+    - Define scan functions and export from `DBConnManager`?
+        - have the QueryFunc take an arbitrary set of interfaces
+    - Instead of passing `*[]*Validator` could pass a `ValidatorQueue`?
+        - Does this make more sense than current implementation? Probs, but this is a detail that can be sorted after interface defs
+    - Could the passing of a `*[]` indicate a bad design pattern?
 ## Patterns
 - Pattern for asynchronous calls to the DB
     - Have DB take stream as argument
@@ -1863,10 +1875,19 @@ CREATE TABLE public.connections (
     - So they can handle the revert logic, in case the commit fails
 - In case of val-reg <> sentinel
     - There is no need 
+- Instantiating queries
+    - Data from request will be passed to the `StatementPreparer`
+        - Job will be do create queries given requests
+- `NodesPerValidator` 
+    - Returns a mapping between `cons_address` -> `nodes`
+        - Perhaps change to a `ValidatorId` as the index?
+## Testing
+ - Test with `pgmock`
 ## Readings
 ### IBC Paper
 ### Shared Sequencer Set
 ### Heterogeneous Paxos
+## ABCI++
 ### Narhwal + Tusk
 - Separate tx dissemination from ordering
   - Storage of causal histories of txs
