@@ -1999,6 +1999,10 @@ CREATE TABLE public.connections (
     2. Validators vote on proposed blocks by including certificates in the blocks they propose
     3. Validators propose blocks finalizing blocks from round 1, also receive value of random coin, and choose block from random leader at this round
 
+- Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
+## Asynchronous Consensus
+## Bullshark
+-
 ## Implementing narwhal core?
 ## Hotstuff / LibraBFT
 ## Bullshark Paper

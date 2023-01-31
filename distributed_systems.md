@@ -1395,17 +1395,55 @@ inductive nat : Type
         - That is, to prove $\forall x : A, P \space x := \lambda \langle x, hx \rangle, hx$
             - i.e use the set as a sub-type, instantiate an element of the sub-type
                 - Explanation - `sub-type` is an inductively defined type, of a witness, and a proof
-- Interesting that given set $ U =\{x : \mathbb{R} | \forall a \in A, a \leq x\}$, the term $(x \in U) a := a \in U \rightarrow a \leq x$
+- Interesting that given set $U =\{x : \mathbb{R} | \forall a \in A, a \leq x\}$, the term $(x \in U) a := a \in U \rightarrow a \leq x$
     - Assume that $A \subseteq \mathbb{R}$ and $U \subseteq \mathbb{R}$
 - How to use split?
     - Break inductive definition into multiple constructors?
--
+- Definition of `subtype` 
+```
+structure subtype {α : Sort u} (p : α → Prop) :=
+(val : α) (property : p val)
+``` 
+equivalent to
+```
+inductive subtype {α : Type*} (p : α → Prop)
+| mk : Π x : α, p x → subtype
+```
+- **Question**
+  - How are they the same?
+    - The second definition is the same as the first, why?
+  - Object denotes a type (collection of elements)?
+    - Possible that val may be arbitrary?
+  - I.e subtype inductive definition is composed of a dependent function from some $\alpha$ into props, how to ensure that predicate is satisified?
+    - Is this up to implementation?
+## Defining Naturals
+- What abt cases where constructors act on element being defined? I.e nat
+    ```
+    inductive nat : Type
+    | zero : nat
+    | succ : nat → nat
+    ```
+    - `succ` takes element of `nat`
+- Recursor is defined as a dependent function $\Pi (n : nat), C n$, where $C : nat \rightarrow Type*$
+  - handle when case is $nat.zero$ and $nat.succ \space n$
+  - When $nat.zero$ there are no parameters, can simply specify some value of target type $Type*$ i.e $Prop$
+  - Case for $nat.succ$, requires $\Pi (a : nat), C \space a \rightarrow C (nat.succ \space a)$
+    - Why is this different from previous examples?
+      - In this case, the parameter is an element of the type being defined, as such $\Pi (a : nat), C (succ a)$ does not make sense without assuming that $C (a)$ is defined
+- `motive` is a function from the inductive type, to the type being defined
+## Recursive Data Types
+ - List
+ ```
+ inductive list (α : Type*)
+| nil {} : list
+| cons : α → list → list
+ ```
+- 
 # INDUCTIVE TYPES + INDUCTION IN LEAN
  - Recap - Lean uses a formulation of _dependent types_
     - There are several type hierarchies denoted, $Type \space i$, where $i = 0$ implies that the Type is a proposition.
-        - There are two mechanisms of composition of types, the first $\Pi \alpha : Type_i, \beta$ this permits for the construction of functions between types
+        - There are two mechanisms of composition of types, the first $\Pi x : \alpha, \beta x$ this permits for the construction of functions between types
             - Notice, it is possible that $\beta : \Pi x : \alpha, Type_i$, in this case, the above function represents a dependent type
- - Every type
 # STRUCTURES + CLASSES (TYPE CLASSES)
 ## Type Classes
 - Originated in haskell -> associate operations on a class?
@@ -1543,3 +1581,11 @@ inductive nat : Type
     - `tree` - multiple blobs, stored in a tree structure (the directory structure that the blobs reference)
     - `commit` - A `tree` of all the changes from the last commit, a reference to the previous commit
     - 
+## Market-Protocol Fit
+- Crypto-networks not startups
+  - Don't have ability to iterate and reach product-market fit
+- Crypto-startups rely on _headless branding_ and incentive structures to evolve
+- **product market fit** - Assembling small-team (capable of iterating) to find + fill market demand
+- **market-protocol fit** - Distribute token -> create narrative + product innovation to activate token holders?
+  - Attract users with token allocation (give them incentive to advertise product) -> token-holders push narrative aligned with broad product vision
+  - 
