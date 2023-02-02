@@ -2032,12 +2032,19 @@ CREATE TABLE public.connections (
 - Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
 ## Asynchronous Consensus
 ## Bullshark
--
+- 
 ## Implementing narwhal core?
 ## Hotstuff / LibraBFT
 ## Bullshark Paper
 ## Gasper
 ## Filecoin
+## Optimal Auction via Blockchain
+- Auctions manipulatable by single proposer?
+- Centralization of builders as opposed to centralization of proposer
+  - This is due to builders being able to bid higher for blocks? Also easier for them to monopolize block creation?
+- Second price auction
+  - Bids ordered by fee, winner pays second highest fee
+- 
 ## Anoma
 - Intent centricity + homogeneous architectures / heterogeneous security
 - 

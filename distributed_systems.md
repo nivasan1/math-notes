@@ -1351,7 +1351,7 @@ inductive nat : Type
     | succ : nat -> nat
 ```
 - Recursors over the `nat`s Define dependent functions, where the co-domain is determined in the recursive definition
-    - In this case, $$nat.rec\_on (\Pi (a : nat), C n) (n : nat) := C(0) \rightarrow (\Pi (a : nat), C a \rightarrow C nat.succ(a)) \rightarrow C(n)$$, i.e given $C 0$, and a proof that $C(n) \rightarrow C(succ(n))$
+    - In this case, $nat.rec\_on (\Pi (a : nat), C n) (n : nat) := C(0) \rightarrow (\Pi (a : nat), C a \rightarrow C nat.succ(a)) \rightarrow C(n)$, i.e given $C 0$, and a proof that $C(n) \rightarrow C(succ(n))$
 - Notice, each function $\Pi$-type definition over the natural numbers is an inductive definition
     - Can also define the co-domain as a $Prop$, and can construct proofs abt structures that are mapped to naturals via induction
 - Notes abt inductive proofs lean
@@ -1444,6 +1444,15 @@ inductive subtype {α : Type*} (p : α → Prop)
     - There are several type hierarchies denoted, $Type \space i$, where $i = 0$ implies that the Type is a proposition.
         - There are two mechanisms of composition of types, the first $\Pi x : \alpha, \beta x$ this permits for the construction of functions between types
             - Notice, it is possible that $\beta : \Pi x : \alpha, Type_i$, in this case, the above function represents a dependent type
+```
+ list.rec :
+  Π {T : Type u_3} {motive : list T → Sort u_2},
+    motive nil → (Π (hd : T) (tl : list T), motive tl → motive (hd :: tl)) → Π (n : list T), motive n
+```
+- Assumes an implicit `motive :list T → Sort u_2`
+- Takes proof that motive holds for base case
+- Takes a definition of a function mapping `hd : T` (element for use in constructor of recursively defined element), `tl : list T` (element for which assumption holds), and a definition for `motive (hd :: tl)` (constructor of succesor of assumption)
+    - 
 # STRUCTURES + CLASSES (TYPE CLASSES)
 ## Type Classes
 - Originated in haskell -> associate operations on a class?
@@ -1458,7 +1467,9 @@ inductive subtype {α : Type*} (p : α → Prop)
 ## Order Relations in Lean
 ### CROSS CHAIN DEX AGGREGATOR
 - Scheduler (encoding arbitrary logic into scheduler)
-- 
+
+## Cryptography
+ - 
 ### Scheduler
 #### Proposed Solution
 #### Suave
