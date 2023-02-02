@@ -1881,8 +1881,38 @@ CREATE TABLE public.connections (
 - `NodesPerValidator` 
     - Returns a mapping between `cons_address` -> `nodes`
         - Perhaps change to a `ValidatorId` as the index?
+## PR Feedback
+ - `Data Access Object`
+    - Move `StatementPreparer` into a `DAO`
+ - `ConnManager` 
+    - Move the `Execute` + `Query` + `ExecuteTransaction` methods out of the interface, and into helper methods
+    - Remove `mtx`, concurrent accesses to the connManager map is fine
+    - `Conn(chain_id) *pgx.Conn`  
+    - `NewDBConnManager(queries []Query)`
+        - Method takes list of queries / views to be initialized upon instantiation
+- `DAO` for each object? `DAO` to represent all available options on the DB?
+    - Could create `DAOs` for each entity in the DB?
+    - Not necessary now, can just implement, and factor in future as needed.
+- Solution, create several `DAOs` each serving a purpose of manipulating or interacting with a specific entity?\
+## General Practice
+- Clear boundaries between each object
+    - Single Responsibility
+
+- **DAO Pattern**
+    -
 ## Testing
  - Test with `pgmock`
+## Change the way Bundle Hash is determined
+-
+## Precommit Question
+- For $f$ validators, where $f < N / 3$, it is possible that they have broadcasted conflicting votes to the network
+    - In this case, there will be at most $ 2N / 3 + k$ votes where, $k = xf + b$, where $b < f$
+    - Need to send to $2f + 1$ vals. as $1 / 3 + f$ vals?
+## Error in inserting losing bundles when not skip proposer
+ - Error here due to insertion when the next proposer is not a skip-validator
+    - In this case the `cons_address` field of the losing bundle
+## PR Comments
+- `DBConnManager` hiding full features of the DB?
 ## Readings
 ### IBC Paper
 ### Shared Sequencer Set
@@ -2014,3 +2044,12 @@ CREATE TABLE public.connections (
 ### Ouroboros Paper
 ### Gasper
 ### Celestia Research
+
+
+Hi @validators! EVMOS mainnet is upgrading to v11.0.0 around 4pm UTC Thu., 2nd Feb. 2023. As part of your normal upgrade process, we ask you build with mev-tendermint@v0.34.24-mev.14 if you’d like to continue to use/test Skip. 
+
+The easiest way to do this is to checkout the v11.0.0-mev tag on github.com/skip-mev/evmos (https://github.com/skip-mev/evmos/releases/tag/v11.0.0-mev), then `make install` as normal, rather than using the v11.0.0 tag from the upstream repo. (The ony difference is that our repo has the correct version of mev-tendermint already replaced for you)
+
+If you prefer to use the upstream repo, you can replace tendermint with mev-tendermint yourself by following the instructions here: https://docs.skip.money/validator/quickstart#2-replace-tendermint  
+
+Thanks!
