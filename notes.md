@@ -1899,9 +1899,47 @@ CREATE TABLE public.connections (
     - Single Responsibility
 
 - **DAO Pattern**
-    -
+    - Ideally one for each entity?
+        - Programatically represent an (or set of ) entit(y/ies) in the DB
 ## Testing
  - Test with `pgmock`
+## Create Tx Batch Object
+ - Group txs across different databases
+ ```
+type txBatch interface {
+    // add a tx to the batch
+    Add(conn, queryFunc)
+    // send an error to the error channel
+    Error(error)
+    // close, wait for the txs to complete, and commit / defer all of them if necessary
+    Close()
+}
+ ```
+ - Implementation will be a timedTxBatch
+    - Adds a timeout to the execution of all txs
+## Context
+ - `Context` - used to transfer data across API lines
+ - Composed as follows
+    ```
+        type Context interface {
+            // signify that this Context is cancelled
+            Done() <-chan struct{}
+            // return error that spurred cancellation
+            Error() error
+            // deadline after which context will be cancelled
+            Deadline() time.Time
+        } 
+    ```
+ - `context.Background` - Designated as the top-level context, all other contexts are derived from this
+    - Contexts are derived from each other, forming a tree
+    - Background context is never cancelled, and has no timeout
+ - When a parent of a context is cancelled `<-ctx.Done()`, all of its children are also cancelled (can receive from `<-Done()`)
+ - contexts passed to functions are expected to cancel running as soon as possible after a receive on the `<-ctx.Done()` channel is possible
+## Questions
+ - What happens when adding after an error has already occurred in the batch?
+    - Maybe close logic is not actually useful? Come back to this, first test the `TxBatch` object
+        - Would the class be more useful, if instead of creating queries, the user passed in a function closure?
+            - Give standard constructor of txFunc, that way granular access to tx object is available
 ## Change the way Bundle Hash is determined
 -
 ## Precommit Question
