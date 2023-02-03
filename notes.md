@@ -1884,7 +1884,7 @@ CREATE TABLE public.connections (
 ## PR Feedback
  - `Data Access Object`
     - Move `StatementPreparer` into a `DAO`
- - `ConnManager` 
+ -**** `ConnManager` 
     - Move the `Execute` + `Query` + `ExecuteTransaction` methods out of the interface, and into helper methods
     - Remove `mtx`, concurrent accesses to the connManager map is fine
     - `Conn(chain_id) *pgx.Conn`  
@@ -1941,7 +1941,7 @@ type txBatch interface {
         - Would the class be more useful, if instead of creating queries, the user passed in a function closure?
             - Give standard constructor of txFunc, that way granular access to tx object is available
 ## Change the way Bundle Hash is determined
--
+## Terra Upgrade
 ## Precommit Question
 - For $f$ validators, where $f < N / 3$, it is possible that they have broadcasted conflicting votes to the network
     - In this case, there will be at most $ 2N / 3 + k$ votes where, $k = xf + b$, where $b < f$
@@ -2069,11 +2069,13 @@ type txBatch interface {
 
 - Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
 ## Asynchronous Consensus
+ - 
+## PBFT
 ## Bullshark
-- 
-## Implementing narwhal core?
-## Hotstuff / LibraBFT
+## DAG Rider 
 ## Bullshark Paper
+## Hotstuff / LibraBFT
+## Implementing narwhal core?
 ## Gasper
 ## Filecoin
 ## Optimal Auction via Blockchain

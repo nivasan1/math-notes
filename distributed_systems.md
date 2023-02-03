@@ -1452,7 +1452,19 @@ inductive subtype {α : Type*} (p : α → Prop)
 - Assumes an implicit `motive :list T → Sort u_2`
 - Takes proof that motive holds for base case
 - Takes a definition of a function mapping `hd : T` (element for use in constructor of recursively defined element), `tl : list T` (element for which assumption holds), and a definition for `motive (hd :: tl)` (constructor of succesor of assumption)
-    - 
+## Defining data-structures in lean
+ - `list`
+ - `binary_tree`
+   - Think about making `node : (option_binary tree) (option binary_tree) binary_tree`?
+ - `cbtree` (countably branching tree) 
+ - **Question**
+   - Second constructor takes a function to get its set of children?
+     - Can be defined inductively over the naturals
+     - Generalized to any number of children per node
+ - `heap`?
+   - Define sorted types?
+## Tactics on Inductive Types
+ - 
 # STRUCTURES + CLASSES (TYPE CLASSES)
 ## Type Classes
 - Originated in haskell -> associate operations on a class?
