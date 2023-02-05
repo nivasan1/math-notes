@@ -2070,13 +2070,88 @@ type txBatch interface {
 - Block validity depends on having certificates of $2f + 1$ blocks from prev. round, why?
 ## Asynchronous Consensus
  - 
-## PBFT
 ## Bullshark
-## DAG Rider 
-## Bullshark Paper
+## DAG Rider
+ - asynchronous byzantine atomic broadcast
+## Gasper
+ - Casper FFG + LMD GHOST
+    - FFG (provides finality for blocks produced)
+        - Denotes certain blocks as `finalized`, agnostic to underlying consensus engine (POW, POS, etc.)
+    - LMD GHOST is a fork-choice rule
+      - Validators post `attestations` to blocks (denoting a vote)
+ - Validators denoted by $\mathcal{V}$
+   -  broadcast `blocks` between each other
+   - blocks are either
+    1. Genesis blocks
+    2. Non-genesis, generate state-transitions on top of state at referenced parent     
+   - Blocks can conflict with each other, as such, each block in the `blockchain` should have a single parent + child also in the `blockchain`
+     - Accepting more than one child-per-parent enables conflicting state-transitions to be committed to state
+- Let $M$ be a message and $V \in \mathcal{V}$, then if $V$ sends $M$, $M$ is sent to all validators in the network
+  - What are the network assumptions? Is the message guaranteed to be received by all validators? Is there a maximum time for a validator to receive $M$?
+  - Messages
+    1. Block Proposal (block itself)
+    2. Block attestation (vote for block)
+    3. activation (adding a validator to the active set) 
+    4. slashing (proving a validator in the active set did something wrong)
+  - Authenticated link abstraction (messages are signed by sender)
+  - Validators may or may not receive message (to _see_ or _does not see_ )
+- messages are _accepted_ iff all of the dependencies of $M$ are _accepted_ as well
+  - What does _accepted_ mean for a single message? A validator _sees_ the message?
+  - Example dependencies? _slashing_ for $V$ depends on committed _proof_ possibly in block (proposal message?)
+- **view**  - $View(V, T)$ (parametrized by time $T$), the set of all **accepted** messages a validator has seen thus far
+  - $view(NW, T) \supseteq \bigcup_{v \in \mathcal{V}} view(V, T + \Delta)$ - the network view, the set of all messages that have been sent by any validator for $t \leq T$
+    - In this case $\Delta$ is the maximum variation accepted by the network between validators and the real time, i.e $\Delta$ is the max time it takes for a val to receive a message after it being sent at $T$
+    - Can contain messages that have yet to be accepted by any validator?
+    - $\forall v \in \mathcal{V}, Block_{genesis} \in view(v, 0)$, i.e all vals have the genesis block as their view on starting consensus
+      - Genesis has no deps. so automatically accepted
+- For any $v \in \mathcal{V}$, $view(V)$ contains a DAG of blocks (rooted at $B_genesis$)
+  - Denote the relation $B \leftarrow B'$ to denote that $B$ is a parent of $B'$, and thus $B'$ depends on $B$ (is accepted when $B$ is)
+    - Blocks only have a single parent (acyclic)
+  - _leaf_ block with no children
+  - $chain(B, B')$ - denotes a chain of blocks, i.e a sequence $B', B_1, \cdots , B$, where $B' \leftarrow B_1$, and $B_{i} \leftarrow B_{i+1}$, etc.
+     - $chain(B)$ - denotes a unique sequence per block of the $chain(B_{genesis}, B)$ (this exists for every block)
+  ## Proof Of stake
+  - Let $\mathcal{V} = \{V_1 \cdots V_n\}$, where $w(V_i) \in \mathbb{R}_{\leq N}$, where $N$ is the total stake
+    - Define $fork : view (V_i) \rightarrow \mathcal{B}$, i,e for any view, $fork$ chooses an arbitrary leaf, and determines a chain to $B_{genesis}$
+    - finality: $finality : view (V_i) \rightarrow \mathcal{2^B}$, i.e chooses a set of the blocks in $view(V)$ as canonical
+        - Can assume that any $B = fork(view), B \in finality(view)$?
+    - **attestations** - Votes for head of chain, embedded in parent block
+      - I.e parent determines attestations for child-block?
+        - At time of commit of parent, attestations for child-block exist? Don't finalize parent, until child has been seen?
+        - Blocks can't be modified, but can have earlier dependency, and include more attestations for different child, thus forking chain?
+    - Difference between this and tendering is **prevote** stage?
+      - Only one voting round per block in ethereum? Could this be faster than tm?
+    - Define blockchain $p$- slashable if $pN$ stake can be provably slashed by a validator w/ network view
+    - Ethereum, no bound on message delays 
+      - Can wait arbitrarily long for messages to be received
+    - Diff. to tendermint
+      - Gasper is asynchronous
+      - Tendermint is partially-synchronous
+        - i.e assume time after which network is stable
+  ## Properties
+  ### Safety
+   - For all $V, V' \in \mathcal{V}$, $b \in F(V), b \in F(V')$ then $b$ and $b'$ are non-conflicting
+     - Conflicting blocks are blocks that bear no dependency relation
+    - where $F$ is the finalization function.
+    - This implies that $F(V) \subset F(NW)$, i.e a sub-chain(subset with extended parent-child relation)? Proof sketch
+      - Suppose $b \in F(V)$ and $b' \in F(V')$, where there is no relation between $b, b'$, then they are conflicting, this is false. As such, for all $v, v' \in view(NW)$, $v, v'$ bear a dependency relation
+  ### Liveness
+  - Can the set of finalized blocks grow?
+     - _plausible liveness_ - regardless of prev. events, it is possible for the chain to grow
+     - _probablistic liveness_ - Regardless of prev. events it is probable for the chain to grow
+  ## Time
+  - Time modeled in _slots_ (12 seconds)
+  - epochs - some number of slots
+  - Synchrony
+    - _synchronous_ - known bound on communication
+    - _asynchronous_ - no bound on communication
+    - _partially synchronous_ - bound on communication exists and is not known, or is known but is only exists after unknown time $T$
+  ## Casper
+## Partical BFT
+
 ## Hotstuff / LibraBFT
 ## Implementing narwhal core?
-## Gasper
+cd ## Gasper
 ## Filecoin
 ## Optimal Auction via Blockchain
 - Auctions manipulatable by single proposer?

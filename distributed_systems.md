@@ -1464,7 +1464,15 @@ inductive subtype {α : Type*} (p : α → Prop)
  - `heap`?
    - Define sorted types?
 ## Tactics on Inductive Types
- - 
+ - `cases` 
+   - breaks inductive definition into constructors
+     - How is this diff from induction?
+       - Induction introduces motive given goal, for recursive types assumes motive for arbitrary type
+   - Given $n : nat$
+   - injection tactic?
+  ## Inductive Families
+  - Defines an inductive type of $\alpha$ that is indexed by another type $\beta$
+    - This is represented as $\alpha \rightarrow \beta$
 # STRUCTURES + CLASSES (TYPE CLASSES)
 ## Type Classes
 - Originated in haskell -> associate operations on a class?
