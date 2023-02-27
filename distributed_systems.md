@@ -1473,6 +1473,30 @@ inductive subtype {α : Type*} (p : α → Prop)
   ## Inductive Families
   - Defines an inductive type of $\alpha$ that is indexed by another type $\beta$
     - This is represented as $\alpha \rightarrow \beta$
+  - Consider `vector`
+    ```
+    inductive vector (α : Type u) : nat → Type u
+    | nil {}                              : vector zero
+    | cons {n : ℕ} (a : α) (v : vector n) : vector (succ n)
+    ```
+  - In the above definition, each instance of  `vector` in the definition is an instance of `vector \a`
+    - `motive`s in recursors are going to be dependent function types (they parametrize the index of the inductive family)
+## Axiomatic Details
+
+## Structures
+- Let $G$ be a group $\leftrightarrow$ `variable (G : Type) [group G]`
+- Group homo-morphism defn. 
+    ```
+    @[ext] structure my_group_hom (G H : Type) [group G] [group H] :=
+    (to_fun : G → H)
+    (map_mul' (a b : G) : to_fun (a * b) = to_fun a * to_fun b)
+    ```
+    - Structure is an inductive type w/ single constructor, defined below are the arguments to the constructor (`mk`)
+- For each argument to constructor, a function is given `my_group_hom.to_fun : \Pi {G H : Type} [group G] [group H](a : my_group_hom G H), G -> H` (similarly for map_mul')
+  - Can apply above function to instance of structure, using dot notation on instance of structure
+## Classes
+- Structure tagged w/ class keyword
+- 
 # STRUCTURES + CLASSES (TYPE CLASSES)
 ## Type Classes
 - Originated in haskell -> associate operations on a class?
@@ -1487,7 +1511,8 @@ inductive subtype {α : Type*} (p : α → Prop)
 ## Order Relations in Lean
 ### CROSS CHAIN DEX AGGREGATOR
 - Scheduler (encoding arbitrary logic into scheduler)
-
+## EVM
+- 
 ## Cryptography
  - 
 ### Scheduler
@@ -1620,3 +1645,373 @@ inductive subtype {α : Type*} (p : α → Prop)
 - **market-protocol fit** - Distribute token -> create narrative + product innovation to activate token holders?
   - Attract users with token allocation (give them incentive to advertise product) -> token-holders push narrative aligned with broad product vision
   - 
+## Anoma Reading
+- counterparty discovery, solving, and settlement?
+  - What is counterparty discovery (transaction ingress)?
+    - Somehow a solution to POF
+  - solving? Matching intents into txs?
+- Intent centricity + homogeneous architecture / heterogeneous security
+- Programmable v scripted settlement?
+  - Bitcoin - bitcoin script (not turing complete) (scriptable)
+  - Ethereum - turing complete (programmable)
+- Deciding with whom + what to settle
+  - Forces centralized authority to organize settlement. Builders in PBS?
+    - Somehow decentralise the building env.
+- **Anoma** - intent-centricity, decentralised counter-party discovery, outsourcing of searching (block-building / execution) to solvers.
+### Intent Centricity
+ - **Intent** - part of a tx that requires another part for valid state-transition
+ - Intent either settled by defined, or not at all
+   - Anomia specifies intents _declaratively_?
+   - _imperative_ intents - 
+ - _validity predicates_ - used by application developers to specify invariants
+   - _safer by construction_
+### Homogeneous Architecture, Heterogeneous Security
+- Protocols Analysed along 2 dimensions
+ - **Architecture**
+   - Abstractions + relations constituting system
+     - **Homogeneous Architecture** - all applications adhere to the same architecture (EVM, CosmWasm)
+     - **Heterogeneous Architecture** - Celestia, all applications adhere to arbitrary architectures, with some commonality between them (shared DA, XCMP, etc.)
+ - **Security**
+    - Whom to interact + trust
+      - **Homogeneous Security** - same security parameters for all applications
+      - **Heterogeneous Security** - Different security parameters for all applications
+- Anoma = homogeneous arch. + heterogeneous security?
+  - homogeneous arch. => easy interactions between applications
+  - _benevolent monopoly_ - git / TCP
+## Architecture
+- Nodes take on multiple roles
+  - Node can specifically gossip intents
+  - Nodes can search for solvers
+- Roles have diff. network assumptions
+    ### Intents 
+    - Define partial state-transitions
+    - Fully complete state-transitions are subsets of state-transitions
+      - i.e intents that have no need, additional data provided by solvers
+    - Intents are partial, have specific set of conditions that must be met / data that must be accessed (declarative)
+      - Solvers attempt to match these conditions with other intents or with access to data, what is need for zk-proof?
+ - Applications defined declaratively?
+   - Can add new conditions to the existing set
+- ![Alt text](Screen%20Shot%202023-02-06%20at%2011.19.00%20AM.png)
+- Intents gossipped at _intent gossip_ layer
+  - Multiple intents matched into tx
+- Intent (intent gossipped) -> discovery (intent given to solver) -> (tx) (intent matched with others) -> consensus (tx included in proposal) -> execution -> finalization (state-root included in next block header)
+## Solver
+- Observe all intents and apply _solving algorithms_ to determine optimal matching of intents
+## Transactions
+# Ferveo
+## IBC Notes
+- Handle authentication + transport of data between 2 blockchains
+- **IBC TAO** - Provides necessary logic for Transport,     authentication, ordering logic of packets
+  - composed of _core_, _client_, _relayer_
+- **IBC/app** - 
+  - Defines handlers for ICS modules
+- **relayers** - specification in ICS-18
+  - off-chain process
+  - Responsible for reading state of source, constructing and sending datagram to destination to be finalized
+  - Relayer sends packets to channels
+  - Each side of relayer (chains) have light-clients to validate proofs included in packet
+- **client** - responsible for tracking consensus state, proof specs,  for counterparty
+  - Client can be associated with any number of connections
+- **connections** - Responsible for facilitating verification of _IBC state?_ sent from counterparty
+  - Associated with any number of channels
+  - Encapsulates two _ConnectionEnd_ objects, represent counterparty light clients for each chain
+  - Handshake - verify that light-clients for each _ConnectionEnd_ are the correct ones for the respective counterparties
+- **channels** - Module on each chain, responsible for communicating with other channel (send, receipt, ack, etc.)
+  - Packets are sent to channel, can be uniquely identified by `(channel, port)` 
+  - Channel encapsulates two _ChannelEnd_ (established through handshake)
+  - `ORDERED` channel, packets processed by order of send
+  - `UNORDERED` channel, packets processed by order of receipt
+- **port** - IBC module (_channel_) binds to any number of ports
+  -  module (_channel_) port handles is denoted by **portID** (`transfer`, `ica`, etc.) unique to the channel
+### Connections
+- Connections established by a 4-way handshake
+  1. ConnOpenInit - made by source, sets state of source to `INIT`
+  2. ConnOpenTry - made by destination, sets state of destination to `TRYOPEN`
+  3. ConnOpenAck - made by source, sets state of source to `OPEN`
+  4. ConnOpenConfirm - made by destination, sets state of destination to `OPEN`
+#### `ConnOpenInit` -
+ - Relayer calls `ConnOpenInit` on chain A (chain initializing connection) 
+   - Relayer sends a `MsgUpdateClient` to chain A, contains consensus state of chain B
+   - Chain A consensus state updated to `INIT`
+   - Relayer sending `MsgUpdateClient`, sends the protocol version to be used in connection
+  - Generates the connectionID + connectionEnd for counterparty
+    - Stores data associated with the counterparty client
+#### `ConnOpenTry`
+  - Spawned from chain A, message call on chain B
+  - Sends data stored on chain A abt. connection to chain B
+    - Verification logic on chain A is dependent upon light-client state on chain B
+      - Light client on chain B stores latest state-root + next validator set of chain A
+ - Relayer submits `MsgUpdateClients` to both chain A + chain B corresponding to light client data from verification in chain B
+#### `ConnOpenAck`
+ - Same as `ConnOpenTry` but on chain A
+#### `ConnOpenConfirm` 
+ - chain B acknowledges all data stored correctly on chain A and itself
+## Channels
+ - Application to application communication
+   - Channel <> channel communication through connections + clients
+   - Separation between transport (tendermint) + application (application)
+     - channels namespaced by portIDs, 
+    - **Establishing Channel**
+      1. `ChanOpenInit`
+         - Relayer calls this on chain A, which calls `OnChanOpenInit` (defined as callback in host module), sets chain A into `INIT` state
+         - Application version proposed
+         - Channel requests to use a specific port
+      2. `ChanOpenTry`
+         - Similar as above just calls application call-backs to initialize channels
+      3. `ChanOpenAck` 
+      4. `ChanOpenConfirm`
+    - Channel handshake requires the capabilities-keeper of the app to hold a capability for the requested port
+## Ports
+ - Dynamic capabilities
+## Clients
+- Applications implement ICS-26 standard for application interface + call-backs
+- Tracks consensus state across chains
+  - Identified by chain-wide unique identifier
+## ICS20
+- ics20 channel binds to specific port
+  - denom representation is `<hash of portId/channel>/denom`
+## Questions
+- Should routing logic be implemented as part of the acknowledgement?
+  - Perhaps?
+    - packet-unwind atomic across all channels
+      - Later concern, 
+## Implementation
+**Sender chain unwind check function**
+- if denom is native
+    - we route it directly to (channel-id, port-id)
+- If denom is not-native
+    - Burn the voucher
+    - Retrieve the global-identifier of the destination
+    - Create packet to send voucher back one hop, attach global-id to packet
+
+**Receiver chain unwind check function**
+- if packet has global-id in meta-data
+    - If the chain is the source
+        - Send the token to the (channel-id, port-id) associated with the global-identifier
+    - Otherwise
+        - Read global-id from metadata, attach to packet sent to next chain in sequence
+- if not
+    - Continue packet receipt as normal
+### Over-ride
+**Sender chain unwind**
+  - `sendTransfer` override, 
+    - Check if the sending chain is source 
+      - If source - chain wil be escrowing tokens
+    - In this case we are always acting as the sink chain for each unwind?
+- 
+## Check out
+-  https://decentralizedthoughts.github.io/2022-11-24-two-round-HS/
+# Distributed Algorithms
+- ## Ch 2
+  - The network is represented as follows $G = (V, E)$, where $|V| = n$ (number of nodes in network), and each $i \in V$ is a process
+    - Each process maintains $in\_nbrs_i, out\_nbrs_i \subset V$, where $in\_nbrs$ are sets of edges ending at $i$, and $out\_nbrs$ are sets of edges starting from $i$
+    - Let $dist(i, j)$ be the min. number of edges from $i$ to $j$, let $diam(V)$ represent the max of $dist(i,j)$ over all pairs of $i, j \in V$
+    - Let $M$ be a language of messages, sharesd between all processes
+    - For each **process**
+      - $states_i$ - represents the (possibly infinite) set of states
+      - $start_i \subset states_i$ - the set of starting states of a process
+      - $msgs_i$ - message generation mapping $states_i \times out\_nbrs_i \rightarrow M \cup \{null\}$
+      - $trans_i$ - _state-transition_ mapping $2^M \times in\_nbrs_i \times states_i \rightarrow states_i$, i.e, for each state, we have a set of vectors (representing the inbound messages, possibly ordered) for each $in\_nbr$ which map to an ultimate state after processing all messages (should be indpendent of order of $in\_nbr$?)
+- A round is the following
+  1. Apply msg generation function to current stat 
+  2. Apply transition function to current state + all in bound messages (why the above before below?) (deferred execution)
+- **failures**
+  - *stopping failure* - Process can fail at any point in round, including in middle of _step 1_ (process does not send all messages to all required parties)
+  - *byzantine failure* - Process exhibits arbitrary state-transition logic
+  - *link failure* - Process may place message in link, but link fails to deliver message to recipient
+- Messages from $in\_nbrs$ analogous to inputs, multiplicity of start-states corresponds to input variables
+- **execution**
+  - Execution $\alpha$ represented as follows,
+    - $C_0, M_0, N_0,C_1, \cdots, C_n , M_n, N_n$, where $C_i$ is the state assignment for all processes at round $i$, $M_i$ is the set of outbound messages, and $N_i$ is the set of inbound messages for all processes
+    - For two executions $\alpha \sim^i \alpha'$, iff the state assignment of $i$ in $\alpha'$'s global state assigments are the same as in $\alpha$'s, and the sets of received / sent messages is the same for process $i$ for all rounds in either execution, these executions are **indistinguishable** for $i$
+- **proof methods**
+  - **invariant** - property held by all processes at every round, 
+  - **simulation relation** - relationship between algorithm, that for every execution, a set of states eventually results
+- ## Ch 5
+  - **consensus** - Each process starts w/ value, on termination for all processes, each process must decide the same value
+    - Subject to **agreement** (all processes decide same value), and **validity** (agreed upon value is restricted depending on inputs)
+    - **co-ordinated attack problem**
+        - Reaching consensus in network where messages may be lost
+  - ### **Deterministic Coordinated Attack**
+    - Suppose there are $G_1, \cdots, G_n$ generals, each attacking a single army from a different direction.
+    - They each have messengers, which are able to communicate messages between them within a bounded amt. of time, 
+      - The communication channels are pre-determined and knowm beforehand
+      - Messengers are unreliable, can lose / not deliver messages, but if delivered, will always deliver w/in time known
+    - **Case - When messengers are reliable**
+      - Consider network where each node is a general, and channels are messengers
+      - Each general sends messages to other generals through following messages (Attack?, source, destination)
+        - Each general, on receipt of $n$ messages from different generals will decide, if there is one non-attack, all generals will not attack
+      - On receipt of message, where destination is not the receiver, general forwards message to destination
+      - Proof:
+        - All messages reach destination reliably, complexity is $diam(G)$ rounds (general may not have channel to all generals)
+    - In synchronous case where messengers are not reliable, agreement + validity is impossible
+    - **Tx Commit (When Messages unreliably sent, is impossible)**
+        - Processes are indexed $1, \cdots, n$, each process starts w/ $in \in \{0,1\}$, and must `decide` on $out \in \{0,1\}$. Decisions may be determined by a halting state
+        - Properties
+        - **agreement** - No two processes decide on different values.
+        - **validity**
+            - If all processes start w/ 0, $0$ is the only decision value
+            - If all processes start w/ $1$, and all messages are delivered, $1$ is the only output value
+        - **termination**
+            - All processes eventually decide
+        - ### **proof**
+            - Let $G = (V, E)$, where $V = \{1,2\}$, and $E = \{(1,2)\}$, no algorithm solves the co-ordinated attack problem.
+                - Suppose $A$, solves the problem.
+                - For each input $i \in \{0,1\}$, there exists a start state $s_i \in states_i$, where $s_i \in \{s_1, s_0\}$, in which case, for a fixed set of successful messages, i.e $s \in M_{i-1} \rightarrow s \in N_i$, there is a single execution. Otherwise, the message generation function is executed in a faulty manner (is deterministic, and all messages are delivered faithfully).
+                - $M_0$ is determined from $C_0 = \{s_i, s_i\}$
+                - Let $\alpha$ be the execution of $A$ where $C_0 = \{1, 1\}$, then processes decide (within $r$ rounds, lets say) by **termination**, and by **agreement + validity** they both decide $1$, inputs are both 1
+                - Let $\alpha_1$ be the execution of $\alpha_1$, where all messages after $r$ are not delivered, i.e $N_k = \emptyset, k \gt r$, thus $\alpha \sim^{1,2} \alpha_1$
+                - Let $\alpha_2$ be the same as $\alpha_1$, except the outbound message from $p_1$ at round $r$ is not delivered, thus $\alpha_1 \sim^1 \alpha_2$, as the set of inbound messages + outbound messages is the same for $p_1$ in both $\alpha_1$ and $\alpha_2$, however, for $p_2$ the executions are not indistinguishable.
+                - Furthermore, for $p_2$ / $p_1$, the set of inbound messages after that round are $\empty$, so the set of executions proceeds as before, except $p_2$ may possibly be in a different state.
+                - Imples that for $\alpha_1$ and $\alpha_2$, $i$'s state assignment + in / out-bound messages are the same
+                - In $\alpha_2$, $p_1$ decides $1$, and by agreement / termination, $p_2$ decides $1$ as well (can keep same decision as long as one process decides)
+                - Consider $\alpha_3$, which is the same as $\alpha_2$ except that the last message from $p_2$ at round $r$ is not delivered, and $\alpha_2 \sim^2 \alpha_3$
+                - Similarly $p_2$ decides $1$ in $\alpha_3$, since $\alpha_2 \sim^2 \alpha_3$, and $p_2$ decided $1$ in $\alpha_2$
+                - Continue process of iteratively removing messages until no messages are sent (rely on termination / agreement / validity to continue decision)
+                - Thus, when both processes start with $(1,1)$, and no messages are sent, the processes decide on $1$, call this execution $\alpha'$
+                - Then consider, $\alpha''$ where $(s_1 = 1, s_2 = 0)$, and no messages are delivered, notice $\alpha' \sim^1 \alpha''$, thus $p_1$ decides $1$, and $p_2$ decides $1$ by agreement / termination (as well as weak validity),
+                - Finally consider $\alpha'''$, where $(0,0 )$ is the start state, and no messages are delivered, in this case, $p_2$ decides $0$ by validity, however $\alpha'' \sim^2 \alpha '''$, and the decisions are contradictory. $\square$
+        - **For arbitrary n processes**
+            - Suppose no algorithm exists for $A$, then prove the same result for $n$ processes.
+            - Suppose otherwise, then there exists an algorithm solving commit for the deterministic synchronous case. In this case, partition the network into two groups, $A$ and $B$
+            - Where $|A| = n$, and $|B| = 1$, then all processes in $A$ have the same decision, and similarly with $B$, Consider case when all have the same input $1$, all must decide by round $r$, and have same decision, let $\alpha$, be this execution. 
+            - Then let $\alpha_1$ be the execution, where all outbound messages for $k > r$ are not delivered
+            - Follow same approach as above, except w/ A / B as in the case of the two process proof
+    - **Tx Commit (randomized)**
+        - Weaken agreement condition to allow for $\epsilon$ probability of disagreement (parametrized by # rounds)
+        - **model**
+          - **communication pattern**
+            - Good communication pattern: $\{(i, j,k), (i,j) \in E, 1 \leq k \leq r\}$, i.e for each round, the set of messages that are faithfully delivered
+            - Adversary composed of 
+              1. Assignment of inputs to all processes, (global state assignment at start )
+              2. communication pattern
+        - For each adversary, a random function is determined over a unique probability distribution $B$,   
+          - **agreement** 
+            - $Pr^B[processes\space disagree] \leq \epsilon$
+          - **termination** - All processes decide within $r$ rounds.
+        - **algorithm**
+          - Defined for complete graphs
+          - Algorithm presented where $\epsilon = \frac{1}{r}$, define information flow partial order $\leq_{\gamma}$, for communication pattern $\gamma$
+            1. $(i, k) \leq_{\gamma} (i, k')$ for all $i, 1 \leq i \leq n$, and $0 \leq k \leq k'$ (information at same process is monotonically increasing w/ time)
+            2. $(i, j,k) \in \gamma$, then $(i, k-1) \leq_{\gamma} (j, k)$ (information flow monotonicity between messages)
+            3. If $(i, k) \leq_{\gamma} (i', k'), (i',k') \leq_{\gamma}  (i'', k'')$ then $(i, k) \leq_{\gamma} (i'', k'')$ (transitivity of information flow)
+          - For _good_ communication pattern (defn. above) $\gamma$, 
+            - $information\_level_{\gamma} (i, k)$
+              - $\forall i,level(i,k) = 0$
+              - For $k > 0$, $\exists j \neq i, (j, 0) \not\leq_{\gamma} (i,k), level_{\gamma}(i, k) = 0$
+              - For $k > 0$, $\forall j \not= i, l_j = max\{level_{\gamma}(j, k') : (j, k') \leq_{\gamma} (i, k)\}$, $level(i, k) = min_j (l_j) + 1$
+            - I.e on receipt of messages from all parties at round $i$, $p_i$ has $level_{\gamma}(p_i, i) = i + 1$
+          - For any good communication pattern $\gamma$, any $k, 0 \leq k \leq r$, and $i, j \in V$, 
+          $$|level_{\gamma}(i, k) - level_{\gamma}(j, k)| \leq 1$$
+            - Proof: For $k = 0$, $level_{\gamma}(i, 0) = level_{\gamma}(j, 0) = 0$, suppose $k = n$, and the hyp. holds, then for $k = n = 1$. If both processes have received each other's messages then $level_{\gamma}(i(j), n + 1) = level(j(i), n) + 1 = level(i(j), n) + 1$, and the theorem holds. WLOG, say $j$'s message has not been delivered, but $i$'s has, then $level_{\gamma}(j, n + 1) = level_{\gamma}(j, k) + 1$, where $k$ is the last round that $i$ had delivered a message, which is necessarily the same as $i$'s currently, and the theorem holds.
+          - Question: How does process $i$ know of $j$'s level in the prev. round? It doesn't? It does, levels are gossipped thru messages
+          - **Algorithm**
+            - Informal: Each process $i$ keeps track of it's level in a local variable, process $1$ chooses a random value $r \in [1, r]$, value is piggy-backed on all messages, initial values of each process piggy-backed on all messages. After $r$ rounds each process decides $1$ if $level(i, r) \geq r$, and initial values of all processes = 1
+            - **formal**
+              - Messages are of the following form $(L, V, k)$, where $L$ is an assignment to each process an integer $L_i \in [0, r]$, $V_i \in \{0, 1, undefied\}$ and $k \in [1, r]$ or is undefined.
+                ``` go
+                    type ProcessState struct {
+                        val [0,1, nil]
+                        level int
+                    }
+                    // state for each node in participation
+                    type RandomAttackState struct {
+                        rounds int
+                        decision [nil, 0, 1]
+                        key [1, r] // must be set by process 1
+                        processStates []ProcessState
+                        processIndex
+                    }
+
+                    func init(processIndex, numProcesses, initialVal int) RandomAttackState {
+                        state := RandomAttackState {
+                            rounds : 0,
+                            decision: nil,
+                            processIndex : processIndex
+                        }
+                        // generate random key if processIndex == 1
+                        if processIndex == 1 {
+                            state.key := random(1, r)
+                        }
+                        state.processStates := make([]ProcessState, numProcesses)
+                        // for each other process in consensus, initialize initial view
+                        for j := 0; j < numProcesses; j++ {
+                            pState := ProcessState{val: nil, level: -1}
+                            // our initial state
+                            if j == i {
+                                pState.val = initialVal
+                                pState.level = 0
+                            }
+                            state.processstates[j] = pState
+                        }
+                        return state
+                    }
+                ``` 
+                ``` go
+                    type Msg struct {
+                        //sender process index
+                        processIndex int
+                        // sender's view of network
+                        processStates []ProcessState
+                        // sender's view of random value
+                        key int
+                    }
+
+                    func (r *RandomAttackState) trans(inboundMsgs []Msg) {
+                        // increment round
+                        r.rounds ++
+                        // iterate over received messages from prev. round
+                        for _, msg := range inboundMsgs {
+                            // all random keys must be the same
+                            if msg.key == nil {
+                                r.key = nil
+                            }
+                            // check for non-nil initial values from msg, and update our own
+                            for i, processState := range msg.processStates {
+                                if processState.val != nil {
+                                    r.processStates[i] = processState.val
+                                }
+                                // update level values
+                                if processState.level > r.processStates[i].level {
+                                    r.processStates[i].level = processState.level
+                                }
+                            }   
+                        }
+                        // stort processStates by level (ascending), and update current level
+                        r.level = sort.min(r.processStates, func(i,j ) {
+                            r.processStates[i].level < r.processStates[j].level
+                        }).level + 1
+                        // decide if current round = r
+                        if r.rounds == r {
+                            // check if our level > key
+                            if r.key != nil && r.level > key {
+                                // check that all other decisions are 1
+                                for _, processState := range r.processStates {
+                                    if processState.val != 1 {
+                                        r.decision = 0
+                                        return
+                                    }
+                                }
+                                r.decision = 1
+                            } else {
+                                r.decision = 0
+                            }
+                        }
+                    }
+                ```
+            - **Theorem**
+              - Random attack solves random attack, with $\epsilon < 1/r$
+                - **validity**
+                  - Case: all inputs are zero. All nodes trivially output zero, and agreement is held
+                  - Case: all inputs are 1, and all messages are faithfully delivered, by lemma 5.3, for any complete communication pattern, all nodes have the same level at each round, in which case, at round $r$, all nodes have the same round $r \geq key$, and the same input, so agreement is solved w/ prob. disagreement $0 <\epsilon$ ( for all $r$)
+                - **agreement**
+                  - Consider an adversary $B$, with communication pattern $\gamma$, let $l_i = level_{\gamma}(i, r)$, then if $key < min_i(l_i)$, all processes decide according to their shared $vals$,
+                    - Can a process have all values of $1$ and other processes don't? Then all processes would have level(0), would would be unable to commit
+                  - On the contrary if $k > max_i(l_i)$, no processes commit, all decide $0$
+                  - Finally, if key = $min_i(l_i)$, then some processes commit, and other's dont, with prob. $1/r$
+    - **Lower Bound On Agreement**
+      - 
+    - **problems**
+      - 
+
+- ## Ch 6
