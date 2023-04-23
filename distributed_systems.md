@@ -1508,6 +1508,22 @@ inductive subtype {α : Type*} (p : α → Prop)
     2. Declare instances of type-class
     3. Mark implicit arguments w/ `[]` to indicate elaborator should identify implicit type-classes
 - Type classes similar to interfaces, use cases similar to generic functions over interface
+## Lean Tips
+- ## Useful tactics
+  - **simpa**
+    - Similar to use of `simp`
+      - Uses all thms / lemmas tagged with `@[simp]`, to rewrite goal (must be equality / logical equality), and ideally solves
+    - Use: `simpa [//additional lemmas] using h`, rewrites goal / h so that they are equivalent and applies `exact`
+  - **obtain**
+    - Instead of doing `have` / cases, obtain does the work for you, deconstructing statement, after applying to specific instance
+## Working with sets
+ - Set is defined as `let a := set : X`,  can be thought of as the following
+   1. A set of elements, each of which `: X`
+   2. A function from `X -> Prop`, mapping $x \in A$, to true, nad false otherwise
+   3. An element of the power-set of `X`
+   4. A subset of $X$
+- Are types / sets interchangeable? Can't be, a `set : Type`? Let $A : set X$, `set X` is a type (dependent type), and $A$ is a term, then $\in$ is a relation over $(X, set X)$, where $x : X$, and $x \in A$
+  - `set X`, is the type of all sets containing elements $x : X$, thus $x \in A : \space Prop$
 ## Order Relations in Lean
 ### CROSS CHAIN DEX AGGREGATOR
 - Scheduler (encoding arbitrary logic into scheduler)
@@ -1613,7 +1629,14 @@ inductive subtype {α : Type*} (p : α → Prop)
 ## Tusk / Narwhal
 ## Anoma
 ## Gasper + L2 solns.
-
+## Decentralized Identity
+- Lack of identity prevents **under-collateralized lending**, **apartment lease**, etc.
+- Accounts hold non-transferrable **soulbound tokens**, represent commitments, credentials, affiliations etc.
+  - **Quadratic funding?**
+  - Decentralized key management?
+  - Under-collateralized lending / credit-scores
+    - Perhaps tracking financial worthiness of someone on chain (by tracking an account and its growth over-time), incentivising users to invest in groups led by certain individuals
+- Can accrue SBTs through certain behaviors, and stake reputation on chain 
 ### Circom / ZK
 # ZK
 # Differential Privacy
@@ -1658,12 +1681,46 @@ inductive subtype {α : Type*} (p : α → Prop)
   - Forces centralized authority to organize settlement. Builders in PBS?
     - Somehow decentralise the building env.
 - **Anoma** - intent-centricity, decentralised counter-party discovery, outsourcing of searching (block-building / execution) to solvers.
+## PBS Reading
+ - Before PBS (proposer introspect mempool and have full control of what goes into proposal)
+ - **PBS** [article](https://notes.ethereum.org/@vbuterin/pbs_censorship_resistance)
+   - Builders build _exec block bodies_ (txs), and encrypt / send commitment to proposer
+     - Pre-confirmation privacy (prevent mev-stealing)
+   - Proposer signs commitment
+ - Status quo for censorship resistance in eth pre-merge
+   - Extremely hard to censor
+   - Have to raise base-fee above $max_payment / gas_cost$ and hold there
+     - To do this attacker will have to spam blocks / make them full above target to raise base-fee significantly
+ - **builder censorship**
+   - Builders win by 
+     - Attracting unsophisticated order flow (order-flow generating MEV)
+     - Sophisticated MEV discovery
+   - Let $M$ be what non-censoring builders are for the block w/o censorable tx
+     - $P = X - 150k * base_fee$, $P - A$
+     - Then builder can bid $M + P$ (for including censorable tx)
+     - Censoring builder earns $A$ of MEV for censoring, then they bid $M + A$ (to make a profit), pay $A - P$ than other builders, but lose $P$ profits
+ - Much easier in this case, cost is scaled w/ block finality
+ - Potentially can scale number of blocks proposed per slot (replicate larger space) to make it harder to censor
+ - ## Multiple Pre-confirmation PBS Auctions in Paralell
+   - Builders can't determine final ordering when building blocks?
+ - Censorship arguments assuming that adversary has no control over the client (or at least 2f +1 of them)
+ - Builder of Primary block, always advantaged? Potentially, can censor inclusion of tx (as long as it is aware of auxiliary builders) (also has info. adv.) and force auxiliary builders to pay
+   - tx-execution costs
+ - 
+
+## Censorship Resistance in On-chain Auctions
+- 
+### Proposer Enforced Commitments
+- PBS Pros
+  - Protecting proposer 
+  - Ensuring liveness
+  - How are the above satisfied? Seems like they are strictly negative guarantees
 ### Intent Centricity
  - **Intent** - part of a tx that requires another part for valid state-transition
  - Intent either settled by defined, or not at all
    - Anomia specifies intents _declaratively_?
    - _imperative_ intents - 
- - _validity predicates_ - used by application developers to specify invariants
+ - _validity predicates_ - used by application developers to specify invariant
    - _safer by construction_
 ### Homogeneous Architecture, Heterogeneous Security
 - Protocols Analysed along 2 dimensions
@@ -1903,8 +1960,9 @@ inductive subtype {α : Type*} (p : α → Prop)
             - I.e on receipt of messages from all parties at round $i$, $p_i$ has $level_{\gamma}(p_i, i) = i + 1$
           - For any good communication pattern $\gamma$, any $k, 0 \leq k \leq r$, and $i, j \in V$, 
           $$|level_{\gamma}(i, k) - level_{\gamma}(j, k)| \leq 1$$
-            - Proof: For $k = 0$, $level_{\gamma}(i, 0) = level_{\gamma}(j, 0) = 0$, suppose $k = n$, and the hyp. holds, then for $k = n = 1$. If both processes have received each other's messages then $level_{\gamma}(i(j), n + 1) = level(j(i), n) + 1 = level(i(j), n) + 1$, and the theorem holds. WLOG, say $j$'s message has not been delivered, but $i$'s has, then $level_{\gamma}(j, n + 1) = level_{\gamma}(j, k) + 1$, where $k$ is the last round that $i$ had delivered a message, which is necessarily the same as $i$'s currently, and the theorem holds.
-          - Question: How does process $i$ know of $j$'s level in the prev. round? It doesn't? It does, levels are gossipped thru messages
+            - Proof: For $k = 0$, $level_{\gamma}(i, 0) = level_{\gamma}(j, 0) = 0$. suppose $k = n$, and the hyp. holds, then for $k = n + 1$. If both processes have received each other's messages then $level_{\gamma}(i, n + 1) = max(\{level(j, k'), (j, k')\leq (i, k)\}) + 1 = level(j, n) + 1$, a similar case follows for $j$. WLOG,say $j$'s message has not been delivered, but $i$'s has, then $level_{\gamma}(j, n + 1) = max(\{level(i, k'), (i, k') \leq (j, n + 1)\}) + 1 = level(i, k) +1$, where $k$ is the last round that $i$ had delivered a message, which is necessarily the same as $i$'s currently, and the theorem holds.
+          - Question: How does process $i$ know of $j$'s level in the prev. round? It doesn't? It does, levels are gossipped thru messages.
+          - 
           - **Algorithm**
             - Informal: Each process $i$ keeps track of it's level in a local variable, process $1$ chooses a random value $r \in [1, r]$, value is piggy-backed on all messages, initial values of each process piggy-backed on all messages. After $r$ rounds each process decides $1$ if $level(i, r) \geq r$, and initial values of all processes = 1
             - **formal**
@@ -1927,7 +1985,7 @@ inductive subtype {α : Type*} (p : α → Prop)
                         state := RandomAttackState {
                             rounds : 0,
                             decision: nil,
-                            processIndex : processIndex
+                            processIndex: processIndex
                         }
                         // generate random key if processIndex == 1
                         if processIndex == 1 {
@@ -2010,8 +2068,109 @@ inductive subtype {α : Type*} (p : α → Prop)
                   - On the contrary if $k > max_i(l_i)$, no processes commit, all decide $0$
                   - Finally, if key = $min_i(l_i)$, then some processes commit, and other's dont, with prob. $1/r$
     - **Lower Bound On Agreement**
-      - 
+      - Any $r$-round algorithm for co-ordinated attack, has probability of disagreement $1/r + 1$
+        - Given adversary $B$, with communication pattern $\gamma$, define, $prune(B, i)$
+          1. If $(j, 0)\leq_{\gamma} (i,r)$, then $input(j)_{B'} = input(j)_B$ - intuitively, the input in $B'$ is nonzero for any node, as long as $i$ hears from it in $B's$ communication pattern
+          2. $(j, j', k) \in \gamma '$ iff it is in the comm. pattern under $B$, and $(j', k) \leq_{\gamma} (i, k)$
     - **problems**
       - 
 
 - ## Ch 6
+# Algebra
+- ## Prereqs
+  - Version of set theory used built from 3 undefined notions, 1. class, 2. membership, 3. equality. 
+    - **class** - Collection $A$ of objects, s.t given object $x$, it is possible to determine if $x \in A$ or $x \not \in A$
+      - Equality relation over class is same as usual, reflexive $A = A$, symmetric $A = B \rightarrow B = A$, transitive $A = B \land B = C \rightarrow A = C$
+      - **extensionality** - Classes that contain the same objects are equal $[x \in A \iff x \in B] \iff A = B$
+      - **set** - A class $A$ is a set iff there exists a class $B$, where $A \in B$ (A is an element of the class), 
+      - **proper class** - A class that is not a set
+      - a
+# Cryptography
+- **Information Theoretic Approach**
+  - How much info abt. the plain-text is revealed from cipher-text, **perfect security** -> no info
+  - ^^ is impossible w/o shared secret as large as the plain-text
+  - Encryption key == decryption key, how to share keys between users over insecure channel?
+- **Complexity Theoretic**
+  - Enforce that it is impossible for information revealed abt. plaintext from ciphertext to be efficiently extractable
+  - Allows adversary to know encryption key, but not know decryption key?
+- ## Fault Tolerance / Zero-Knowledge
+    - Mutual simultaneous commitment, i.e signatures from two parties are atomic
+    - **trusted third parties**
+      - Voting
+        - *privacy* - Parties shld be able to come to agreement on outcome (majority) w/o learning anything abt counterparty preference in process
+        - *robustness* - Each party has equal influence in outcome
+- ## Zero Knowledge Proof
+  - ZKP systems exist for all languages in $\mathcal{NP}$
+- ## Probability
+  - Function space $2^l$, denote this as $P_l$
+  - **random variable** - $f : P_l \rightarrow \mathbb{R}$
+    - Also can be defined as folows $f : P_l \rightarrow \{0,1\}^*$, that is, a function from the sample space to the set of arbitrary length binary strings
+  - **statement** - $Pr[f(X)]$, i.e the probability that $f : \{0,1\}^* \rightarrow \{0,1\}$ holds for arbitrary value of $X$, i.e $\Sigma_{x \in X} Pr[X = x] * \chi_x(f(x))$
+    
+    ariables, i.e $Pr[B(x_1, \cdots, x_n)] = \Sigma_{x_1, \cdots, x_n} (\Pi_{i}Pr[X = x_i]) * \chi(B(x_1, \cdots, x_n))$
+  - ### **inequalities**
+    - **Markov** - Given random variable $X: 2^n \rightarrow \mathbb{R}$, there exists a relation between the deviation of a value $v$ of $X$ from the expected value of $E(X)$ of $X$, and the prob. that $X = v$
+        $$E(X) = \Sigma_v Pr[X = v] * v \rightarrow Pr[X \geq v] \leq E(X) / v$$
+        - Proof
+        $$E(X) = \Sigma_x Pr[X = x] * x = \Sigma_{x < v} Pr[X = x] * x + \Sigma_{x \geq v} Pr[X = x] * x$$
+        $$\geq \Sigma_{x < v} Pr[X = x] * x + v * Pr[X \geq v] \geq v * Pr[X \geq v]$$
+      - Implies, $Pr[X \geq r * E(X)] \leq \frac{1}{r}$ (apply Markov thm. w/ $v = r * E(X)$)
+    - **chebyshev** - Stronger bound for deviation of value of random variable from expectation. 
+    $$Var(X) := E[(X - E(X))^2]  = E(X^2) - E(X)^2$$
+      - Inequality
+    $$Pr[|X - E(X)| \geq \delta] \leq \frac{Var(X)}{\delta^2} \rightarrow Pr[|X - E(X)| \geq \delta] = Pr[(X - E(X))^2 \geq \delta^2] \leq \frac{Var(X)}{\delta^2}$$
+    - **Independent Random Sampling**
+      - Let $X_1, \cdots, X_n$ be pairwise independent random variables w/ the same expectation, denoted $\mu$ and variance $\sigma^2$, then for $\epsilon > 0$
+      $$Pr[|\frac{\Sigma_i X_i}{n} - \mu| \leq \epsilon] \leq \frac{\sigma^2}{\epsilon^2n}$$
+    - Intuition
+      - Expectation is linear so.. $E(X_1 + \cdots + X_n) = E(X_1) + \cdots + E(X_n)$, and $E(\sigma_i X_i/ n) = \Sigma_i E(X_i)/ n = \mu$, thus $E(\Sigma_i X_i / n) = 1/n E(\Sigma_i X_i) = 1/n \Sigma_i E(X_i) = \mu$, and one has $Pr[|\frac{\Sigma_i X_i}{n} - E(\frac{\Sigma_i X_i}{n})|] \leq \frac{Var(\frac{\Sigma_i X_i}{n})}{\epsilon^2}$
+    $$Pr[|\frac{\Sigma_i X_i}{n} - \mu| \leq \epsilon] \leq \frac{Var(\frac{\Sigma_i X_i}{n})}{\epsilon^2} = \frac{E((\Sigma_i X_i - \mu)^2)}{\epsilon^2n^2}$$
+    - Expand and apply linearity
+    - **chernoff bound**
+      - Let $p \leq 1/2$, and let $X_1 \cdots X_n$ be totally independent random variables in $\{0,1\}$. Then for all $0 \leq \epsilon \leq p(1-p)$
+      $$Pr[|\frac{\Sigma_i X_i}{n} - p| > \epsilon] < 2 * e^{-\frac{\epsilon}{2p(1-p)}n}
+- ## Computational Model
+  - **Complexity Class $\mathcal{P}$**
+    - A language $L \in \mathcal{P}$ is **recognizable** in poly time, if $\exist$ a deterministic turing machine $M$ and polynomial $P$, where
+      - on input string $x$, $M$ halts after steps $\leq P(x)$
+      - $M(x) = 1$ iff $x \in L$ 
+  - 
+# Elliptic Curve Crypto
+- 
+## Potential Attacks
+- **POW v. POS**
+  - Question: Is it possible for POS to have the same security properties as POW w/o deleting network resources...  i.e stake?
+    - BFT based POS
+    - Chain-based POS
+  - Do not require substantial computational effort (feature, not bug?) 
+- **Finality**
+  - Bitcoin - Block is considered finalized after 5 blocks mined on top, i.e adversary has to create $> 6$ blocks in time it takes network to mine $1$
+  - POS - 
+    - **Absolute Finality**
+      - Block can never be reverted upon finalization -> very hard
+        - What happens when set of validators never signing blocks is majority, and validators now receiving block at height earlier (they may have never received this)
+      - Account for difficulty with **economic finality**
+        - Tendermint -> set genesis validators -> every block post-updates (for next 2 heights), every block must be signed by 2/3 of current validator-set
+    - **economic finality**
+      - $> 2/3$ must be able to sign block, (current validator set is static for block, thus no other block can be committed, unless > 1/3 of staked validators double sign)
+- **Long Range Attacks**
+    - User forks from main chain (most likely at ancestor of main-chain), and creates blocks that differ from the main-chain's and eventually over-takes it
+      - Unfeasible in POW, i.e cost is prohibitive as user goes farther back
+  - **weak-subjectivity**
+    - Two nodes to consider (new nodes, re-connecting nodes)
+      - Node coming online has no way to determine what the main-chain is (unless they are given a genesis state of the chain, and history of blocks)
+    - 
+  - **costless-simulation**
+    - **nothing at stake** - Validator has nothing to risk when making consensus decision (soluton: force bond)
+      - DS -> participate in multiple forks at once
+    - 
+- **short-range**
+  - Re-organize blocks in history of HEAD
+- ### Attacks
+- **Double Spend**
+  - Finalize block w/ spend in one fork
+  - Create fork before that block (but later over-taking it), and convince validators to agree on both?
+    - Double spend can't be in same history?
+- **Sybil**
+  - Only applies if each entity has the same weight in voting
+- 

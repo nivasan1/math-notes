@@ -1,0 +1,13 @@
+DO 
+$$
+BEGIN
+    INSERT into validators (cons_address, oper_address, moniker) values ('a', 'b', NULL);
+EXCEPTION
+    WHEN OTHERS THEN
+        UPDATE validators 
+        set 
+            oper_address = COALESCE('s', oper_address),
+            moniker = COALESCE('a', moniker),
+        where cons_address = 'a' ;
+END ;
+$$ ;

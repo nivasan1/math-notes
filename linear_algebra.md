@@ -1,0 +1,286 @@
+- ## Linear Algebra
+    - Study of linear maops on finite-dimensional vector-spaces
+    - **Complex numbers** - The set $\mathbb{R} \cup \{i\}$, i.e $\{a + bi: a, b \in \mathbb{R}\}$, naturally, when $b = 0$, $\mathbb{R} \subset \mathbb{C}$
+      - Complex numbers are a field (in general, linear algebraic concepts defined over fields)
+    - **vector-space**
+      - For $x, y \in F^n$, $x + y$ is denoted as the co-ordinate wise addition of the two vectors
+      - Vectors have no base-poirt
+        - Can consider addition, as the vector obtained by traversing the first (or the second), from an arbitrary base-point, and traversing the second from the end-point of the first traversal
+        - Co-ordinate-wise Multiplication of vectors has no real-geometric intuition (apart from dot-product)
+      - **vector-space** - A set $V$, with an addition, that is **associative, commutative, and invertable** (i.e there exists an identity as well (both additive, and for scalar mult.))
+        - **Distributive property** - for $a , b \in F$, and $v \in V$, $(a  + b)v = av + bv$
+        - **multiplicative identity** - $1v = v$
+      - Set of polynomials is a vector-space (i.e basis are $1, x, x^2, \cdots$), and co-efficients are vectors
+    **Subspaces**
+        - Let $V$ be a vector space, a subset $U \subset V$ is a subspace, if $U$ is also a vector space (i.e additive-identity, closure, etc.)
+          - Check that $0 \in U$, for $u, v \in U, u + v \in U$, for $a \in F, a u \in U$
+        - Check for additive closure, scalar multiplication closure, (additive) identity
+          - distributivity / associativity / commutativity under addition follow, as $u, v \in U \subset V$, and as such the properties hold
+          - additive inverse follows from scalar closure w/ $a \in F, a = -1$, then $-v \in U$
+    **Sums and Direct Sums**
+        - Let $U_1, \cdots, U_n \subset V$, and are subspaces, then $U_1 + \cdots + U_n$ is the set $\{v \in V: v = u_1 + \cdots + u_n, u_i \in U_i \}$, natually the direct sum is a subspace of $V$ (as long as $U_i$ are subspaces of $V$,
+        - **Direct Sum**
+          - Let $V$ be a vector space, if there exists subspaces $U_1, \cdots, U_n$, where $V = U_1 \oplus \cdots \oplus U_n$, and for each $v \in V$, there is a unique representation in terms of $u_1 \cdots, u_n$ then $V$ is their direct sum
+            - Can show that $V$ is not a direct sum, but showing a vector w/ non-unique representation
+        - Let $U_1 \cdots U_n$ be subspaces of $V$, then $V = U_1 \oplus \cdots \oplus U_n$ if the following conditions hold
+          - $V = U_1 + \cdots + U_n$
+          - The only way to write $0_V = u_1 + \cdots + u_n$, is by taking $u_i$ to be 0
+          - **Proof**
+            - Suppose $V = U_1 \oplus \cdots \oplus U_n$, then naturally, $V = U_1 + \cdots + U_n$, and $0 = 0 +\cdots + 0$ (to write this another way violates hyp. (0 representation must be unique))
+            - Supoose $V = U_1 + \cdots + U_n$, and $0 = 0 + \cdots + 0$ (is unique), then fix $v \in V$, where $v = u_1 + \cdots + u_n$, and $v = v_1 + \cdots + v_n$
+            $$v - v = (u_1 - v_1) + \cdots + (u_n -v_n) = 0$$
+            - and $u_i - v_i \in U_i$, and must be 0, otherwise hyp. is contradicted
+        - **Questions**
+          - Prove that the intesection of a collection of subspaces of $V$ is a vector spaces
+            - $0 \in \bigcap_i U_i$, fix $a, b \in \bigcap_i U_i$, then $a + b \in \bigcap_i U_i$, i.e $\forall i, a, b \in U_i \rightarrow a + b \in U_i$, similarly w/ scalar multiplication
+          - Consider $U_2 \cup U_1$, then it is a vector space if $v \in U_1, u \in U_2$, then $v + u \in U_1 \cup U_2 \rightarrow v,u \in U_1 (U_2)$, and $U_1 \subseteq U_2$
+          - $U + U = U$
+          - Sum of sub-spaces associative, as their addition is
+          - Additive identity for subspace addition, is $0$, only $0$ has additive inverse?
+          - If $U_1, U_2, W \subseteq V$, and $U_1 \oplus W = U_2 \oplus W = V$, does $U_1 = U_2$?
+            - Yes, fix $u_1 \in U_1$, consider $u_1 + W \subset V$, then $u_1 + W \subset U_2 + W$, notice $u_1 \not\in W$ (then the representation of $u_1 \in V$ is not unique), thus, $u_1 \in U_2$ (a similar case follows for the converse)
+    - **Finite Dimensional Vector Spaces**
+        - **Linear Combination** - Let $v_1, \cdots, v_n \in V$, then $a_1v_1 + \cdots + a_nv_n$ is a linear combination (where $a_i \in F$)
+          - **span** - The set of all linear combination of $v_1, \cdots, v_n$
+          - Span of any list of vectors $H = v_1, \cdots, v_n$ is a subspace of $V$
+            - $0 \in span(H)$ (take all $a_i = 0$)
+            - Fix $a, b \in span(H)$, then $a + b  = (a_1 + a_1')v_1 + \cdots + (a_n + a_n')v_n$, and $a + b \in span(H)$
+            - scalar multiplication (triv.)
+        - if $span(H) = V$, and $|H| = n$, then $V$ is a $n$-dimensional space
+        - **linear idependence** - If $H = (v_1, \cdots, v_n)$, and the only way to express $0 \in span(H)$, is with $a_i = 0$, then $H$ is linearly independent
+          - In which case, for $v \in span(H)$ there is a unique representation of $v$
+        - Any list of vectors containing $0$ is linearly dependent (coefficient of 0 in linear combination can be non-zero)
+        - **lemma**
+          - If $(v_1, \cdots, v_n)$ is linearly dependent in $V$ and $v_1 \not= 0$, then there exists $1 < j \leq n$
+            - $v_j \in span(v_1, \cdots, v_{j-1})$
+            - If the $j$th term is removed from $(v_1, \cdots, v_n)$, the span of these vectors is the same
+          - Notice, because $(v_1, \cdots, v_n)$ are linearly dependent, there exist $a_1, \cdots, a_n$ (not all zero), where $a_1v_1 + \cdots + a_nv_n = 0$
+            - Fix, $a_j$ to be the last coefficient that is non-zero, then $v_j = -\frac{1}{a_j}(a_1v_1 + \cdots a_{j-1}v_{j-1})$, and $v_j \in span(v_1, \cdots, v_{j-1})$
+          - Consider $(v_1, \cdots v_{j-1}, v_{j+1}, \cdots v_n)$, fix $v \in span(v_1, \cdots, v_n)$, then $v = a_1v_1 + \cdots a_jv_n + \cdots a_nv_n = a_1v_1 + \cdots + (a'_1v_1 + \cdots a'_nv_n) + \cdots a_nv_n \in span(v_1\cdots v_{j-1}, v_{j+1}, \cdots v_n )$
+        - In any finite dimensional vector space the length of any linearly independent list is leq the length of any spanning set
+          - **proof**
+            - Consider $(u_1, \cdots, u_m)$ is a linearly independent set, and $(w_1, \cdots, w_n)$ is a spanning set of $V$. Consider $(u_1, w_1, \cdots, w_n)$, as $span(w_i) = V$, this list is linearly dependent ($u_1 \in span(w_i)$), as such by the **linear dependence lemma** (above), we can obtain a set by removing a $w_i$ where $span(u_1, w_1 \cdots w_{i+1}, \cdots w_n) = V$. Suppose we have done this for $j -1 < m$ steps. Then we can consider $u_j, u_1, \cdots, u_{j-1}, w_i \cdots$. Because the prev. list is lin. dep. however $u_1, \cdots, u_j$ are linearly ind. we must remove one of the $w$s, and we have the same list. If $m > n$, than this process can continue until there are no more $w$'s to remove, in which case the original list is lin. dep. (a contradiction) $\square$
+          - Any vector-space contained in a finite-dim vector-space is also finite-dimensional
+        - **Basis**
+          - a **basis** - Is a set of vectors that is linearly independent, and spans $V$
+            - Can reduce any list of vectors that spans $V$ to a basis (apply **linear dependence lemma** if list of vectors is linearly dependent)
+            - Every set of linearly independent vectors can be expandedt to a basis of $V$
+              - Choose vectors that are not in $span(v_1, \cdots, v_{j-1})$, and recurse 
+                - Eventually, the vectors will all be linearly independent (no vector is in the span of any prev.)
+          - **Suppose $V$ is finite dimensional, and $U \subseteq V$
+          - Suppose $V$ is finite-dimensional and $U$ is a sub-space of $V$. Then there is a subspace $W$ of $V$ such that $V = U \oplus V$
+            - I.e must show that $V = U + V$ (for $v \in V, \exists u \in U, w \in W, v = u + w$), and representation of $0$ is unique (can also show $U \cap W = \{0\}$
+            - Consider $U \subset V$, as $V$ is finite-dimensional, and $U \subset V$, there exists $(u_1, \cdots, u_n)$, that spans $U$. By the linear-dependence lemma, we may reduce this spanning set to basis of $U$ (i.e a linearly independent set of vectors spanning $U$). Denote this basis as $(u_1, \cdots, u_n)$, we may expand this set of linearly independent vectors to a basis of $V$, denote the vectors $w_1, \cdots, w_m$, consider $W = span(w_1, \cdots, w_m)$, naturally $V = U + W$ (the vectors form a basis). Furthermore, as the vectors form a basis of $V$, to suppose that the representation of $0$ is non-unique is a contradiction
+        - ## Dimension
+          - Any two bases of $V$ have the same length
+            - Apply contradiction, assume existence of bases $b, b'$ both span $V$ and are linearly independent, so $len(b) \leq len(b')$, and the other dir. follows, thus they are equal.
+        - **dimension** - The dimension of a vector space $V$ is the length of any basis of $V$
+        - If $V$ is finite dimensional, and $U \subset V$ is a subspace, then $dim U \leq dim V$
+          - Let $b_u, b_v$ be bases of $U, V$ respectively. Naturally, $U \subset span(b_v)$, and $b_u$ is linearly independent in $V$, thus $len(b_u) \leq len(b_v)$
+        - If $V$ is finite-dimensional, then every spanning list in $V$ with length $dim(V)$ is a basis of $V$.
+          - Must show that $b_v$ is linearly independent.
+          - Suppose $b_v$ is a spanning set in $V$, with length $dim V$. If $b_v$ is not a basis, then $b_v$ is not linearly independent, in which case we can remove a vector, and still have a spanning set, thus a basis of $V$ must have length $\leq dim V - 1$ (a contradiction).
+        - If $V$ is finite dimensional, then every linearly ind. set of vecs w/ len $dim V$ is a basis of $V$
+          - show $span(b_v) = V$, use contradiction otherwise, must add vector, show that len $dim V + 1$, however, there exists spanning set of length $dim V < len(b_v)$ a contradiction -> every linearly ind. list must have lenght \leq dim V
+        - If $U_1, U_2 \subset V$, are subspaces of fin. dim. $V$, then $dim(U_1 + U_2) = dim U_1 + dim U_2 - dim (U_1 \cap U_2)$
+        - ## Linear Maps
+          -  **Linear Map**
+             -  Let  $V, W$ be vector spaces, $T: V \rightarrow W$, is a linear map, if it is 
+                1. Additive - $T(v + w) = T(v) + T(w)$
+                2. homogeneous - $T(hv) = hT(v)
+             - Let $\mathcal{L}(V, W)$ be the set of all linear maps from $V$ to $W$
+             - For any basis $(v_1, \cdots, v_n)$ of $V$, $Tv_1, \cdots, Tv_n$ (defines a basis of the range of $T$)
+               - I.e the image of any vector $v = a_1v_1 + \cdots + a_nv_n$, is defined by $a_1T(v_1) + \cdots + a_nT(v_n)$, thus for any $w = T(v)$, can be expressed as a $T(v_i)$ linear combination of $v_1, \cdots, v_n$
+             - For $S, T \in \mathcal{L}(V, W)$, define $(S + T)(v) = Sv + Tv$, and $(aS)(v) = a(S(v))$ (i.e it is a vector space over $F(W)$, using identity is $0 \in \mathcal{L}(V, W)$, where $v \in V, 0(v) = 0_W$
+               - fix $S, T \in \mathcal{L}(V, W)$, then $(S + T)(v + w)$ = $S(v + w) + T(v + w) = Sv + Sw + Tv + Tw = Sv + Tv + Sw + Tw = (S + t)v + (S + T)w$
+               - associativity + commutativity follow from $+$ over $W$, similarly w/ multiplicative properties
+             - Multiplication of operators? I.e composition, ... define $U, V, W$ vector spaces, and $S \in \mathcal{L}(U, V)$, and $T \in \mathcal{L}(V, W)$, then $S * T = S \circ T$
+             - I.e range space of first map, must be a subspace of input space of second map operatione is not commutativee
+         - **Null Space**
+           - For $T \in \mathcal{L}(V, W)$, $null(T) \subseteq V, v \in V, T(v) = 0_W$
+           - Let $T \in \mathcal{L}(V, W)$, then $null(T) \subseteq V$
+             - Identity $O_V \in null(T)$, i.e $T(0) = T(0) + T(0)$,  $T(0) = 0_W$
+             - Additive identity -> trivial
+             - Scalar multiplicative closure -> trivial
+           - If $T \in \mathcal{L}(V, W)$, then $T$ is injective, iff $null(T) = 0$
+             - Forward dir. $T(v) = T(w) \rightarrow v = w$, let $a \in null(T)$, then $T(a) = T(0) = 0$, and $a = 0$, thus $null(T) = \{0\}$
+             - If $null(T) = \{0\}$, then suppose $T(v) = T(w)$, then $T(v - w) = 0$, and $v - w = 0_V$, and $v = w$
+           - $range(T) \subseteq W$, 
+             - 0, $T(0) = 0_W$, thus $0_W \in range(T)$
+             - fix $v, w \in range(T)$, then $T(\hat{v}) = v, T(\hat{w}) = w$, and $T(\hat{v} + \hat{w}) = v + w$
+             - Scalar multiplicative closure -> simple
+           - **surjective** - A map $T \in \mathcal{L}(V, W)$, where $range(T) = W$
+           - $dim(V) = dim(null(T)) + dim(range(T))$
+             - fix some basis $n$ of $null(T)$, then $(n_1, \cdots n_m, u_1, \cdots u_n)$ is a basis for $V$ (as any lin. ind. set of vectors can be expanded to a basis of $V$). All that is left to show now is that $T(u_1), \cdots, T(u_n)$ is a basis for $range(T)$, notice, for $w \in range(T)$, $v \in V, T(v) = T(n_1, \cdots, n_m + a_1u_1 + \cdots a_mu_m) = T(a_1 u_1 + \cdots a_mu_n)$, and $w = a_1T(u_1) + \cdots + a_nT(u_n)$, suppose that $T(u_1), \cdots, T(u_n)$ linearly dependent, then there exists $a_1T(u_1) + \cdots a_nT(u_n) = 0$, and $v = a_1u_1 + \cdots a_nu_n \in null(T)$, and $v = a_1n_1 + \cdots a_nn_n$, thus $(n_1, \cdots, u_n)$ is linearly dependent, a contradiction.
+           - If $V, W$ are finite dimensional, and $dim V > dim W$, no $T \in \mathcal{L}(V, W)$ can be injective
+             - $dim V = dim null(T) + dim range(T) \leq dim null(T) + dim W$, and $dim null(T) > 0$
+           - ## Matrix Of Linear Map
+             - Let $(v_1, \cdots, v_n)$ be a basis of $V$, $T \in \mathcal{L}(V, W)$, then $Tv_1, \cdots, Tv_n$ is a basis for $range(T)$
+               - **A matrix is a visualization of $T(v_i)$ in terms of a basis of $W$**
+             - Let $w_1, \cdots, w_n$ be a basis of $W$, the column vectors are the coefficients, then the matrix of any linear map is constructed as follows,
+               - Suppose $T(v_i) = a_{1,i} w_1 + \cdots + a_{m, i}w_m$, then $T(v) = b_1T(v_1) + \cdots + b_nT(v_n)$ (expand the vectors in a basis of  $W$, and solution presents), 
+             - $\begin{bmatrix} a_{1,1} & \cdots & a_{1, n} \\ \cdots & \cdots & \cdots \\ a_{m,1} & \cdots & a_{m, n} \end{bmatrix}$
+             - How to define matrix multiplication? Consider $U, V, W$ (vector spaces), notice $S \in \mathcal{L}(U, V), T \in \mathcal{L}(V, W)$, $ST \in \mathcal{L}(U, W)$, let $u_i, v_i, w_i$ be bases of $U, V, W$ respectively, then for $u \in U, u = a_1 u_1 + \cdots + a_k u_k$, 
+               - $TSu_k = T\Sigma_n a_{i, k} v_i = \Sigma_i a_{i, k} T(v_i) = \Sigma_i a_{i, k} \Sigma_j b_{j, i} w_j = \Sigma_i \Sigma_j b_{j,i} a_{i, k} w_j$, notice 
+                 - In the above $S(u_k) = a_{1, k}v_1 + \cdots + a_{n,k}v_n$ ($dim V = n$), similarly, $T(v_i) = b_{1, i}w_1 + \cdots b_{m, i}w_m$
+                 - Input matrix is expressing $T(u_i)$ in basis of $V = (v_k)$
+                 - Second matrix is expressing $S(v_k)$ in basis of $W = (w_l)$ (thus, columns of outer = rows of inner)
+               - Given above, notice $Mat(TS)$, each column represents the set of scalar multiples of basis vectors $w_i \in W$, of $T(v_i)$ (where $(v_i)i \in basis(V)$)
+                 - Then for column $k$, row $j$, group terms multiplying $w_j$, i.e $\Sigma_i b_{j, i} a_{i,k}$
+            - **Invertibility**
+              - Let $T \in \mathcal{L}(V, W)$, then $T$ is invertible if there exists $S \in \mathcal{L}(W, V)$, such that $ST = 1_{\mathcal{L}(V, V)}$, and $TS = 1_{\mathcal{L}(W, W)}$
+              - A linear map is invertible iff it is injective and surjective
+                - Let $T \in \mathcal{L}(V, W)$, and it is invertible, i.e $S \in \mathcal{L}(W, V)$ exists where for all $v \in V, ST(v) = v$. Then for $v_1, v_2 \in V$, where $T(v_1) = T(v_2)$, $S(T(v_1)) = v_1 = S(T(v_2)) = v_2$. WTS $range(T) = W$. Fix $w \in W$, then $S(w) \in V, T(S(w)) = w$.
+                - Suppose $T$ is injective, and surjective. Then let $S : W \rightarrow V$, be the map such that for $w \in W, S(w) = v, T(v) = w$. Naturally, $TS = 1_W$. Consider $v \in V, ST(v)$, $T(S(T(v))) = (TS)T(v) =  T(v)$, and $ST(v) = v$ (injectivity of $T$)
+              - $V, W$ are **isomorphic** if there is an injective + surjective map between $V \rightarrow W$
+            - Suppose $dim(V) = 1$, then $T \in \mathcal{L}(V, V), Tv = av$
+              - Let $\{v\} \subset V$ be a basis for $V$, as such $Tv = w \in V$, and $w = kv$ ($v$ spans $V$), thus for $w \in V, Tw = aTv = akv$
+            - Suppose that $V$ is fin. dim, and $U \subset V$, and $S \in \mathcal{L}(U, W)$, then there exists $T \in \mathcal{L}(V, W)$, where $T(u) = S(u), for u \in U$
+              - Consider $T = S | U$ (i.e $u \in U, S(u) = T(u)$), and $v \in V \backslash U, T(v)  = 0$, then $V = U \oplus V$ (prove linear independence straightforward)
+            - $T \in \mathcal{L}(V, \mathbb{F})$, $u \in V \backslash null(T)$, then $V = null T \oplus \{au : a \in \mathbb{F}\}$
+              - Notice, $dim V = dim null T + dim (range T)$, let $n_1, \cdots, n_k$ be basis of $null(T)$. Notice that $dim(V) = k + 1$, and $n_1, \cdots, n_k, u$, $u \in U$ is a linearly independent set of vectors of length $k + 1$, thus it is a basis.
+            - $U, V, W$ finite dimensional, then $dim(null(ST)) \leq dim(null(S)) + dim(null(T))$
+              - $v \in null(T) \rightarrow v \in null(ST)$, wb case where $range(T) \subset null(S)$
+        - ## Polynomials
+          - Let $\lambda \in \mathbb{F}$, and $p \in \mathcal{P}(\mathbb{F})$, then $\lambda$ is a **root** of $p$, iff $p(z) = (z - \lambda)q(z)$, where $q \in \mathcal{P}(\mathbb{F})$
+            - if $z = \lambda$ solution is obvious, suppose $\lambda$ is a root, then subtract $p(z) - p(\lambda) = p(z) = a_0 + a_1z + \cdots a_mz^m - a_0 + a_1\lambda + \cdots a_m\lambda^m = a_1(z - \lambda) + a_2(z - \lambda)^2 + \cdots$ and factor
+          - Suppose $p \in \mathcal{P}_m(F)$ (a poly of degree $m$), then $p$ has at most $m$ roots
+            - Induction on $m$, assume $m-1$, then prev lemma states that if $p$ has a root $p = (z \lambda)q(z)$, where $deg(q) = z-1$
+        - ## Eigen-stuff
+          - ### Invariant subspaces
+            - Let $T \in \mathcal{L}(V)$, where $V = U_1 \oplus \cdots \oplus U_n$, behaviour of $T$ is uniquely determined by behaviour on subspaces (every $v \in V$ is combination of vectors in subspaces)
+              - require $T(U_i) \subset U_i$, i.e $T \in \mathcal{L}(U_i)$ <- may not be the case, if so called a **invariant subspace**
+            - $null(T) \subset V$ is invariant, $range(T)$ invariant
+            - If $U \subset V$ is one-dim, and invariant $dim(U) = $, $ u \in U, Tu \in U$, then $Tu = \lambda u$ (i.e $u$ is an eigenvector) (all $u$ in $U$ are eigenvectors)
+              - $u$ is eigenvector, $\lambda$ is eigenvalue, happens when $(T - I)u = 0$ (where $u \not = 0$) and $T - I$ is not surjective
+              - i.e $T - I$ is not invertible, set of eigenvectors is $null(T - I)$
+            - Eigenvectors for distinct eigenvalues are linearly independent
+              - Let $T \in \mathcal{L}(V)$, where $\lambda_1, \cdots, \lambda_n$ are distinct eigenvalues, and $v_1, \cdots, v_n$ are their corresponding eigenvectors, they are independent
+                - Choose $k$ to be the smallest integer such that $v_k \in span(v_1, \cdots, v_{k-1})$, then $v_k = a_1v_1 + \cdots + a_{k-1}v_{k-1}$, and $T(v_k) = \lambda v_k = \lambda_1 a_1 v_1 + \cdots \lambda_{k - 1} a_{k-1}v_{k-1}$, then $\lambda v_k = \lambda_k (a_1 v_1 + \cdots a_{k-1}v_{k-1})$, and $0 = \lambda_k v_k - (\lambda_1 a_1 v_1 + \cdots \lambda_{k - 1} a_{k-1}v_{k-1}) = (\lambda_k - \lambda_1)a_1 v_1 + \cdots$, and $a_i$ must be 0, as $v_1, \cdots v_{k-1}$ are lin ind.
+            - Each vector-space of $dim(V)$ as at most $dim(V)$ distinct eigenvalues
+              - Length of basis (maximal length of lin. ind. list of vectors) must be $dim(V)$ apply above lemma
+          - ### Polynomials over Operators
+            - Operators can be applied to powers $range(T) \subset dom(T)$, i.e $T^4$ makes sense, whereas, $S \in \mathcal{L}(V, W)$, $S^4$ does not make sense
+              - $T^0$ is $I$
+        - ## Upper-Triangular Matrices
+          - Every operator on a finite dimensional non-zero complex vector space has an eigen value
+          - Fix $V$, where $dim V = n$, and $v \in V$, and $T \in \mathcal{L}(V, V)$, i.e $T^n v \in V$
+            - Then $v, Tv, T^2v, \cdots, T^nv$ cannot be linearly dependent, as such there exist $0 = a_1v + a_2Tv + \cdots a_nT^nv$
+            - In which case, take $m$ to be the largest index $a_m \not=0$, and $0 = a_1 + a_1T + \cdots + a_mT^m$, notice as $a_i \in \mathbb{C}$ the fundamental thm of alg. states
+            - $0 = (T - \lambda_1I)\cdots (T - \lambda_jI)p(T)$, as such at least one $\lambda_i$ is an eigen value
+          - Matrix where all entries below the diag. are 0, 
+          - **Theorem**
+            - Suppose $T \in \mathcal{L}(V)$, and $v_1, \cdots, v_n$ is a basis of $V$. The following are equiv.
+              - The matrix of $T$ wrt. $v_1, \cdots, v_n$ is upper-triangular
+              - $Tv_k \in span(v_1, \cdots,v_k)$ for $k = 1 \cdots n$
+              - $span(v_1, \cdots, v_k)$ is invariant under $T$ for each $k = 1 \cdots n$
+            - **proof sketch**
+              - $a \iff b$
+                - Forward. Suppose $\mathcal{M}(T)$ is upper triangular, that is $T(v_1) = a_{1,1}v_1, T(v_2) = a'_{2,1} v_1 + a_{2,2} v_2, \cdots$, as such it follows that for all $k = 1, \cdots, n$, $T(v_k) \in span(v_1, \cdots, v_k)$
+                - Reverse.
+                  - triv.
+              - $b \iff c$
+                - Forward. Suppose $T v_k \in span(v_1, \cdots v_k)$, then $span(v_1, \cdots, v_k)$ is invariant under $T$ -> triv.
+                - Reverse. Triv.
+          - From above thms easy to obtain upper-triangular matrix for $T \in \mathcal{L}(V)$ where $V$ is a complex vector space
+          - i.e fix $v_1$ an eigen vector of $T$, one exists by above thm. consider $(T - \lambda I)$, let $U = range(T - \lambda I)$, notice $T \in \mathcal{L}(U)$, i.e $T(u) = (T - \lambda I)u + \lambda Iu$ (distributivity / subtraction of operators), furthermore $dim U < dim V$ (there exists eigenvector $v \not= 0$, where $(T - \lambda I)v = 0$), and thus (using induction), there exists $u_1, \cdots, u_k$ (basis of $U$), where $T$ is upper-triangular w/. then expand $u_1, \cdots, u_k, v_1, \cdots v_n$ a basis of $V$, and $Tv = (T - \lambda I)v_i + \lambda v_i$, and thus $Tv_k \in span(u_1, \cdots, u_k, v_i) \subset span(u_1, \cdots, u_k, v_1, \cdots, v_n)$, and thus $u_1, \cdots, u_k, v_1, \cdots, v_n$ is a basis which $T$ with which $T$ is upper-triangular
+        - Suppose that $T \in \mathcal{L}(V)$ has an upper-triangular matrix wrt a basis $\hat{v}$ of $V$, $T$ is invertible iff all entries on diagonal are non-zero
+          - Prove converse for each direction
+          - $T$ is non-invertible if one of the diagonals is $0$, fix $a_k$ where $k$ is the coefficient of the k-th basis vec. in the expansion of $T(v_k)$, where $a_k = 0$, then $T(v_k) \in span(v_1, \cdots, v_{k-1})$, and $T(span(v_1, \cdots, v_k)) \subseteq span(v_1, \cdots v_{k-1})$, i.e $T$ cannot be injective.
+          - if $T$ is non-invertible, then one of the diagonal coeffs. is $0$, i.e there exists $v \in V$, where $Tv = 0$, and $v \not = 0$ and $0 = a_1T(v_1) + \cdots + a_nT(v_n)$, fix $k$ to be the last non-zero $a_i$, then $T(v_k) = \frac{1}{a_k}(a_1T(v_1) + \cdots a_{k-1}T(v_{k-1})$, and each $T(v_i)$ can be expressed in terms of $v_1, \cdots, v_{k-1}$ ...
+        - Suppose $T \in \mathcal{L}(V)$ has a UT, then the EGVs of $T$ consist precisely of hte entries on the diagonal of the UT matrix
+          - Consider Matrix form of $T$, where $\lambda_i$ are the entries on diagonal
+            - Prev thm states that $T$ is inv. iff all entries on diag are non-zero
+          - Then for $T - \lambda I$ to be inv. $\lambda$ has to equal $\lambda_i$ for some $i$
+      - ## Diagonal Matrices
+        - I.e matrix where only non-zero entries are diagonals -> $v_i$ is basis, then $T(v_i) = a_i v_i$, and $v_i$ are all eigenvectors (w/ diag coeffs as eigenvalues)
+      - Let $T \in \mathcal{L}(V)$, and $\lambda_1, \cdots, \lambda_m$ eigenvalues
+        - $T$ has diagonal matrix wrt a basis $\hat{v}$ of $V$
+        - There exist $U_1, \cdots U_n$ (one dim sub-spaces) where $T(U_i) \subset U_i$, and $V = U_1 \oplus \cdots \oplus U_n$
+        - $V = null(T - \lambda_1I) \oplus \cdots \oplus null(T - \lambda_mI)$
+      - **proof**
+        - 2 -> 3
+          - Suppose $V = U_1 \oplus \cdots \oplus U_n$, and $T(U_i) \subseteq U_i$ follows from $(T - \lambda_i I)v_i = 0$, i.e $\{0, kv_i\} \subseteq null(T - \lambda_i I)$, 
+      - ## Invariant Subspaces on Real Vector Spaces
+        - Let $V$ be a real vector space, and $T \in \mathcal{L}(V)$, then $T$ has an invariant subspace of dimension 1 or 2
+          - Similar proof as before, using analogous result for real polynomials over $\mathbb{R}$
+    - ## Prelude (polynomials)
+      - Let $p, q \in \mathcal{P}(\mathbb{F})$, where $p \not= 0$, then there exist $s, r \in \mathcal{P}(\mathbb{F})$, where $q = sp + r$, and $deg r < deg p$
+        - Fix $s \in \mathcal{P}(\mathbb{F})$ where $deg(q - sp)$  is minimized. Fix $r = q - sp$. WTS $deg r < def p$
+        - Suppose $deg r \geq deg p$, then fix $c \in \mathbb{F}$, and fix $j = deg(r) - deg(p)$, consider $r - cz^jp = q - (s + cz^j)p$, thus contradicting $s$, as $deg(r) \geq deg(r - cz^jp)$
+      - ### Complex Coefficients
+        - **fundamental thm of algebra**
+          - Every non-constant poly with complex coeffs has a root
+        - That unique factors exist for all polys (over $\mathbb{C}$) can be proven via induction on $deg(p)$
+          - I.e proof for $m = 1$ is easy
+          - Suppose $deg(p) \leq m - 1$, then $deg(p) = m$, and $p$ has a root, thus $p(z) = (z - \lambda)q(z)$, and apply hyp.
+          - For uniqueness, suppose $p(z) = (z - \lambda_1) \cdots (z - \lambda_m) = (z - \tau_1) \cdots (z -\tau_m)$, then each $p(z) = 0$ implies that $\tau_i = \lambda_j$
+        - Let $p(z) \in \mathcal{P}(\mathbb{F})$ be a poly w/ real coefficients, then if $\lambda \in \mathbb{C}$ is a root, then $\overline{\lambda}$ is also a root
+        - Let $\alpha, \beta \in \mathbb{R}$, then there is a poly factorization of $x^2 + \alpha x + \beta = (x -\lambda_1)(x - \lambda_2)$ iff $\alpha^2 \geq 4\beta$
+          - $x^2 + \alpha x + \beta = (x + \alpha/2)^2 + (\beta - \frac{\alpha^2}{4})$
+          - If $4\beta > \alpha^2$, then $0 = (x + \frac{\alpha}{2})^2 + c$, and $(x + \alpha/2) = \sqrt{-c}$
+          - In the other-case, then $(x + \alpha/2)^2 = c$, where $c > 0$, and the roots can be determined
+          - The reverse direction is similar
+        - If $p \in \mathcal{P}(\mathbb{R})$ is a non-constant poly. then $p$ has a unique fact. of the form $p(x) = c(x - \lambda_1)\cdots(x - \lambda_m)(x^2 + \alpha_1x + \beta_1) \cdots (x^2 + \alpha_Mx + \beta_M)$, where $\alpha_i^2 < 4\beta$
+    - ## Invariant Subspaces on Real Vector Spaces
+      - Suppose $U \subseteq V$ is a subspace of $V$ that is invariant under every operator $T$ on $V$, then $U = \{0\}$ or $U = V$
+        - Suppose $U = span(u_1, \cdots u_k)$, and $u_1, \cdots, u_k, \cdots, u_n$ is a basis of $V$, then fix $S : U \rightarrow span(u_1, \cdots u_{k+1})$, where $v \in V, v = a_1v_1 + \cdots a_{k}v_k + \cdots a_nv_n$, $T(v) = a_1v_1 + \cdots a_kv_k + a_kv_{k+1} + \cdots a_nv_n$, notice, $T$ is linear and is not invariant under $U$
+        - Fix $S, T \in \mathcal{L}(V)$, where $TS = ST$, prove that $null(T - \lambda I)$ is invariant under $S$
+          - Fix $v \in null(T -\lambda I)$, then consider $(T - \lambda I)S(v) = S((T- \lambda I) v) = 0$, and $S(v) \in null(T - \lambda I)$
+        - Suppose $T \in \mathcal{L}(V)$ and $dim(range(T)) = k$. Prove that $T$ has at most $k + 1$ distinct eigenvalues
+          - One for $0$, and $k$ for $range(T)$, if $\lambda$ is non-zero, then $T(v_{\lambda}) \not  = 0$, and eigenvectors lin. ind, thus at most $k$ non-zero (eigenvectors form basis of range)
+        - Suppose $S, T \in \mathcal{L}(V)$, and $S$ is invertible, and $p \in \mathcal{P}(\mathbb{F})$ is invertible. Prove $p(STS^{-1}) = Sp(T)S^{-1}$
+          - Notice $(STS^{-1})^n = ST^n S^{-1}$ ($SS^{-1}$) cancel ... 
+        - Suppose $T \in \mathcal{L}(V)$ is such that for all $v \in V$, $T(v) = \lambda_i v$, 
+          - Notice, there are at most $dim(V)$ distinct eigen-values...
+          - Let $v_1, \cdots, v_n$ be a basis for $V$, then $T(v_i) = \lambda v_i$ (eigen-values of all basis vectors are the same)
+          - i.e $T(v) = \lambda v = a_1\lambda v_1 + \cdots a_n \lambda v_n = a_1 \lambda_1 v_1 + \cdots + a_n \lambda_n v_n$
+            - Then $a_1(\lambda - \lambda_1)v_1 + \cdots + a_n(\lambda - \lambda_n)v_n = 0$, thus $\lambda_i - \lambda = 0$ for all $1 \leq i \leq n$ (to suppose otherwise contradicts lin ind. of $v_i$)
+        - Suppose that $T \in \mathcal{L}(V)$ has $dim(V)$ distinct eigenvalues, and $S \in \mathcal{L}(V)$ has the same eigenvectors as $T$. Prove that $ST = TS$
+          - Notice, $V$ has basis $v_i$ of eigenvectors of $T$, i.e $T(v_i) = \lambda_iv_i$, similarly, $S(v_i) = \lambda'_i v_i$, thus $ST(v_i) = TS(v_i) = \lambda_i\lambda'_iv_i$
+            - Extend to all $v \in V$ easily
+        - Suppose $P \in \mathcal{L}(V)$, $P^2 = P$. Prove that $V = null(P) \oplus range(P)$
+          - $null(P) \subseteq null(P)$
+          - $range(P) = V$? If $P$ is injective, then $p(v) = v$ -> trivial
+            - Then $P$ is invertible
+          - Let $n_i$ be a basis of $null(P)$
+          - $dim(V) = dim(null(P)) + dim(range(P))$
+          - WTS $null(P) \cap range(P) = \emptyset$, i.e $P$ must be injective
+          - Suppose $p(v_1) = p(v_2)$
+      - ## Inner Product Spaces
+        - $\|v\| = z \cdot \overline{z}$
+        - **Inner product** -> $\sigma : V \times V \rightarrow \mathbb{R}$, for $v, w \in V$, $\sigma(w, v) = \Sigma_i w_i * \overline{z_i}$
+        - Function $\langle \rangle : V \times V \rightarrow \mathbb{F}$
+        - Has following properties, for $v, w \in V$
+          - **positive-definiteness** - $\langle v, v \rangle \geq 0$
+          - **definiteness** -  $\langle v, v \rangle = 0 \iff v = 0$
+          - **additivity in first slot** - $\langle v + w, z \rangle = \langle v, z \rangle + \langle w , z \rangle$
+          - **homogeneity in first slot** - $\langle av, w \rangle = a \langle v, w \rangle$
+          - **conjugate symmetry** - $\langle v, w \rangle = \overline{\langle w, v \rangle} = \langle w, v \rangle$ (last equality only holds if $\mathbb{F} = \mathbb{R}$)
+            - Notice $\langle v, aw \rangle = \overline{\langle aw, v \rangle} = \overline{a} \overline{\langle v, w \rangle} = \overline{a} \langle v, w \rangle$ 
+        - **Inner-product space** - Vector space $V$ along with an inner product $\langle, \rangle$
+        - Can view (for $w \in V$) $T_w : \mathcal{L}(V, \mathbb{F})$, where $T_w(v) = \langle v , w\rangle$, 
+          - For $v_1, v_2$, $T_w(v_1, v_2) = \langle v_1 + v_2, w\rangle = \langle v_1, w \rangle + \langle v_2, w \rangle = T_w(v_1) + T_w(v_2)$
+          - homogeneity follows, and 
+          - $\langle 0, w\rangle = 0$, as $0 = 0 \langle v, w \rangle = \langle 0v, w \rangle$
+        - **Norm** - $\| v \| = \sqrt{\langle v, v \rangle}$
+          - **orthogonal** = $\langle v, w \rangle = 0$
+        - **pythagoras**
+          $$ \| u + v \|^2 = \| u \|^2 + \| v \|^2$$
+        - Notice $\langle u + v, u + v \rangle = \langle u, u + v \rangle + \langle v, u + v \rangle = \langle u, u \rangle + \langle u, v \rangle +\overline{\langle u, v\rangle} + \langle v, v\rangle$
+          - Also $\overline{c} + c = a + bi + a - bi = 2a$
+          - $\langle u, v \rangle = 0$ only if $u, v$ are orthogonal
+        - **cauchy-schwarz** - For $u,v \in V$, $|\langle u,v \rangle | \leq \|u \| \|v \|$
+          - Attempt to write $v = u + w$, where $\langle u, w\rangle = 0$, i.e $v = au + (v -au)$
+            - $\langle v - au, u \rangle = \langle v, u \rangle - a \| u \| = 0$
+            $$| \langle u, v \rangle | = \langle u, v\rangle \langle v, u \rangle \leq \langle u, u \rangle \langle v, v \rangle$$
+            - Write $u = \frac{\langle u, v \rangle}{\|v\|^2}v + w$, and $\langle w, v \rangle = 0$ (thus by pyth.) $\|u \|^2 = \|\frac{\langle u, v \rangle}{\|v\|^2}v\|^2 + \|w\|^2 = \frac{\langle u, v \rangle^2}{\| v \|^2} +  \|w\|^2 \geq \frac{\langle u, v \rangle^2}{\| v \|^2}$, multiply by $\|v\|^2$ and sqrt to get above
+            - Notice equality holds if $w = 0$, i.e $u, v$ are paralell ($u = kv$)
+        - **triangle-inequality** - $\| u + v \| \leq \|u\| + \| v \|$
+          $$\langle u + v, u + v \rangle = \langle u, u\rangle + \langle v, v \rangle + \langle v, u \rangle + \langle u, v \rangle \leq \|u \|^2 + \|v \|^2 + 2|\langle u, v \rangle| \leq (\|x\| + \|y \|)^2$$
+      - ## Orthonormal Bases
+        - Set of vectors $e_1, \cdots, e_n$ where all vectors are pair-wise orthogonal, where $\langle e_i, e_j \rangle = \sigma_{i, j}$ (norm of vector is 1, inner-product with any other vector is 0)
+        - **Gram-Schmidt**
+          - Let $v_1, \cdots, v_n$ be a list of lin. ind. vectors in $V$, then there exists an orthonormal list $e_1, \cdots, e_n$ of vectors in $V$, where $span(v_1, \cdots, v_j) = span(e_1, \cdots, e_j), j = 1, \cdots, n$
+            - For $j = 1$, consider $e_1 = \frac{v_1}{\|v_1\|}$
+            - Suppose the thm. holds for $j \leq n$

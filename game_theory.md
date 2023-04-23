@@ -1,0 +1,300 @@
+# Algorithmic Game Theory
+- ## Lecture 1
+  - ### Origin
+      - Computers 
+        - Orignally thought of purely in terms of problem solving (Data structures, complexity of algorithms over those data-structures, etc.)
+        - Internet -> now humans interact w/ algos / DSs = game theory?
+      - Difference from pure Game-theory
+        - Setting -> Internet facilitated interaction = auctions, networks, 
+        - Purely quantitative -> seek hard upper / lower bounds on approximation, optimization problems,
+        - Adopts reasonable constraints on actors in each game (polynomial-time)
+  - ### Algorithmic Mech. Design
+    - Optimization problems, where value to be optimized is unknown to designer, must be determined through self-interested participants in game 
+      - How to structure game? Auction -> what is the value of a good -> participants bid on good to determine value
+      - _self interested behavior yields desired outcome 
+    - Auction Theory
+      - **first price auction**
+        - Good is auctioned
+        - Highest bid is price of good
+        - Participants incentivized to under-bid (prisoner's dilemma?)
+      - **second-price auction**
+        - Good is auctioned
+        - Second-highest bid is price of good, however, winner is highest bidder
+        - Participants may as well bid the maximum they are willing to pay for the good'
+          - **proof**
+            - Suppose for player $i$, $b_i$ is player i's bid, and $s_i$ is the value of the good to player $i$, $\hat{b}$ is the highest price of the other players. If $b_i > s_i$, then if $\hat{b} > b_i, s_i$, player $i$ may have just bid $s_i$(she loses anyway), and the same outcome occurs, if $b_i, s_i > \hat{b}$, then she will pay $\hat{b}$ (so she may have just bid $s_i > \hat{b}$), in the case that $b_i > \hat{b} > s_i$, she must bid $s_i$, otherwise she pays more than she would like for the good.
+            - In the case that $b_i < s_i$
+          - **Social Welfare Problem** - Good is allocated to individual w/ has the highest subjective value for the good
+      - To what extent is _incentive compatible efficient computation less powerfuil than classical efficient computation_?
+      - 
+    - ## Lecture 1 Reading
+      - **prisoner's dilemma**
+        -  Two prisoners on trial for crime $p_1, p_2$, and each faces a max of $5$ if they lie and the other doesnt, if they both lie they serve $2$ years, if one tells the truth and the other doesn't they liar serves $5$ and the truthful prisoner serves $1$
+          - Ultimate equillibrium -> both prisoners confess. WLOG $p_1$ remains silent, in which case, if $p_2$ remains silent he is better off confessing, a similar case holds if $p_1$ confesses
+          - What if time for snitching is greater than time for lying? Then if $p_1$ is silent, there is an incentive for $p_2$ to remain silent (why would they do more time?)
+      - **tragedy of the commons**
+        - **pollution game** (extension of prisoners dilemma to multiple players)
+          - $n$ players, each player has choice to pass legislation to control pollution or not. Pollution control has cost of $3$, each country not polluting adds cost of $1$ to legislation. 
+            - Equillibrium -> no players pass legislation to control pollution, for $k$ players don't pass, cost is $k$ for not passing and $k+3$ for passing, once 
+            - Consider case of $2$ players -> trivial both pay $1$, consider case of $3$ -> again trivial all pay $1$ (in worst case where all don't pass still pay $3$), in case of $4$ players, if you pay $3$ it is cheaper for all others to pay $1$ (max will be $3$) and you will pay $6$, so better for you to pay $1$
+            - Alternative -> where cost of legislation remains $3$
+        - $n$ players, have to share bandwith of max 1, player $i$ chooses $x_i \in [0,1]$
+          - Want -> maximize used bandwith, Consequence -> more of bandwith used by all players -> deteriorating connection
+          - model value for $i$, by $max(0, x_i(1 - \Sigma_i x_i))$
+          - Fix player $x_i$, and $t = \Sigma_{j \not= i}x_j < 1$, then $f(x) = x(1- t- x)$ -> maximize to get $x = \frac{1-t}{2}$
+            - Then $x_i = \frac{1 - \Sigma_{j \not= i}x_j}{2}$, assuming all $x_i$ are equal, one has $x = 1/(n + 1)$
+            - Total usage is $\frac{1}{n + 1}(1 - \frac{n - 1}{n + 1}) = \frac{1}{n + 1}^2$
+            - If total used is $1/2$ total value is $1/4$ (much bigger) but ppl overuse the resource
+        - **Coordination game**
+          - Multiple stable outcomes
+          - **Routing Congestion**
+      - ## Games, Strategies, Costs, and Payoffs
+        - **game**
+          - Consists of $n$ players, where player $i$ has $S_i$ strategies, and to play, each player chooses $s_i \in S_i$, notice $S = \Pi_i S_i$ determines the game (i.e the set of all possible combinations of strategies for each player)
+          - For each $s \in S$, player $i$'s outcome depends on $s_i$, must define **preference ordering** over outcomes
+            - I.e  total ordering that is reflexive + transitive over $S$ -> relation unique to player $i$
+              - **weak preference** -> $S_1, S_2 \in S$, then $S_1 \leq_i S_2$ if $i$'s outcome is at least as good with $S_2$ as with $S_1$
+              - Define $u_i : S \rightarrow \mathbb{R}$ (notice map $S$ and not $S_i$ as player $i$ must be aware of other players' strategies)
+            - Standard form -> define / order outcomes for all players + strategies
+        - **solution concepts**
+          - **Dominant Strategy Solution**
+            - If each player has a unique best strategy independent of strategies chosen by other players -> pollution game, prisoner's dilemma
+            - Let $s_i \in S_i$ be the strategy chosen by $i$, and $s_{-1} \in \Pi_{j \not=i}S_j$ be the strategies chosen by the rest of the players
+              - Let $s, s' \in S$, then $s is DS, if $\forall i, u_i(s_i, s'_{-i}) \geq u_i(s_i', s'_{-i})$, i.e for each player, there is a strategy $s_i$ which maximizes utility regardless of the other strategies
+          - **Vickrey Auction**
+            - Each player $i$, has value for item $v_i$, value for not winning $0$, value for paying price $p$, $v_i - p$
+            - Game is only one round, bids are sealed bid
+            - Naive mechanism -> take highest bid is not **DS**
+              - Bid is conditioned upon strategies of other players... How to make **DS**?
+            - **vickrey auction**
+              - Highest bidder, wins item, pays price of second highest bid
+          - **Pure Strategy Nash Equillibrium**
+            - Let $s, s' \in S$, one has $u_i(s_i, s_{-i}) \geq u_i(s'_{i}, s_{-i})$
+              - I.e given a strategy $s$, no player $i$ can change their strategy to $s'_i$ and obtain a higher payoff
+                - Can have multiple diff nash equillibria, i.e a **DS** is a nash-equillibria
+        - **Selfish Routing**
+          - Can you achieve an optimal solution if all commuters co-ordinate when determining congestion of routes for their commute?
+            - Worst case, everyone takes $5 min$ road, although a $6 min$ road is available
+          - Consider a suburb $s$, and train-station $t$ (**pigou**) -> selfish behaviour may not produce socially optimal outcome
+            - Suppose there are two roads to $t$, one skinny and fast, and the other wide + slow
+            - Suppose there are $n$ drivers, and $x$ choose to take skinny road, where time taken from skinny is $c(x) = \frac{x}{n}$, and time taken from wide is $1$
+              - Then if all drivers take the skinny road, the time taken is $1$, thus the equillibrium is $1$ in a selfish case
+              - For optimized case, minimize $n - x - x^2 / n$, to get $x = n/2$
+          - **Braess's Paradox**
+            - Consider suburb $s$, and train-station $t$, and $n$ drivers
+![Alt text](Screen%20Shot%202023-04-11%20at%2011.20.06%20PM.png)
+            - Each path has one wide + short road, i.e $c(x) = 1 + x$, and the roads are equal, thus an equal number of travellers shld cross
+            - Introduce 0 cost path between them, then, optimal route is to take $s \rightarrow v \rightarrow w \rightarrow t$, 
+              - i.e always choose variable path when faced w/ a decision (now the time taken is 2h instead of 1.5)
+              - Solution w/o cross-road strictly better
+      - ## Lecture Notes
+        - Four groups $(A, B, C, D)$, each with 4 teams
+          - Phase 1: all four teams in each group play each other (6 games) -> top two teams advance to phase 2
+          - Phase 2: knockout tourny -> winning > losing
+        - Players want to win medals -> mechanism designer wants players to try
+        - **pairing for quarterfinals**
+          - Top team in A plays worse team in C, C -> B, B -> D, D -> A
+            - A has upset, worst team in tourny is top, best team bottom
+            - Winners of C want to avoid bottom of A, so try to lose match
+-  ## Lecture 2
+  - **Nash equillibrium**
+     - Consider $s \in S$, then $s$ is a nash-equillibrium, if $\forall i, u_i(s_i, s_{-i}) \geq u_i(s'_i, s_{-1})$
+       - I.e player's move is uniquely determined from other players' moves, and vice-versa -> who makes the first move?
+       - If a player is incentivized to make first move, the strategy is **DS**? I.e optimal move is irrelevant of other player's moves?
+  - **Mixed Strategy Nash**
+    - **pure strategy** - Each player deterministically chooses strategy
+    - **mixed strategy** - Players choose strategies at random, and determine outcome via expected value of strategy + utility of strategy (think of opponents as dice)
+      - **risk-neutral** -> Assume players intend to maximize upside, and ignore possible down-side
+    - **Nash Thm**
+      - Any game w/ finite set of players + finite set of strategies has nash equillibrium
+      - Force players to have mixed strategy
+    - **pricing game** (game w/o nash eq.)
+      - Two players sell product to 3 buyers
+        - Each buyer wants to buy 1 unit, w/ max price of 1
+      - Sellers specify price $p_i$ that buyers A, C must pay
+        - Buyer B up for grabs, on tie defer to seller 1
+      - Strategies
+        - Sellers sell for 1 (naturally will have to sell for $\geq 0.5$ (otherwise even if they win they make less than 1))
+          - i.e its a race to $0.5$? Yes, players can always undercut
+        - Other strategy keep at 1
+        - Infinite number of strategies?
+    - **correlated equillibrium**
+      - Two players at intersection at once
+        - Crossing = 1, crashing = -100, stop = 0,
+        - Nash equillibria -> 1 / 2 let car cross while other stop
+      - Coordinator chooses actions of players
+    - Define $P : \times_i S_i \rightarrow [0,1]$, a prob dist, where $p(s)$ is the prob of strategy $s$ being chosen, and $s_i$ is the strategy for player $i$
+      - TLDR: correlated equillibrium when expected utility of $s_i$ cannot be increased by switching to a diff strategy $s'_i$
+      $$\Sigma_{-i}p(s_i, s_{-i})u(s_i, s_{-i}) \geq \Sigma_{-i}p(s_i, s_{-i})u(s'_i, s_{-i})$$
+- ## Finding Equillibria
+  - ### Complexity Of Finding Equillibria
+    - **Two-person-zero sum games**
+      - Sum (over both players) of payoffs for all strategies is zero (i.e one player wins, other loses)
+      - Consider $p, q$, and $A$ a matrix representing the payoffs for each action, i.e $A : S \rightarrow S$ (linear operator), only need to specify winnings for one player in this case
+        - I.e. consider the matrix representing the amt paid to $p$ by $q$, and let $\hat{p} \in [0,1]^{dim(S)}$ represent the probabilities of each strategy for $p$, and $\hat{q} \in [0,1]^{dim(S)T}$ analogously, then the expected payout is $\hat{q}A\hat{p}$ (i.e expected value of strategies chosen by p (conditioned on q)), product w/ probs of strategies for $q$
+        - Suppose strategy for $q$ is known (probability distributions), then the resulting payoff matrix becomes $qA$, i.e for each strategy of q, the expected payout for $p$, and $p$ must choose its own distribution to maximize payout 
+        - Devolves to linear program as follows
+          - Consider $A$, a matrix mapping $A = Mat(T)$, where $T \in \mathcal{L}(S_p, S_q)$, where $S_p$ is the space of mixed strategies for $p$ (i.e a prob distribution over $S_p$)
+          - and $S_q$ is the vector space $\mathcal{L}(\mathcal{S_q}, \mathbb{R})$, i.e $\hat{q}$ is a mapping from the space of expected values paid from q -> p according to a given strategy chosen to $p$
+        - **above-game has a nash equillibrium (if the strategy space is finite)**
+        - **any choice of strategies from each player determines the other** (if in nash-equillibrium)
+          - Player $q$ will want to minimize all entries in $pA$, i.e 
+          - i.e choose $p$ such that $p\cdot A_i$ (i-th row of $A$), or in other-words, for each strat chosen by $q$, $p$ wants to choose a mixed strategy that minimizes the dot-product (expected-value from strategy) for $q$
+          - row player chooses strategy, such that $(pA)_i = v_{i, p}$, choose $p$, such that $max_p(min_i (v_{ip}))$
+            - Maximize profit
+          - Column player, minimize loss (defined analogously)
+    - ## Finding Nash Equillibrium
+      - **Best Response**
+        - Choose strategy $s \in S$, where $s_i$ is strat for $i$, then have all players iteratively determine $max_{s'_i \in S_i}(u_i(s'_i, s_{-i}))$ (assumes that other strategies are held static)
+    - ## Games w/ Turns
+      - **Ultimatum game**
+        - Player $p_1, p_2$, $p_1$ is selling a good (at no particular price), and offers a price to $p_2$ who has value $v - p$, nash eq. $v$? 
+          - In multi-turns equillibrium is at $v/2$
+          - Game has multiple equillibria (buyer buys at any price under $v$), buyer only buys at $p \leq m$, etc. 
+    - ## Bayesian Games (games w/o perfect info)
+      - Players don't know other player' values / strategies
+      - Bayesian first price
+        - If not-bayesian, $p_i$ with highest valuation of item pays second highest
+    - ## Co-operative Games
+      - Games where players co-ordinate strategies?
+      - **Strong Nash Equillibrium**
+        - Given strategy $s \in S$, players $i \in A$, can choose strategy vectors $s_A$ (assuming that) $\forall i \in A, u_i(s_{A_i} s_{-A}) > u_i(s_i, s_{-i})$
+        - $s$ is a strong nash-equillibrium, if no group $A$, can change stragegies to obtain a better outcome
+        - **stronger than nash-eq.**
+      - **transferrable utility**
+        - total value is finite, and shared among $N$ players, for each $A \in N$ $c(A)$ is the cost (utility) of that group in the game for strategy $s_A$
+        - Let $c(N)$ be the total cost, then a _cost-sharing_ is a partition of $c(N)$ among $i$, such that $\Sigma_i cs_i = c(N)$
+          - Let $A \subset N$, then $A$ is in the **core** iff, $\Sigma_{i \in A} x_i \leq c(A)$, i.e leaving $A$ is not beneficial
+            -  Strict inequality means that another set is out-of-core
+        - **shapley-value**
+          - Consider $(p_1, \cdots, p_N)$ (a random ordering of the players), then $c(p_i) = C(N) - C(N-i)$ (marginal cost for player $i$), the **shapley-core** is determined by assigning cost to each player equal to the expected value of their marginal cost over all random orderings
+    - ## Aside (minimax algo)
+      - Algorithm for determining (maximizing minimum gain) (or minimizing maximum loss) used in two player zero sum game
+        - I.e solution
+      - Construct a tree of moves (i.e root is the first player's move, second level are set of third player's moves, etc.)
+        - **back-tracking algo**
+      - Two players 
+        - **maxizer** - maximize minimum win
+        - **minimizer** - minimize maximum loss
+      - ## Evaluation Function
+        - 
+    - ## Markets
+      - $A$ of divisible goods, and $B$ buyers, for each $i \in B$, $m_i$ denotes the amount of money player $i$ has to allocate among purchasing items $s_i \subset A$
+        - $i$ interested in maximizing number of _goods_ $a_{j,i} \in S_i$
+        - Fix prices $p_1, \cdots, p_n$ of prices of goods, for each $a_{i, j} \in S_i$, the buyer considering $S_i$ will order $p(a_{i,j})$ and purchase goods up to her market price, this is known as an **optimal basket** for player $i$
+      - Define **bipartite graph** (graph $G$, where $V$ has a partition $V_1, V_2$ such that no two $v_1, v_2 \in V_i$ are adjacent)
+        - Let $G = (A, B, E)$, define $(i, j) \in E$ if $i \in B, j \in S_i$, let $a(S) = \Sigma_{j \in S} a_j$ and $m(T) = \Sigma_{j \in T} m_j$ 
+        - **algorithm**
+          - $\Gamma(S)$, where $S \subset A$, is defined as the set of buyers who are interested in goods in $A$
+            - i.e $\Gamma(S) = \{i \in B: S_i \cap S \not= \empty \}$
+            - Fix $a \in S \subseteq A$, and consider $i \in \Gamma(S)$, then for $a \in S$, there exists $j \in B$, such that $(j, a) \in E$, and $j \in neighbourhood(S)$
+          - Consider price $x$, then $x$ is **feasible** if, $\forall S \subseteq A, x * a(S) \leq m(\Gamma(S))$
+            - In otherwords, for each set of goods in $A$, a uniform price $x$ enables all buyers to feasibly purchase a **basket** of goods
+            - If the inequality is tight, each player will be able to get an **optimal basket** of goods?
+        - 
+- ## Mechanism Design
+  -  **Social Choice**
+     - **condorcet's paradox** - Social choice does not work when there are more than three values to vote on. I.e 3 candidates $a, b, c$, and voters $v_1, v_2, v_3$, where $a > b > c$ for $v_1$, $b > c > a$ for $v_2$, and $c > b > a$ for $v_3$, a consistent total order cannot be made over candidates if a majority vote is taken
+  - **voting methods**
+    - Denote the set of $A$ of **candidates**, $I$ of **voters**, and $L \subset A^n$ the total set of orderings over $A$, where $l \in L$ defines a total order $l = (a_1, \cdots, a_n), a_i > a_j \iff i > j$
+    - **social welfare function** - $F : L^n \rightarrow L$ (select total social from all ordering) 
+    - **social choice function** - $f : L^n \rightarrow A$ (select a candidate from the set of orderings) (I assume is to be composed w/ $F$?)
+  - **arrow's thm**
+    - Let $F$ be a social welfare fn, then $F$ satisfies **unanimity** iff, $\forall \lambda \in L, F(l, \cdots, l) = l$
+      - i,e social choice of identical preferences is the same
+    - **dictator** - If for all choices $l_1, \cdots, l_n \in L, F(l_1, \cdots, l_n)  = l_i$ (i.e social totla order is order of single individual always)
+      - If no dictator, then ordering is not dictatorship
+    - **independence of irrelevant alternatives** - For all $a, b \in A$ social choice of $a \prec b$ depends on $a \prec_i b$ for all $i$, i.e for all $\prec_1, \cdots, \prec_n, \prec_1' \cdots \prec'_n \in L$, $\prec = F(\prec_1, \cdots, \prec_n)$, $\prec' = F(\prec'_1, \cdots, \prec'_n)$ and $a \prec_i b \iff a \prec_i' b$ for all $i$, then $a \prec b \iff a \prec' b$
+      - I.e final ordering between $a, b$ is dependent only on the ordering (between alternatives $a, b$) for each voter
+    - **arrow's theorem** - Every social welfare function over a set $A$, where $|A| \geq 3$ that satisfies unanimity and independence of irrelevant alternatives is a dictatorship
+      - Claim For $\prec_1, \cdots, \prec_n$ and $\prec'_1, \cdots, \prec'_n$ where for all $i \in I$, $a \succ_i b \iff c \succ'_i d$, then $a \succ b \iff c \succ' d$, where $\succ = F(\succ_1, \cdots, \succ_n)$, $\succ' = F(\succ'_1, \cdots, \succ'_n)$. 
+        - Fix $a, b, c, d  \in A$, where $a \succ_i b$, then $c \succ'_i d$, and we can fix a $\succ''_i$ where $c \succ'' a \succ'' b \succ'' d$, satisfying both orders, then for each $\succ_i, \succ''_i$, we may consider the restriction of $\succ''_i$ to $a, b, c, d$, and use unanimity of $F$ to obtain $F(\succ''_1, \cdots \succ''_n) = \succ''$, and we have that $
+  - ## Mechanisms with Money
+    - Use money to model a voter's preference on alternatives, instead of total-order, define $v_i : A \rightarrow \mathbb{R}$ (gives total order plus distance metric)
+      - Also if $i$ is given $m$ money, $u_i = v(i) + m$, i.e utility fn is **quasilinear** - separable + linear dependence on money
+    - **second-price auction**
+      - For $|I| = n$, $i \in I$, $w_i$ is maximum that $i$ is willing to pay for the item, and $u_i = w_i - p$, or $u_i = 0$ (if $i$ does not win auction)
+      - Alternatives are $A = \{w_I| i \in I\}$ (want to choose social choince over $I$)
+        - No payment -> $i \in I$ is encouraged to bid significantly higher than their valuation, however, $w_i$ is not highest
+        - Pay bid, $u_i = w_i - p$, where if $p = w_i$, $u_i = 0$ (as good as not bidding), then player encouraged to bid much less than valuation
+      - Each $i$ has a dominant strategy, i.e $v_i$, where $u_i = v_i - max_{j \not = i}(v_j) suppose $v_i > max(v_{-i})$, then the utility is $max(0, v_i - b) > 0$, similar result for other case
+    - **Vickrey**
+      - Winner is $max_i(w_i)$, and $p = max_{ j \in I\backslash winner}(w_i)$
+      - Proof $w_i$ be valuations, and $w'_i$ (be manipulation valuation), $u_i = w_i - p$, $u'_i = w'_i - p$, i.e $u'_i \leq u_i$
+        - If $w_i \geq w'_i > p$, when $u_i \geq u'_i$, if $w'_i \geq w_j > w_i$, then $u'_i = w_i - w_j \leq 0 = u_i$
+        - I.e always best to bid $u_i$
+    - ## Incentive Compatible Mechanisms
+      - $V^I$ set of possible valuation functions for each player $i$, i.e $(v_1, \cdots, v_n) \in V^I$, where $v_i$ is the valuation function for $i$
+      - **direct revelation mechanism**
+        - $f: V_1 \times \cdots \times V_n \rightarrow A$ (social choice fn), and $p_i : V_1 \times \cdots \times V_n \rightarrow \mathbb{R}$ denoting payment functions
+    - **Incentive compatibility (VCG mechanisms)**
+      - **Incentive compatible mechanisms**
+        - Let $\mathcal{M} = (f, p_1, \cdots, p_n)$ denote a mechanism, then for every $v, v' \in V$, denote $a = f(v_i, v_{-i}), a' = f(v_i', v_{-i})$m then $v_i(a) - p_i(v_i, v_{-i}) \geq v_i(a') - p_i(v'_i, v_{-i})$
+          - Nash equillibrium? I.e changing valuation for any player $i$ results in a less efficient strategy
+      - **social-welfare** - $\Sigma_i v_i(a)$
+      - **VCG**
+        - Given $v \in V$, $f$ maximized social welfare, $\Sigma_i v(f(v)) = max_{a \in A}(\Sigma_i v_i(a))$
+        - For functions $h_i : V_{-i} \rightarrow \mathbb{R}$ (where $h_i$ is not dependent on choice of $v_i$), for all $v_i \in V_i$, $p_i(v_1, \cdots, v_n) = h_i(v_{-i}) - \Sigma_{j \not = i}v_j(f(v_i, v_{-i}))$
+          - Payment to $i$ is equal to sum of values to each player from respective allocation, adjusted by some constant function $h_i$ (treated as constant for player)
+          - I.e to maximize payment, maximize $f$, which means choosing $v_i$ over $v_i'$
+          - Choice of $h_i$ denotes the payment to the mechanism
+      - Every **VCG** is incentive compatible
+        - Show IC inequality using first hyp. of VCG i.e $\Sigma_i v_i(f(v_i, v_{-i}))$ is maximal over $v_1 \in V, \cdots, v_n \in V_n$
+  - ## Combinatorial Auctions
+    - **English (Ascending) Auction**
+      - Auctioneer announces bid increments, bidders drop out iteratively once $p_a > v_i(a)$ -> winner utility $u_i = p_a - v_i(a) \geq 0$ (i.e immediately after second user drops win)
+    - Derive the **VA** from the above DS
+  - **third-price auction**?
+    - **4.2** - Proof analogous for second-price, losing is $0$, and winning is $v_i - v_3 > 0$
+    - **4.1** - Dominant strategy is to set $b_i = v_i$,, i.e $u(b_i, b_{-i}) \geq u_i(b'_i, b_{-i})$, consider case where $b_i > v_2 > v_i > v_3$, i.e $v_i$ spoofs fake higher bid than 'second' highest bid and wins
+      - I.e truthful bidding is not DS
+  - **Ebay Style Auction**
+    - Have the ability to bid more than once (can't retract bid)
+      - $u_i(a) = v_i(a) - p$ (in this case.. price is second-highest bid?)
+      - Still best strategy is to bid $b_i = v_i$
+  - Prove that for every false $b_i \not= v_i$, there exists $b_{-i}$ in a second-price where $u(b_i) < u(v_i)$
+    - For $b_i < v_i$, fix second highest bid between $b_i > v_2 < v_i$, where $0 = u_i(b_i) < u_i(v_i) = v_i - v_2 > 0$
+    - For $v_i < b_i$ bidder $i$ over-bids
+  - $k$ identical copies of an item, and $n > k$ bidders, where each bidder receives at most 1 item, what is analog of 2nd price, is it DSIC?
+    - Second price auction for each item, bid is of form $b_{i,1}, \cdots, b_{i, k}$, suppose for $i \in I$, some $b_{i, j} < v_{i, j}$, induction on $j$, 
+      - $j = 1$ -> trivial, this is the standard second price auction, fix $n$, and suppose that $v_{i, j} = b_{i, j}, j \leq n$, where $v_i(a_1) > \cdots, > v_i(a_k)$, then, for $j = n + 1$, if any of the $j' < j$ wins the auction for $a_{j'}$, then $v_i(a_j) \geq v'_i(a_j)$, otherwise, if $v{i, j} < b_{i,j}$, this leads to neg. utility, in the case where $b_{i, j} < v_{i, j}$ this is at most as good, and in some cases strictly worse ($b_{i, j} < v_2 < v_{i,j}$
+      - Similar case follows for non-neg utility
+  - Second price auction, but cost of item is $c$, same mechanics but have seller place **floor** of $c$
+    - **DSIC**
+      - **Dominant Strategy is Truthfulness**
+        - Follows directly from DSIC of second-price auction, i.e $b_i < v_i$, where $v_i > v_2 > c$, $u_i(v_i) \geq u_i(b_i)$, $b_i > v_i > c$, then $u_i(b_i) \leq u_i(v_i)$
+      - **Incentive Compatible (utility $\geq 0$ when telling truth)** 
+        - Never bid above valuation...
+  - **procurement auctions**
+    - Sellers compete to sell good to buyer, i.e buyer utility $u_{purchaser} = v - p$ (i.e minimize price of purchasing good), 
+    - Analog to first price
+      - i.e have sellers report their price (blind), and choose lowest.., $u_{seller} = p - v_i$ (i.e price will at least be their truthful cost), (want to avoid sellers reporting above truthful cost...)?
+        - Lowest price is cost.. seller's utility $= 0$ when truthfully reporting (same as if not participating).. incentivize to over-report,
+          - i.e bid epsilon lower than second lowest bid, (**NOT DSIC**)
+      - Alternative, cost is price of second lowest-bid, (**DSIC**)
+        - Proof analogous to first price
+  - open ascending single-item auctions
+    - Still maximize $v_i - p$, i.e incentive to never bid true value
+  - Sponsored Search Auctions
+    - Social welfare is defined as follows, $\Sigma_i v_i x_i$, where $x_i = \alpha_i$ if $x = a_1, \cdots, a_k$, or $x_i = 0$, prove that social welfare maximized if $a_i$, where $CTR(a_i) = \alpha_i$ is awarded to the i-th highest bidder,
+      - By induction, for $i = 1$ case is simple (only one asset, maximize by choosing highest valuation), assume that hyp. holds for $i \leq n$, for $n + 1$
+        - WTS, maximize $\alpha_{n + 1}v'_{n+1} + \Sigma_{i \leq n} v_i x_i$, naturally, $v'_{n + 1} = max_{v_i \not = v_k, k = i \leq n} v_i$
+  - **problem 2.1**
+    - $n$ bidders, where $v_i$ private (valuation for good), bids arrive 1 by 1
+      - For each arrival..
+        - If the item hasn't been sold, auctioneer posts price $p_i$, and accepts $b_i$
+        - If $p_i \leq b_i$, the item is sold to $b_i$, otherwise item remains unsold, and bid departs
+    - **DSIC**?
+      - $b_i < v_i$ underbid -> sale price is same if $v_i > b_i > p$, otherwise, if $v_i > p > b_i$ ($u_i(b_i) = 0 < u_i(v_i)$), 
+        - Overbid, i.e $b_i > p > v_i$, $u(b_i) \leq 0$
+      - Utility $\geq 0$ for truthful bids? Yes, sale price always $p \leq v_i$, thus $u_i = v_i - p \geq v_i - v_i = 0$
+    - Suppose, for all $i$, $b_i = v_i$, if valuations and order of $v_i$, are arbitrary, then there is no deterministic online auction that always achieves social welfare at least $c > 0$ times the highest valuation
+      - Fix $c > 0$, and valuations $(v_i)_{1 \leq i \leq n}$
+  - **problem 2.2**
+    - Suppose $S \subset I$ of bidders collude, under what conditions can they maximize the sum of their utilities by colluding
+  - **Weaker Constraints than Quasi-linearity for DSIC of second price?**
+    - 
+  - ## Lecture Notes
+    - **DSIC (dominant strategy incentive compatible)** 
+      - Set $b_i = v_i$ maximizes utility (**incentive compatible**) 
+      - **Dominant Strategy** - Never lose money by truthtelling, i.e for $v \in V$, $u_i(v_i) \geq 0$

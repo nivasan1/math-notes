@@ -2144,6 +2144,9 @@ type sentinelDBProvider interface {
 - Build POS-system from this?
 ## DAG-Rider
 ## Bull-Shark
+- 
+## Topos
+- 
 ## Reliable Broadcast
 - Narwhal + Bullshark are asynchronous reliable broadcast protocols
 - Designed for asynchronous model
@@ -2530,12 +2533,184 @@ type sentinelDBProvider interface {
   - Updates to validator configs
     - Payment address, payment percentage, etc.
   - Updates to `monikers`
-## Task: Register Winning + failing bundles from sentinel together
 
-## Question: How is it possible that there are rounds in which the next validator is not a skip-proposer?
+## Weak Subjectivity
+- nothing at stake problem?
+- **consensus** - Secure execution of a state-transition, according to a set of rules (can also be done via zk-proofs), where right to perform STs distributed among economic set
+  - Must be securely decentralized
+- POW - Miners choose chain which they intend to contribute to (determine next hash given ancestor)
+  - Unprofitable to double-sign (contribute half-work to one fork, and other half to another)
+- **Nothing at stake**
+  - Voting is free in POS (resource not consumed in votes (however slashing conditions consume resource after detection?))
+- Fundamentally consumption of resource (in traditional BFT resource is ownership of a PK pair) is difficult to determine in POS, since resource is on chain itself ()
+  - In POS diff. entities have diff. views of val-set / weights
+## Cross-chain validation
+- **Model**
+  - Validator set on consumer chain determined by tokens bonded by val on provider chain, misbehavior on consumer chains slashes stake on provider (eigenlayr?)
+  - Long range nothing at stake attacks? How to maintain security during unbonding
+    - Given light-clients require trusting period to determine val-set, how does this tie into security of CCV
+- Value of interchain security
+  - In the limit every (cosmos) chain uses consensus effectively as a means of attributing a decision to a set of trusted actors bonded by an economic incentive to act _correctly_
+  - Sequencer is where these preferences shared between actors validating roll-ups can be disseminated 
+    - Naive - Every validator can attach specific data to their blocks, vals can unpack data if they understand, and attach their own data to certificate (can even change rules for signing certificate)
+- Consumer chain
+  - Receives **VSC**s (validator set changes) from the provider (given through an IBC packet), gives to staking module, and adjusts stake in network accordingly
+  - Given a number of violations, the consumer chain relays those proofs to the provider chain
+![Alt text](Screen%20Shot%202023-03-12%20at%205.02.05%20PM.png)
+- **Channel initialization** for non-existing chains (chain will be consumer from genesis block)
+  1. Create Clients
+     - Provider receives proposal for consumer CCV
+     - Provider chain instantiates light client of consumer, validator nodes of provider create full-nodes for consumer with given genesis-state
+       - `x/consumer` module InitGenesis constructs client of provider (what abt. rest of nodes on chain?)
+  2. **connection handshake**
+     - According to ICS 3
+  3. **channel handshake**
+     - According to ICS 4
+     - Also instantiates transfer module for reward distribution to provider chain
+# Bullshark
+- Build set of causally ordered messages, then consensus proceeds on top of DAG w/ zero message over-head
+  - How is building of DAG not a consensus protocol? It is atomic broadcast <-> agreement (consenus)
+- asynchronous, but optimized for (common) synchronous case
+- **Validity** (fairness) - Every tx delivered by an honest party is eventually delivered
+  - Conflicts with Narwhals garbage collection
+- Concerns
+  - optimize for synchronous case
+  - garbage collect old entries (remove infinite storage requirement?)
+- Asynchronous worst case liveness
+  - Happy path that exploits common-case synchronicity
+- Built on top of narwhal (first partially synchronous model )
+- Dynamic validator set? How are nodes able to move in / out if verification of each certificate requires signatures from quorum at prev. round? 
+- ## Challenges
+  - Narwhal - Nodes advance to next round (construct message for round $n + 1$) on receipt of $2f + 1$ certificates
+    - Bull-shark this is fine for asynchronous consensus? Cannot guarantee deterministic liveness for synchronous periods?
+    - In asynchronous case, leader is determined via VRF encoded in block shares (no-one knows leader before-hand), can parametrize protocol to be probablistically live (after some number of round leader block shld be received)
+    - In synchronous case, leader is determined before-hand, and must be deterministically live, 
+      - Attack: adversary knows leader, and advances $2f + 1$ messages before leader, so all nodes advance w/o leader block
+      - Solution introduce timeout after receiving $2f + 1$ messages, i.e message is guaranteed to come in before timeout ()
+  - Bullshark has two votes
+    - One **steady-state** - for pre-defined leader
+    - One **fallback** - For random leader (same as Tusk), if predefined leader is down or network is asynchronous
+  - Bullshark rounds grouped into **waves** of 4 rounds
+    - Have steady-state leader
+      - Commit after 2 rounds (steady -state synchronous)
+    - fallback leader
+      - Commit happens after 4 blocks (asynchronous condition)
+- ## Model
+  - Assume processes $P = \{p_1, \cdots, p_n\}$, where $r\_bcast_k(m, r)$ denotes a reliable broadcast to all nodes, and $r\_deliver_i(m, r, k)$ denotes process $i$ delivering a message that was previously $r\_bcast_k(m, r)$
+    - **agreement** - If $p_i$ outputs $r\_deliver_i(m, r, k)$, then all other processes $p_j$ output $r\_deliver_j(m, r, k)$
+    - **integrity** - Honst parties deliver messages at most once
+    - **validity** - All broadcasted messages are eventually delivered
+  - **perfect coin** - Each node $p_i$ has a function $choose\_leader_i : \mathbb{N} \rightarrow P$
+    - **agreement** - For $p_i, p_j \in P$, $choose\_leader_i(w) = choose\_leader_j(w)$
+    - **termination** - If at least $f + 1$ parties call $choose\_leader_i$ it eventually succeeds
+    - **unpredictability** - As long as $< f + 1$ parties call choose_leader, the return is indistinguishable from a random variable (i.e can't determine leader w $< f + 1$ parties) 
+    - **fairness** - For all $p_i \in P$, $Pr[choose\_leader_i(w) = p_j] = 1/n$
+- ## Problem
+  - **Byzantine Atomic Broadcast** (stronger than Byzantine broadcast <-> byzantine agreement) (this is BAB <- > SMR)
+    - Satisfies reliable bcast + **total order**
+      - **Total Order** - If an honest party $p_i$ outputs $a\_deliver_i(m, r, p_k)$ before $a\_deliver_i(m', r', p_k')$, then all honest parties deliver the messages in that order
+    - Asynchronous executions have to relax validity to be non-determinstic (live w/ some probability)
+- ## DAG Construction
+    - Vertices represent messages, each vertex has references to $2f + 1$ messages from prev. round
+    - Each parties view of DAG changes (depending on how messages are delivered at each process via RB), however, _eventually_ (synchronously or asynchronously) all DAGs converge
+    - **Vertices contain**
+      - Round number
+      - Signature (from sender)
+      - Txs
+      - $f + 1$ Weak + $2f + 1$ strong edges
+        - **strong edge** - Reference to vertex from $2f + 1$ (safety)
+        - **weak edge** - Reference to vertex from $< r - 1$, such that w/o edge, there is no path to vertex (total-order)
+      - $|DAG_i[R]| \leq n$ - the set of vertices RB-delivered by $p_i$ for round $r$
+      - $path(u, v), strong\_path(u, v) \in \{0, 1\}$ return whether there is a path between two vertices $u, v$ among all edges (resp. strong edges)
+      - $fallback\_leader(r)$ returns the fall-back leader's block from the first round of the current wave
+      - $steady_state_leaders(r)$ - return the first / second blocks from this wave where the first returned is the block from the first round of the wave, and the second is from the third round of the wave
+    - ### algorithm
+      ![Alt text](Screen%20Shot%202023-03-12%20at%207.40.23%20PM.png)
+      - state
+        - **round** - Round of last vertex broadcasted
+        - **buffer** - Set of vertices RB-delivered but not included in a vertex
+        - **wait** - Timer corresponding to whether the timeout has elapsed for this round
+      - Triggers (advance rounds)
+        - On vertex deliver (RB) $v$ 
+            - Check $v$ is legal
+              - Check source and round 
+                - Source has not yet delivered vertex for round
+                - Round is current round of latest delivered vertex?
+              - Vertex has at least $2f + 1$ strong vertices
+            - Try to add to DAG
+              - If all vertices w/ strong_edges have not been delivered add to $buffer$
+                - Different from Narwhal? In narwhal all delivered vertices (certificates) are added to DA, don't have to deliver earlier (doesn't have notion of delivery, up to SMR)
+        - On vertex $v$ added to DAG
+          - Iterate through buffer and attempt to add vertices to DAG
+          - BAB-deliver $v$ ?
+        - On $2f + 1$ vertex RB-delivered?
+          - Advance round
+        - On timeout
+          -  For synchronous case?
+        - On advance round
+          - Broadcast vertex
+          - Start new timer
+    - Have to optimize for common-case conditions (have stronger condition for progress other than $2f + 1$ vertex delivers)
+      - Look above for why
+      - If node delivers $2f + 1$ vertices for $r > round$ node moves forward (not up-to-date node)
+    - Voting
+      - for wave $w$ starting at round $r$, there is a leader for $r$ and $r + 2$
+        - Leader block at $r, r + 2$ are **proposals**
+      - Vertices in round $r + 1, r + 3$ with strong edges to **proposals** are votes, only if vertex w/ edges to proposal is marked as a **steady-state** vote
+    - Up-to-date nodes
+      -  Dont advance to $r + 1$ unless
+         -  The timeout for $r$ expires
+         -  The node has delivered $2f + 1$ vertices, and the proposal for the current wave
+    - ### Protocol
+      - **Voting rules**
+        - Divide $DAG_i$ into _waves_ (4 rounds) each with 2 steady-state leaders and 1 fall-back leader
+          - Synchronous periods (both steady-state leaders committed)
+          - Asynchronous periods - Only fall-back leader committed (commit w/ 2/3 prob) so $E(commit) = 6$
+        - Does not require external view-change / view-synchronization mechanisms when switching from asynchrony to synchrony
+          - round 1 + 2 ensure if leader is honest all parties start round 3 ~ the same time
+            - View change not require b.c DAG ensures safety (in each view)
+        - **fall-back leaders + SS leaders committed exclusively**
+          - Parties assigned w/ voting type at beginning of wave (fallback or steady state)
+            - $p_i$ interprets DAG / votes according to type of vertex
+            - Keeps track of info in `steady_votes[w]` and `fallback_votes[w]`
+              - `steady_votes` - parties that committed second steady-state leader in $w - 1$
+              - `fallback_votes` - parties that committed fallback leader in $w - 1$
+            - $p_i$ determines $p_j$'s vote type in wave $w$ when it delivers $p_j$'s vertex for $w$ by 
+                - If vertex has causal history to guarantee commit of steady-state leader it is `steadystate_vote`
+                - Otherwise fall-back
+          - To commit leader in $w - 1$ based on vertex $v$ from first round of $w$
+            - let $sv = v.strong\_edges$
+              - If $|\{v \in sv: v.type = fallback, strong\_path(fallback\_leader(v.wave - 1), v)\}| \geq 2f + 1$, then commit the fallback leader 
+              - ^^ analogous condition for second-steady-state leader in $w-1$ leads $v$ to commit a second-steady-state leader
+        - **ordering DAG**
+          - 
+## Order-Fair Consensus
+- **zero-block confirmation** - Honest txs can be securely confirmed **even before they are included in any block**
+  - **transaction order-fairness** (on top of consistency, liveness)
+- POW protocols
+  - Can operate in environment where validator set is unknown
+- **order-fairness**
+  - If sufficiently many nodes receive $tx_1$ before $tx_2$, then $tx_1$ must be executed before $tx_2$
+  - Extension of **single-shot agreement** to multiple rounds,
+    - I.e given the order of inputs, the final output should reflect
+- **receive order-fairness** - If $\gamma$ (fraction likely 2/3) nodes have received $tx_1$ before $tx_2$, $tx_1$ is sequenced before $tx_2$
+  - Impossible due to Condorcet paradox, $A, B, C$, orderings $(x, y, z)_A, (z, x, y)_B, (y, z, x)_C$, notice then $x, y$, and $y, z$, but $z, x$? Ordering is not transitive
+- **block order-fairness**
+  - same as above, except happens before is analogous to block ordering, conflicting orders $x, z$ force $x, y, z$ to be included in the block (in no specific order)
+  - Allow symmetricity in order relation
+## 
+## Implementing ABCI with bull-shark?
+ - Look into weak-subjectivity
+   - Val-set preferences
+ - Potentially CCV + heterogeneous architectures reading
+ - zk proofs
+## Rollups
+- ### Sequencer as a service
+  - **saga**
+    - Organize validators into sequencers, punish misbehaviour
+    - Validators selected to sequence shards via an on-rollup sequencer (think of randao selection of committees)
+    - Clients generate fraud proofs and post to DA
   - 
-## Implementing GetBundles API
- -
 ## Gasper
  - Casper FFG + LMD GHOST
     - FFG (provides finality for blocks produced)
@@ -2622,19 +2797,226 @@ type sentinelDBProvider interface {
      - Each attestation is weighted by stake of validator
    - **notion** - Use stake of validator as opposed to individual nodes as units to prevent against sybil / DDOS attacks
    - checkpoint -> epoch, block -> slot
-   ### Justification / Finalization
+   - **justification + finalization**
+     - Let $G = view(V)$, then there exists $F(G) \subset J(G)$, where $F(G)$ are **finalized** blocks, and **J(G)** are justified blokcs
+       - The $B_{genesis}$, is both finalized and justified
+       - If a check-point block $B$ is justified, and there are $> 2/3$ stake-weighted attestations for $B \rightarrow A$, and $A$ is a checkpoint-block, then $A$ is justified, and if $h(A) = h(B) + 1$, then $B$ is finalized
+   - **slashing conditions**
+     - No validator makes distinct attestations $\alpha_1$, $\alpha_2$, where $\alpha_1 = (s_1, t_1), \alpha_2 = (s_2, t_2)$ and $h(t_1)= h(t_2)$, vals only attest to one block per height
+     - No val makes two attestations $\alpha = (s_1, t_1), \alpha_2 = (s_2, t_2)$ , where $h(s_1) < h(s_2) < h(t_1) < h(t_2)$
+   - Every epoch, vals run fork-choice rule, and attest to one block
+   - ### Properties
+     - **Accountable Safety** - Two check-points, where neither is an ancestor of the other, cannot be finalized
+       - Suppose $A, B \in F(G)$, are finalized, then $V$ has seen sufficient attestations for $A \rightarrow A'$ and $B \rightarrow B'$. Notice $h(A) \not= h(B)$, and $h
+     - **plausible liveness** - It is always possible for new blocks to become finalized, provided blocks arebeing created
+   - ### Justification / Finalization
+     - Fork-choice rule (**LMD-GHOST**) (executed per view, according to latest message containing attestations)
+     - Greedily choose path through tree w/ largest number of stake-weighted attestations
+   ## Gasper
+   - **epoch boundary pairs** - Ideally blocks produced per epoch (checkpoints in Casper), represent as follows $(B, j)$ ($j$ is epoch number, $B$ is block)
+   - **committee** - Vals partitioned into _committees_ per epoch (composed of slots), one committe per slot (propose blocks per committee?) 
+     - Single val in committee proposes block, all vals in committee attest to HEAD of chain (preferrably most recently proposed block)
+   - **justification + finalization** - Finalize + justify **epoch boundary pairs**
+   - ### Epoch Boundary Blocks + pairs
+     - Let $B$ be a block, $chain(B)$ the unique chain to genesis, then
+       -  $EBB(B, j)$, is defined as $max_{B \in chain(B)}(i \leq j, h(B) = i * C +  k), 0 \leq k < C$, i.e the latest block before a certain epoch boundary.
+       -  For all $B$, $EBB(B, 0) = B_{genesis}$
+       -  If $h(B) = j * C$, then $B$ is an EBB for every chain that includes it (notably $chain(B)$)
+       -  Let $P = (B, j)$, then attestation epoch $aep(B) = j$, same block can serve as EBB for multiple epochs (if node was down for some amt. of time, chain forked, and earliest ancestor is several epochs ago)
+     - **Remark**
+       - EBB serves as a better way to formally model safety under asynchronous conditions, (algo. is only probablistically live)
+    - ### Committees
+      - Each epoch ($C$ slots), we divide set $|\mathcal{V}| = V$, into $C$ slots (assume $C | V$), and for each epoch $j, \rho_j: \mathcal{V} \rightarrow C$ (selects committees from val-set randomly)
+        - Responsibilities of Committee $C_i$ for slot $i$
+          - For epoch $j$, denote $S_0, \cdots, S_{C - 1}$ committees, 
+    - ### Blocks + Attestations
+      - **Committee work**
+        - Proposing blocks (single val (potentially more in sharding?)) (block message)
+        - All members attest to head of chain (latest block derived from GHOST) (attestation message)
+          - Both of above require val to execute FCR on own view
+      - **protocol**
+        - Let slot $i = jC + k$, designate validator $\mathcal{V}_{\rho_j(k)} = V$ (first member of committe $S_k$), proposer
+          - Let $G = view(V)$, compute $HLMD(view(V, i)) = B'$ (head of canonical chain in $G$), block proposed $B$ is
+            - $slot(B) = i$
+            - $P(B) = B'$ (parent of current block) block has currently been proposed from prev. slot
+            - $newAttests(B)$ the set of new attestatations not included for any block in $chain(B')$
+            - txs (potentially narwhal certificate?)
+        - block $B$ depends on $P(B) \cup newAttests(B) \subset \mathcal{M}_{network}$ 
+        - ## Mid of slot messages (gather attestations on proposal)
+            - time $(i + 1/2)$ (middle of slot), all vals compute $B = HLMD(view(V, i + 1/2))$, and create an attestation $\alpha$
+              - $slot(\alpha) = jC + k$
+              - $block(\alpha) = B$ (same block as $P(B')$, where $B'$ was j proposed, or $B = B'$?), where $slot(block(\alpha)) \leq slot(\alpha)$ (GHOST vote) fork-choice
+              - **checkpoint edge** - $LJ(\alpha) \rightarrow^{V} LE(\alpha)$, where $LJ, LE$ are EBBs (CASPER vote) for justification + finalization
+        - ### Justification
+          - Given $B$, define $view(B)$ as the view consisting of $B$ and its dependencies, define $ffgview(B)$ to be $view(LEBB(B))$ (view that Casper operates on) (only finalizes + justifies checkpoints)
+            - $view(B)$ looks at continuous LMD view
+            - ffgview(B) looks at frozen at latest checkpoint view
+          - Let $B = LEBB(block(\alpha))$, where $\alpha$ is an attestation
+            - $LJ$ - last _justified pair_ of $\alpha$, i.e last justified pair in $ffgview(block(\alpha)) = view(B)$
+            - $LE$  - Last EBB of $\alpha$, $(B, ep(slot(\alpha)))$ (latest block (pair) attested to by $\alpha$)
+          - Let $LJ, LE$ be EBB, then there is a **super-majority** link ($LJ \rightarrow^J LE$) if the stake-weighted attestations for the checkpoint edge $> 2/3$ (byzantine quorum (needed to safety arguments)) 
+          - **justification** - Represented as follows $(B, j) \in J(G)$ for $G = view(V)$
+            - $(B_{genesis}, 0) \in J(G)$, for all views $G$
+            - if $(A, i) \in J(G), (A, i) \rightarrow^J (B, j), (B, j) \in J(G)$, for all views $G$
+        - ### finalization
+          - Once a view finalizes a block $B$, no view will finalize any block conflicting with $B$ (unless the block-chain is $> 1 /3$ slashable$
+          - **finalization**
+            - $(B_0, 0) \in F(G)$ if $B_0 = B_{genesis}$
+            - $(B_0, j), (B_1, j + 1), \cdots , (B_n, j + n) \in J(G)$, and $(B_0, 0) \rightarrow^J (B_n, j+n)$ (likely $n = 1$), then $(B_0, j) \in F(G)$ 
+        - ### Hybrid LMD GHOST
 
+## Health Checking services
+- 
+## IBC Notes
+- Provides facilities for interfacing two modules on separate consensus engines
+  - Requirements
+    1. Cheaply verifiable consensus logic (i.e light client implementations)
+    2. finality (assurance that state will not be changed after some point)
+    3. KV store functionality 
+  - Relayers
+    - Request tx execution on destination ledger when outgoing packet has been committed
+  - Sending ledger commits to outgoing packets (seq. number etc). receiving ledger receives and verifies commitment
+- ### Protocol Structure
+- **Client** - Expected interface for ledgers expecting to interface with IBC
+  - **validity-predicate** - Algorithm to be executed (specific to **client**) for verifying packet-commitments / assertions of finalized state
+    - Verify headers from counter-party ledger (once passed validity predicate, expected to be final), verification depends on state of ledger previously considered final
+  - **state** - Most recently finalized state that the client thinks is correct (finalized)
+  - **lifecycle**
+    - **Creation** - Specify _identifier_, client-type (determines VP), and genesis state (determined by client-type? i.e patricia tree or IAVL tree)
+    - **Updating** - Receiver header, verify according to VP + stored ledger state -> if valid, update stored ledger state (signing authority (quorum to expect? etc.)
+      - If the unbonding period has passed (i.e - chain no longer has any way of verifying header commitments from counter-party), the light-client is frozen, and in-transit messages are no longer able to be sent / received (unless social intervention takes place)
+- **Connections**
+  - Encapsulates two **stateful** connection-ends (ledger1 / ledger2), each CE associated w/ light-client of counter-party
+    - Verifies that packets have been committed / state-transitions executed (escrowing tokens etc.) (exactly once by sender) and in order of _delivery_ (by receiver)
+    - **conection** + **client** define **authorization component of IBC
+    - **ordering** ? -> Channels
+  - **Data-structures**
+ ```
+    enum ConnectionState {
+        INIT,
+        TRYOPEN,
+        OPEN,
+    }
+    interface ConnectionEnd {
+        state: ConnectionState
+        counterpartyConnectionIdentifier: Identifier
+        counterpartyPrefix: CommitmentPrefix
+        clientIdentifier: Identifier
+        counterpartyClientIdentifier: Identifier
+        version: string
+    }
+ ``` 
+- Tracker by ledger1 (state is regarding ledger2?)
+  - ConnectionState -> state that connection is in (may be in hand-shake)
+  - counterPartyConnectionIdentifier -> key that counterparty stores other connectionEnd under
+  - counterPartyPrefix -> prefix that counterparty uses for state-verification on this ledger?
+    - What does this mean? What subset of state this connection corresponds to?
+  - clientIdentifier -> identifier of client on this ledger (will be client-type asociated with destination ledger)
+  - counterPartyClientIdentifier -> opposite of above (what does counterparty think of what client I am running for it)
+- **HandShake**
+  - Used for establishing connection between two ledgers (notice, the clients of either chain must be established)
+    - Establishes identifiers of either ledger, 
+  - **parts**
+    - **ConnOpenInit** - Executed on ledger A, establishes
+      - Connection identifiers on either chain i.e connection_i on A, connection_j on B
+      - References identifiers of light clients on either chain (clients must be correct, i.e tendermint-chains require clients identified be tendermint light-clients of counter-party)
+      - ledger A stores a connection-end in `TRYOPEN` 
+    - **ConnOpenTry** - Executed on ledger B, acknowledges connection initialization on A
+      - Verifies that client-identifiers are correct, and that ledger A's light-client has a sufficiently accurate consensusState for ledger B
+      - Checks that version is compatible
+      - Checks that ConnectionEnd with corresponding parameters has been committed
+      - B stores ConnectionEnd w/ parameters in state, with connectionState: TRYOPEN
+    - **ConnOpenAck** - Executed on ledger A
+      - Relays key associated with ConnectionEnd on B, uses prefix to verify proofs that B stored ConnectionEnd, and verifies proof that light-client on B for A is sufficiently up to date
+      - A updates connectionSTate to OPEN
+    - **ConnOpenConfirm** 
+      - Executed on ledger B
+      - Checks that ledger A has stored its connection as OPEN
+- ## Channel
+  - Provides message delivery semantics to IBC protocol
+    - Ordering
+    - Exactly once delivery
+    - Module permissioning
+  - Ensures that packets executed only once, and delivered in order of execution on sending / receiving ledger ledger, and to channel corresponding to owner of message
+    - I.e a packet-receipt can't be delivered, until the ack of the packet that spawned that one ... 
+  - Each channel is associated with a single connection
+    - Multiple channels using single connection share the over-head of consensus verification (i.e only one light-client has to be updated)
+  - ## Definitions
+    - ChannelEnd
+    ```
+    ChannelEnd {
+        state: ChannelState
+        ordering: ChannelOrder
+        counterpartyPortIdentifier: Identifier
+        counterpartyChannelIdentifier: Identifier
+        nextSequenceSend: uint64
+        nextSequenceRecv: uint64
+        nextSequenceAck: uint64
+        connectionHops: [Identifier]
+        version: string
+    }
+    enum ChannelState {
+        INIT, 
+        TRYOPEN 
+        OPEN,
+        CLOSED,
+    }
+    ```
+  - counterPartyPort -> Identifies port on counter-party which owns this channel (module permissions)
+  - counterpartyChannelIdentifier -> Identifies channel end on counterparty
+  - Sequence numbers
+    - Identify next sequence number of corresponding packets (i.e which packets to process first)
+  - connectionHops -> Specifies the number of connections along which messsages sent on this channel will travel
+    - Currently one, but may be more in future 
+  - **Channel Opening**
+    - `ChanOpenInit`    
+      - Executed by a module on ledger A, stores a ChannelEnd with the channel / port identifiers and expected counterparty identifiers
+      - State is set to `INIT`
+    - `ChanOpenTry`
+      - Executed by counterparty module on ledger B, relays commitment of ChanOpenInit packer on A
+      - Verifies the port / channel identifiers, and a proof that the module has stored the ChannelEnd as claimed
+        - Notice that this verification is unique to the channel (i.e happens at a layer above the Client, therefore there must be an interface to the client to introspect state on counterparty)
+        - Stores ChannelEnd for A in state, with state TRYOPEN
+    - `ChanOpenAck`
+      - Relays CHANOPENTRY on B, to A, 
+      - Relays identifier that can be used in counter-party state to look up existence of ChannelENd on B\
+      - Sets state as OPEN
+    - `ChanOpenConfirm`
+      - Marks ChannelEnd on B as open
+  - Channel Sends
+    - IBC module checks that calling module owns the corresponding port
+    - Stores packet commitment in state, stores timeout in state
+- ## Client Semantics Specs
+  - light-client = validity-predicate + state-root of counterparty
+    - Also able to detect misbehaviour through a _misbehaviour predicate_
+  - state-machine
+    - Single-process signing commitment of state-machine (solo-machine)
+    - quorum of processes signing in consensus
+    - BFT consensus protocol
+  - Clients must be able to facilitate third-party introduction
+  - `ClientState` - Unique to each light-client, i.e generally, facilitate a track of `ConsensusStates` each corresponding to unique (monotonically increasing) heights
+    - Each `ConsensusState` is provided with enouch information to apply the light-clients `ValidityPredicate` (`stateRoot`, commitment root, validator set updates, quorum signatures, etc.) known as `ClientMessages`
+  - `CommitmentProofs`
+- ## Connection Semantics
+  - 
+## Questions
+- How to implement IBC-unwinding upstream in `ibc-go`
+## Eth2 Notes
+ - **TLDR**
+   - **POS** - More efficient consensus algo. using stake in network to determine quorum, vs. hash-power
+   - **Sharding** - Scale eth, by only having a subset of vals execute / make-available certain state-transitions,
+ - **architecture**
+   - **beacon-chain** - primary chain (committee of vals)
+     - **consensus critical** - Current val-set + changes to the val-set
+     - **pointers** - Content addressing IDs of shard-blocks
+   - **shard chains** - Everyone stores, downloads + verifies
+ - Shard blocks contain user txs, only vals in committees (at slot at which shard block proposed) will make them available, all nodes store beacon blocks tho
+ - 
 ## BID DA ?
 - Is underlying chain necessary?
   - Mechanism for co-ordinating signers based on stake-weight between diff. chains?
   - Could be implemented as a remote signer?
 -
-## Heterogeneous trust Paper?
-- 
-## Bridge between EVM Chains via signed commitment of state + merkle proofs?    
-- Use circom for circuits + solidity to implement
-- snarkjs for proofs
-- 
 
 ## Hotstuff / LibraBFT
 ## Optimal Auction via Blockchain
@@ -2680,3 +3062,732 @@ type sentinelDBProvider interface {
 ## IBC
 ## ZK
 - 
+
+## Twitter API
+- Posting tweet -> Post to `../.../users/by/username/$USERNAME`
+  - In header must be holding BEARER token
+### Oracle Construction
+ - Oracle periodically queries tweets from twitter, under specified hashtag
+ - retrieves twitter handle, constructs EVM address corresponding to the sender of the tweet
+ - expects data to be formatted in twitter using json
+### Signers for each tx
+- Oracle signers will be the same for all users
+## Distributed Protocols w/ Heterogeneous Trust
+- 
+## Shared Aggregator (Bid DA) thoughts
+### **Why Shared Aggregator**?
+  1. Aggregate orderflow for a set of rollups in a censorship resistant DA layer
+     - Aggregator can be scaled independently of roll-ups.
+     - Pass DAG to roll-ups, enabling roll-ups to focus on two things. Rollups can have zero-message over-head consensus (ref: [here](https://arxiv.org/pdf/2201.05677.pdf))
+       1. Creating canonical chain from DAG (apply fork-choice rule)
+       2. Execute state-transitions in blocks, periodically post proofs to DA layer?
+  2. Make building / scaling of blockchains (roll-ups) easy af
+     - Currently, validators have to run instances of consensus for all chains that they are validating on, (according to Sunny) between 40 - 60% of all chains have an overlap in their active set, this indicates redundancy in validator sets
+     - A shared mempool / causal ordering layer for all orderflow, for all chains, reduces redundancy. Ideally, all vals partcipate in aggregator, then roll-up founders can host their execution / ordering clients (potentially in TEEs or as zk-circuits) with v. little maintenance requirement.
+  3. Atomic inclusion guarantees for all roll-ups
+- **What should Celestia (or any DA) + shared Aggregator look like**
+  - All validators are responsible for two things
+    1. Managing a validator instance for the DA
+    2. Managing a narwhal instance for the aggregator
+  - Roll-up founders use roll-kit (or some SDK) to read DAG from aggregator, apply fork-choice rule to DAG and post commitment to new state + faithful application of fork-choice rule to DA
+    - As long as the aggregator is consistent, and DAG is available (for all roll-ups), the roll-up execution clients can potentially be centralized
+  - Roll-ups offer token incentives (also slashing conditions) for faith-ful participation in the aggregator / DA.
+    - Messages created by aggregator nodes are composed of sub-blocks for each roll-up referencing aggregator DAG, nodes in aggregator may include arbitrary data in header / votes on messages received
+### **Concerns**
+  - How would roll-ups that require oracle values / threshold encryption / any other data that must be included in votes-extensions / proposal work? Diff. rollups have diff. trust assumptions, i.e Osmosis requires oracle value to be signed by 30 vals, but duality may only require 10 vals.
+    - According to Sunny, this was the primary reason for his avoidance of the shared aggregator / deploying Osmosis as a roll-up. How to accomplish this w/o making aggregator aware of execution requirements of roll-ups?
+    - **Response**
+      - Make aggregator proposal validity rules configurable per validator.
+        - Roll-ups can encourage validators to construct messages according to each roll-up's validity rule via token incentives
+          - More granular block validity rules will not affect throughput of aggregator significantly
+    - **Take-aways**
+        - Is there a way to make the aggregator compliant w/ Extend-Vote / PrepareProposal ABCI++ methods? I.e can each sub-proposal of aggregator proposal be configurable by validators? Can votes on aggregator blocks include arbitrary data (threshold key shares, oracle values, etc.), is it possible to do this w/o having all nodes in aggregator be aware of diff. validity rules / vote-extensions per rollups?
+  - Is there a way to incentivise participation in aggregator w/o incentives from roll-ups?
+  - What state does the aggregator need to track? 
+    - Slashing / incentives for validators can be handled by roll-ups, pruning of DAG can be handled by DA (plus inputs from roll-ups)
+- **Sequencer Auction** 
+  - For fraud proofs?
+    - Who is going to be submitting the batch?
+    - Possible to have batch submitted to DA by sequencer, and then state-root transition posted in accordance w/ sequencer auction?
+## How do rollups work
+- Only store batches of transactions on chain, execution on DA is only done for fraud-proofs (in this case, it is unclear what execution is done on-chain?)
+- **optimistic**
+  - Move computation + state-storage off-chain
+  - Transactions + state-roots assumed to be valid until submission of a fraud-proof
+  - State-root + transaction must be made **available** by DA
+  - Expected that if sequencer (entity responsible for posting batches to DA) goes down, another node can j hop in and continue work (state-storage is where?)
+    - How to guarantee that state-storage for rollups is stored somewhere? Responsibility of roll-up operators?
+  - **transaction-execution + aggregation**
+    - Aggregate txs + state-commitments
+      - What if roll-up contract published state-root signed by $> 2/3$ stake of some arbitrary parties?
+    - Users verify merkle-proofs given by full-nodes of roll-up in accordance w/ state-root made available by DA
+  - **fraud-proofs**
+    - Fraud proofs interactive. Simplest case, sequencer submits state-root + batch of txs, challenger challenges assertion
+    - **multi-round**
+      - Divide the proof randomly, until a single step is chosen, at which point
+
+## Protocol Enforced Proposer Commitments
+- Why move PBS into protocol?
+  - Protect proposer?
+    - Protect proposer from false header relayed by builder? I.e proposer is not responsible for proposing header of invalid block (builder is responsible)
+  - Ensure liveness?
+    - Force builder to actually reveal block when required
+- Contract to be honored atomically for PBS. Contract is delivery of blockspace (must be atomic w/ payment)
+    - Payment is not made -> Block content is not published (is this proposer's fault)
+    - contract is successfully made, and payment succeeds. Blockspace is delivered to builder
+- **MEV-Boost**
+  - Contract is not atomic. I.e proposer delivers blockspace, builder does not publish block, proposer is not compensated
+- Easy to go-around IP-PBS by ignoring protocol-bids (proposer is not slashed, as bids are only located in mempool? Can be lost due to latency etc.). Instead make arrangements OOP w/ builders
+  - Can remove this by having vals commit to inputs to IP-PBS auction in consensus, only bids obeyed, will be those made available by proposers
+- **Need mechanism for credible signalling, instead of credibly realising a specific signal**
+  - Trustless mechanism for vals / actors to enter into commitments (atomic ones ideally) - Scheduler commitments
+- **TLDR**
+  - Commitments made between vals / TPA out of protocol, must be made credible by having agreement defined in-protocol
+    - **credible** - Meaning that threats can be enforced, i.e violating commitment can be punished, and actors have a rational incentive to faithfully carry out commitment
+    - Construct in-protocol eigenlayer, whereby a slashable stake is put-up by both partise
+  - Above is not enough, enables maliciousness upper-bound to be set, and actors can disobey credible commitment if payoff is larger than stake
+    - Have to move commitment state requirements into the protocol
+    - Use POB to facilitate credible commitments in blocks?
+      - Each round a set of commitments are made in prev. block, commitments are then set in keeper, and must be set via ABCI queries to be met in proposal simulation
+      - 
+  - _optimistic block validity_ - Proposer violates commitments, attesters attest to violation, and they are eventually slashed
+  - _pessimistic block validity_ - Consider outstanding commitments in validity of block
+  - ## Eigenlayer
+    - _permission-less feature addition to the protocol layer_
+    - **Principal-Agent-problem** - Validators slashed in eigen-layer are not slashed in protocol, and protocol has incorrect view of validator's incentive to act correctly
+- **Protocol-Enforced Proposer Commitments**
+  - Validator's commitments must be made available, and validator cannot defy commitment
+  - [two slot PBS](https://ethresear.ch/t/two-slot-proposer-builder-separation/10980)
+  - Make safe two patterns
+    1. Validator entered commitment
+       - _i._ Validator satisfied commitment (signed PBS header by third party), third-party fulfilled commitment -> payment is processed
+       - _ii._ Validator satisfied commitment, third party did not -> payment is not processed
+    2. Validator never entered commitment
+  - How to differentiate between (1.i and 1.ii)?
+    - Use attesters as validity checkers (and slashing for optimistic construct)
+- Can have voters slashed optimistically,
+  - I.e if attester votes for block violating commitment, then attester is later slashed (same problem exists where cost_of_corruption > stake) rational attesters corrupt
+  - 
+## Espresso Sequencer Design
+- Credible neutrality?
+  - How so, achieving utility w/o launching a token?
+- Incenvitve alignment w/ L1 validators?
+- **Rollup Consituents**
+    - Client software (wallet - means of submitting txs to mempool)
+    - VM
+    - mempool - aggregate txs from client-software
+    - Sequencing - Pull txs from mempools, and establish canonical ordering (why does this have to be consensus determined?)
+      - Handles co-ordination of independent mempools, (can be done-on-chain, i.e based-sequencing)
+        - Based sequencing does not provide same level of soft-commitment?
+      - How does this method differ from shared-aggregator?
+      - Also insures that instructions (txs in order) are available for clients to query
+    - Prover - Receives ordered txs from sequencer and constructs / publishes proof to L1
+    - Contract (proof verification / facilitation of fraud-proof disputes)
+
+
+## Shared Aggregator
+- Remove requirement that sequencers produce state-roots for chains they create blocks for
+  - roll-up full nodes create state-roots, after txs at aggregator have been committed to DA (aggregator + full-node rollup proof generator = sequencer)
+- **Shared Aggregation**
+  - censorship resistance + liveness guarantees of decentralized sequencer set
+  - Aggregator aggregates txs + posts to DA
+  - roll-up nodes reference txs -> update state-root in accordance w/ txs
+  - **paying for gas?**
+    - Denominated in roll-up token? Aggregator nodes are state-ful (keep track of token balances)
+    - What if inclusion in the aggregator blocks was free?
+      - Subject to DOS attacks
+  - **Inheriting fork-choice rule of sequencer set**
+    - Roll-up takes the txs from aggregator and executes as is, how is there a possibility of forks from roll-up perspective if aggregator only publishes output of its own FC rule?
+  - **Atomic Inclusion**
+  - **Swapping of Shared Sequencer Sets**?
+    - Not understanding? MEV extraction would happen at the prover layer?
+  - ## Lazy Rollups
+    - Rollups publish all txs to a DA
+      - Wait for commit of txs, the execute FC rule on txs to select a subset, and update state accordingly
+## Data Availability
+- Use fraud proofs to convince to light-clients that current state-root believed is incorrect
+  - Nearly same-level of security as a full-node
+- Suppose proof of state-transition provided is not fully-available (i.e commitment of txs is available but some txs withheld)
+  - Val 1 proposes un-available block
+  - Someone catches
+  - Val 1 releases full-block
+  - Other vals are none the wiser, and can slash the catcher (forcing into altruistic act)
+- **Solution to Above Problem: Erasure Encoding**
+  - Force light-clients to query N chunks of M (full-block) and use erasure coding scheme to determine full-block
+# Cryptography
+- ## Quadratic Arithmetic Programs [link](https://vitalik.ca/general/2016/12/10/qap.html)
+![Alt text](Screen%20Shot%202023-03-17%20at%201.16.32%20AM.png)
+- First transform code into QAP (quadratic arithmetic program)
+  - Also construct means of deriving _witness_ (solution to QAP) given input to computation
+- ### Steps
+  1. Flattening
+    - Transform code into collection statements as follows
+      - Can either by $x = z$, or $z (op) y$ (where op is a field operation)
+  2. **Conversion to R1CS (rank-1 constraint system)**
+     - Convert flattened statements into a R1CS, collection of sequence of tuple of vectors $(a, b, c)$, where for each tuple a solution $s$ satisfies $s \cdot a * s \cdot b = s \cdot c$
+       - One can make this conversion based off of a given circuit
+  3. Conversion from R1CS to QAP
+     - Use lagrange interpolation to transform a R1CS to QAP
+     - Instead of representing each symbol in computation as relation between 3 vectors of length 6
+       - Represent
+# Scheduler
+1. Facilitate synchronization of transactions across cosmos chains
+2. Scheduler operates as auction, makes payments to participating blockchains
+- Allow multiple participants to bid on future time-slots across block-chains
+  - Participating blockchains allow some portion of the block to be filled normally
+  - I.e B1, and B2, enable all blocks proposed after $[t_1, t_2]$ to be proposed by entity $A$
+    - $A$ then has the ability to auction off components of their own block (how is this different than PBS?)
+    - Same centralized entry-point into blockspace (partially avoided by having only part of block built by scheduler)
+- ## Actors
+  - **Delegators**
+    - Grant token delegations to validators
+    - If validator is slashed -> they get slashed -> 
+  - **Validators**
+    - Run val-nodes
+      - Incentivised to sign proposals? All proposals? Even if proposal is invalid does val get slashed (possibility of negative reward?)
+  - **Proposers**
+    - validator node, able to propose any block that adheres to the Prepare / Process Proposal rules
+  - **Builders**
+    - Potentially interacts with tendermint proposer to construct blocks
+    - Incentivised to identify and capture MEV for themselves (only share w/ proposer thru auction)
+  - **Searchers**
+  - **Clients (users/wallets)**
+- Scheduler (proposer, validators, builders)
+  - Allow builders to execute set of blocks on separate chains ahead of time 
+  - Most valuable opportunities occur JIT (i.e buy-out fn?)
+- **System Properties**
+  - **Liveness**
+    - No actor w/ power $< 1/3$ should be able to stop progress of chain, (why is 1/3+ possible? Always vote no on proposals)
+  - **Censorship Resistance**
+    - No actor shld be able to stop the auction winner from having their valid blocks published or bids from being submitted to blockchain
+      - Look at PEPC commitment design for in-protocol PBS
+      - Question: once a chain has committed to specific builder, how does the protocol guarantee that builder doesn't rug? I.e proposer commitment + block are atomic
+  - **Bundle Unstealability**
+    - No MEV stealing? How is this possible? Only header is published to chain, so rational builders won't send their bundles elsewhere
+  - **Latency**
+    - Optimistic IBC design? Send proof of votes, etc. before block has actually been committed
+    - Builder shld be able to send proposal for $h + 1$ once $h$ is published (not necessarily true that $h$ is committed tho?)
+  - **Value Capture**
+    - Auction market must be competitive for upcoming blocks
+      - Think of incorporating buy-out here
+  - **Cartel Creation Resistance**
+    - Protocol must punish validator collusion
+  - **Monopoly Protection**
+    - Single actor cannot acquire all of block-space? How to prevent, order-flow will ultimately determine producers of blocks?
+  - **synchronous atomic cross-chain execution**
+    - Must be possible to execute atomic transactions across multiple chains at same time 
+- ## Auction Design
+  - Assumed that some $%$ of MEV captured in block will be bid for block -> that revenue shld be shared w/ participating chains
+    - How to make distribution between chains as profitable as possible
+    - Possible to eradicate MEV? I.e not necessarily, un-educated orderflow always present
+  - Synchronicity determined by over-lapping time-slots
+  - ## Questions
+    - **Structure of slots sold**
+      - I.e all slots are 15 seconds or slots are of any length, and bidders determine which slot they choose
+        - Simple example bidder A bids for section of length 15 bidder C bids for next slot of length 5, bidder B bids for section of length 16, then bidder B has to bid higher than bidder A + C (how to structure efficiently)?
+    - **How to structure Auction in accordance w/ **System Properties**
+  - ## Block Allocation
+    - **Latency**
+      - Bids must be able to be submitted milliseconds before next block is requested? 
+        - How to enforce? Must permit some amt. of time before next proposal so that builders have enough time to relay header, etc.\
+      - Potentially hold auction on each chain
+        - Can make bids conditional on other bids? Bids have to be projected until end of second chain auction (chain whose auction is not finished)
+    - **Liveness v. MEV-stealing**
+      - What is revealed to proposer of proposal? If reveal bundles, can other searchers capture?
+## DAG stuff
+- **DAG transport**
+  - Responsible for reliably broadcasting, and establishing a total (causal) ordering of messages broadcast
+    - I.e if any nodes receive and _deliver_ the message, and all other nodes must have done the same
+  - optimizes throughput, and and endures through all network conditions (asynchronous)
+- **Consensus**
+  - Responsible for agreement on serial commits of unconfirmed messages
+  - Each party uses local DAG to interpret the other partys' views of the network, and achieves agreement when possible (may only be possible in synchronous setting)
+- **Key Tenets**
+  - **Zero DAG Delay**
+    - separate consensus ordering from DAG transmission 
+  - **Simple**
+- 
+## MEV On DAGs
+## Blockspace futures
+- How is blockspace sold currently.. the presence of a fee-market (a la EIP-1559)
+- Blockspace derivatives
+  - Allow users to hedge their exposure to flucuations in gas-prices
+- I.e - I have an intent to swap (at no particular price)
+  - Submitting tx now is subject to the whims of current activity in network, submitting in the future decreases risk
+- ## Applications
+  - Rollups sell blockspace, but ultimately the cost of their block-space is determined by the cost of blockspace on the L1 (determined by proof-size etc.)
+  - 
+- ## Blockchain Resource Pricing
+  - ### Convexity
+# Elliptic Curve Crypto
+- ## Finite Fields
+- **Field**
+  - Consists of a set $\mathcal{F}$, and two operations $+$ and $\cdot$ over the set $\mathbb{F}$ (resp. $\mathbb{F} \backslash \{0\}$), such that the set and the operation form an abelian group (commutative group)
+  - Another important property holds (**distributivity**) - for $a,b,c \in \mathbb{F}, a * (b + c) = a*b + a*c$
+  - If $\mathbb{F}$ is finite, then the field $\mathbb{F}$ is also finite
+  - **Order**
+    - Order is the number of elements in the field, there exists a finite field of order $q$ iff $q = p^m$ where $p$ is a prime number (aka. the characteristic of $\mathbb{F}$)
+      - If $m = 1$, then $\mathbb{F}$ is a prime field, if $m \geq 2$, then $\mathbb{F}$ is an extension field
+- **Binary Field**
+  - Fields of order $q = 2^m$
+  - Can construct field $\mathbb{F}_{2^m}$ by use of _binary polynomial_ i.e 
+$$p(z) = \Sigma_{0 \leq i \leq m-1} a_i z^i$$
+  - where $a_i \in \mathbb{F}_2$
+  - **Constructing field via polynomial**
+    - Set of polynomials of degree $\leq m - 1$, and coefficients in $\mathbb{F}_{2^m}$,
+    - Multiplication is modulo unique **reduction polynomial** of order $2^m$
+    - Each irreducible polynomial of order $q$ creates a new field that is isomorphic
+- **Extension Fields**
+  - Let $\mathbb{F}_p[z]$ be the set of polynomials with coefficients in $\mathbb{F}_p$, then each finite field $\mathbb{F}_{p^m}$ is isomorphic to the field of polynomials, with multiplication performed over the irreducible polynomial $f(z) \in \mathbb{F}_p[z]$
+- **Subfields**
+  - A subset $k \subseteq K$ of a field $K$ is a _subfield_ of $K$ if $k$ is also a field wrt. $+_K$ and $\cdot_K$
+  - Let $\mathbb{F}_{p^m}$, has a subfield $\mathbb{F}_{p^l}$ for each positive $l, l|m$, let $a \in \mathbb{F}_{p^m}$, and $\mathbb{F}_{p^l} \subseteq \mathbb{F}_{p^m}$, then $a \in \mathbb{F}_{p^l}$ iff, $a^{p^l} = a$ in $\mathbb{F}_{p^m}$
+    - Note the above is determined by the abelian grp structure of $\mathbb{F}_{p^m}$ wrt. $\cdot$
+- **Bases of finite Field**
+  - The finite field $\mathbb{F}_{q^n}[z]$ can be viewed as a vector space over the sub-field $\mathbb{F}_q$ 
+  - Trivial basis $\{1, z, z^2, \cdots , z^{n-1}\}$, let $a \in \mathbb{F}_{p^n}[z]$, then $a = \Sigma_i a_i \cdots z^i$
+- **Multiplicative Group of Finite Field**
+  - Let $\mathbb{F}_q$ be a finite field, then $\mathbb{F}_q^*$ is a cyclic group, $(\mathbb{F}_q\backslash \{0\}, \cdot)$,
+    - Let $b \in \mathbb{F}_q^*$, then $b$ is a generator iff $\mathbb{F}_q^* = \{b^i : 0\leq i \leq q-2\}$
+- **Prime Field Arithmetic** (implementation)
+  - Represent prime field $\mathbb{F}_p$, let $W$ be the word-length (generally 64-bit)
+  - Let $m = \lceil log_2(p) \rceil$, i.e the bit-length of $p$ and $t = \lceil \frac{m}{W} \rceil$ it's word-length
+  - Let $a$ be represented as $A[..]$, then
+    $$a = A[t - 1]2^{(t -1) * W} + \cdots + A[1]2^{W} + A[0] $$
+    - I.e primes reprsented in base $2^W$, and $A[i] \leq 2^W -1$
+    - Represent integer of word-length by `uint` in go
+    - Assignment $(\epsilon, z ) \leftarrow w$, means
+      - $z \leftarrow w \space mod \space 2^W$
+      - $\epsilon \leftarrow !bool(w \in [0, 2^W))$
+    - let $a, b \in [0, 2^{W *t}]$, i.e both integers of word-legth $t$
+    - Then their addition is defined as follows, which returns $(\epsilon, c) \leftarrow a + b$, where $c = C[0] + \cdots + C[t-1]2^{(t - 1) W} + 2^{W * t} \epsilon$
+    1. $(\epsilon, C[0]) \leftarrow A[0] + B[0]$
+    2. For $0 < i \leq t -1$
+       - $(\epsilon, C[i]) \leftarrow A[i] + B[i] + \epsilon$
+    3. Return $(\epsilon, c)$
+    - Subtraction is defined analogously, i.e it returns $(\epsilon, c) \leftarrow a - b$, where $c = C[0] + \cdots + C[t-1]2^{(t-1)W} - \epsilon*2^{Wt}$
+    1. $(\epsilon, C[0]) \leftarrow A[0] - B[0]$
+    2. For $0 \leq i \leq t -1$
+       - $(\epsilon, C[i]) \leftarrow A[i] - B[i] - \epsilon$
+    3. Return $(\epsilon, c)$
+- ## Number Theory
+    - Let $n \in \mathbb{Z}_{>0}$, then $\mathbb{Z}_n$ (the integers mod $n$) is a group wrt addition
+    - Let $\mathbb{Z}_n^X = \{a \in \mathbb{Z}: gcd(a, n) = 1\}$, then $1 \in \mathbb{Z}_n^X$, and the set is closed over multiplication
+      - I.e $\mathbb{Z}_n^X = \mathbb{Z}_n$ for prime $n$, and $\mathbb{Z}$ is a field
+    - $\phi(n)$ denotes the set of integers that are relatively prime to $n$, notice, by euler's thm. $a^{p-1} \equiv 1 (p)$, then $o(a) | p - 1$
+    - **primitive root** mod $p$ is an integer $a$ such that $o(a) = p -1$ (i.e $a$ is a generator for $\mathbb{Z}_p^X$)
+      - primitive root always exists, thus $\mathbb{Z}_n^X$ is a cyclic group (always has a generator)
+      - 
+- ## Groups
+  - $(G, +)$, where $G$ is a binary operation
+    - $ 0 \in G$, where $0 + g = g + 0$ (identity)
+    - Existence of additive inverse, i.e $\exists -g \in G, (-g) + g = g + (-g) = 0$
+  - **order** is number of elements in group
+    - $g \in G$, then $o(g) := min (k), mg^k = 0$
+  - Let $H \subset G$ (where $H$ is a subgroup of $G$), then $o(H) | o(G)$ 
+  - **structure theorems**
+    - Let $G_1, G_2$ be groups, they are isomorphic, if there exists $\phi : G_1 \rightarrow G_2$, such that $\phi$ is a bijection, and $\phi(g * h) = \phi(g) * \phi(h)$
+  - **Fields**
+    - Let $K$ be a field, There is a ring homo-morphism $\phi: \mathbb{Z} \rightarrow K$ that sends $1 \in \mathbb{Z} \rightarrow 1 \in K$, if $\phi$ is injective, then $K$ has characteristic 0, otherwise there exists $p$ such that $\phi(p) = 0$, and $p$ is the characteristic of $K$ 
+      - $p$ is prime, as suppose $p = ab$, then $\phi(p) = phi(ab) = \phi(a)\phi(b) = 0$, and either $a$ or $b$ contradicts the minimality of $p$, thus $p$ is prime.
+    - Let $K$ and $L$ be fields, with $K \subseteq L$. If $\alpha \in L$, then $\alpha$ is **algebraic** if there exists $f(x) = \Sigma_i a_i x^i$, there $f(\alpha) = 0$, and $a_0, \cdots, a_n \in K$ 
+    - If every element $k \in L$ is algebraic over $K$, the $L$ is an algebraic extension of $K$
+    - The **algebraic closure** of $K$, $\overline{K}$
+      - $\overline{K}$ is algebraic over $K$
+      - Every non-constant polynomial $f(X)$ with coefficients in $\overline{K}$ has a root in $\overline{K}$ (algebraically closed)
+      - i.e any poly in $\overline{K}$ is factorable
+    - 
+- ## Pairings
+  - Elliptic curves are an abstract type of _group_ defined on top of (over a field)
+    - Use finite-fields in crypto b.c it is easier to represent in a computer
+  - Let $K$ be a field, then $(x ,y) \in E$ (the elliptic curve), where $x, y \in \overline{K}$, which satisfy
+  $$E: t^2 + a_1xy + a_3y = x^3 + a_2x^2 + a_4x + a_6$$
+  - Where $a_1, \cdots, a_6 \in \overline{K}$, there is also one point $\mathcal{O} \in E$ but does not satisfy the Weierstrass equation
+    - _point at infinity_ - needed so that E is a group
+## Restaking
+ -
+- # Algebra
+- ## Groups
+  - **transfinite induction**
+    - Let $I$ be a well-ordered set (i.e totally ordered, and for all $B \subset A, \exists b \in B \ni b' \in B, b \leq b'$), If $P_0$ holds (0 is min of $I$), assume $P_j$ holds for $j < i$, then $P_i$ holds, if $P_j$ holds, then $P_k, k \in I$ holds
+  - **group** - Non-empty set $G$ on which a binary operation $(a, b) \rightarrow ab$ is defined such that
+    1. $a, b \in G \rightarrow ab \in G$
+    2. $a(bc) = (ab)c$
+    3. There exists $1 \in G$, where for all $a \in G, a1 = 1a = a$
+    4. $a \in G \rightarrow a^{-1}\in G \land aa^{-1} = a^{-1}a = 1$
+  - **abelian group** - If binary operation is commutative, i.e $ab = ba$ 
+  - Let $a_1, \cdots, a_n \in G$, then $(a_1 \cdots a_n) = (a_1 \cdots a_j)(a_{j+1} \cdots a_n) = (a_1 \cdots a_j)(a_{j + 1} \cdots a_{k+1})(a_{k+1} \cdots a_n) ...$, proof of associativity can be given using induction?
+    - Induct on $n$, and since each group will be less then $n+1$, construct equivalent groups
+    - Prove associativity with inductive hyp. for $a_1 \cdots a_n$
+  - Identity uniqueness, $1, 1' \in G$, where $a1 = 1a = a = a1' = 1'a$, then $1' = 1'1= 1$, similarly w/ inverse $aa' = a'a = 1 = a''a = aa''$, $a' = a'aa'' = a''$
+  - ### Subgroups
+    - $H \subset G$, and $H$ is a group, then $H$ is a **subgroup** of $G$
+    - Let $A \subset G$, then $\langle A \rangle \subset G$, is the intersection of all subgroups $H, A \subset H \subset G$
+  - ### Group Isomorphism
+    - Let $G, H$, be groups, and $f: G \rightarrow H$, a bijection between them, if $a, b \in G, f(ab)= f(a )f(b)$, and $f$ is an isomorphism, and $G, H$ are isomorphic
+  - ### Cyclic groups
+    - Let $G$ be a group, $a \in G$, then $\langle a \langle \subset G$, is the set $\{a^i \}$, notice, $\langle a \rangle$ is a group, and is abelian $a^m a^n$ (expand + apply associativity)
+    - Thus, $\langle a \rangle \sim \mathbb{Z}_n$  (take $f(b = a ^n) = n$
+    - **If $G = \langle a \rangle$, there is exactly one subgroup $H_d$ for each $d | n$, where $n = O(G)$**, 
+      - Notice, if $H$ is a subgroup then, $o(H) | o(G)$, reverse direction is possible by considering $\langle a^{n/d}\rangle \subseteq G$
+      - Uniqueness? Each subgroup is cyclic so consider generators?
+    - For the above group, the following are equivalent
+      1. $o(a^r) = n$
+      2. $r$ and $n$ are relatively prime, i.e $gcd(r, n) = 1$
+      3. $r$ is a unit mod $n$, i.e there exists $s \in \mathbb{Z}_n$, where $rs \equiv 1 (n)$ (group of units is a multiplicative group in $\mathbb{Z}_n$)
+    - The set $U_n \subset \mathbb{Z}_n$ of units in $\mathbb{Z}_n$ is a group under mul.
+      - $o(U_n)= \phi(n)$
+   - $1, 2$ , if $a \in G = \langle b \rangle$, and $gcd(a, o(G)) = k$, then, then $a \in \langle b^k\rangle$m which has order $o(G) / k$
+   - Consider $\mathbb{Z}_6$
+     - Subgroups -> each have order dividing 6, then $1, 2, 3, 6$, i.e $\langle 0 \rangle, \langle 1 \rangle (\langle 5\rangle), \langle 2 \rangle (\langle 4 \rangle) \langle 3 \rangle$
+   - $\mathbb{Z} \backslash \{0 \}$ (what does it look like?)
+     - Must be a multiplicative grp. (grp. of units mod $n$) etc.
+   - $a,b \in G$, where $ab = ba$, and $o(\langle a \rangle) = m, o(\langle b \rangle) = n$, then $o(ab) = mn$, and $\langle a \rangle \cap \langle b \rangle = 1_G$
+     - Notice, if $ab^{mn} = 1$, then $o(ab) | mn$, and if $ab^k = 1$, 
+- ## Linear Algebra
+    - Study of linear maops on finite-dimensional vector-spaces
+    - **Complex numbers** - The set $\mathbb{R} \cup \{i\}$, i.e $\{a + bi: a, b \in \mathbb{R}\}$, naturally, when $b = 0$, $\mathbb{R} \subset \mathbb{C}$
+      - Complex numbers are a field (in general, linear algebraic concepts defined over fields)
+    - **vector-space**
+      - For $x, y \in F^n$, $x + y$ is denoted as the co-ordinate wise addition of the two vectors
+      - Vectors have no base-poirt
+        - Can consider addition, as the vector obtained by traversing the first (or the second), from an arbitrary base-point, and traversing the second from the end-point of the first traversal
+        - Co-ordinate-wise Multiplication of vectors has no real-geometric intuition (apart from dot-product)
+      - **vector-space** - A set $V$, with an addition, that is **associative, commutative, and invertable** (i.e there exists an identity as well (both additive, and for scalar mult.))
+        - **Distributive property** - for $a , b \in F$, and $v \in V$, $(a  + b)v = av + bv$
+        - **multiplicative identity** - $1v = v$
+      - Set of polynomials is a vector-space (i.e basis are $1, x, x^2, \cdots$), and co-efficients are vectors
+    **Subspaces**
+        - Let $V$ be a vector space, a subset $U \subset V$ is a subspace, if $U$ is also a vector space (i.e additive-identity, closure, etc.)
+          - Check that $0 \in U$, for $u, v \in U, u + v \in U$, for $a \in F, a u \in U$
+        - Check for additive closure, scalar multiplication closure, (additive) identity
+          - distributivity / associativity / commutativity under addition follow, as $u, v \in U \subset V$, and as such the properties hold
+          - additive inverse follows from scalar closure w/ $a \in F, a = -1$, then $-v \in U$
+    **Sums and Direct Sums**
+        - Let $U_1, \cdots, U_n \subset V$, and are subspaces, then $U_1 + \cdots + U_n$ is the set $\{v \in V: v = u_1 + \cdots + u_n, u_i \in U_i \}$, natually the direct sum is a subspace of $V$ (as long as $U_i$ are subspaces of $V$,
+        - **Direct Sum**
+          - Let $V$ be a vector space, if there exists subspaces $U_1, \cdots, U_n$, where $V = U_1 \oplus \cdots \oplus U_n$, and for each $v \in V$, there is a unique representation in terms of $u_1 \cdots, u_n$ then $V$ is their direct sum
+            - Can show that $V$ is not a direct sum, but showing a vector w/ non-unique representation
+        - Let $U_1 \cdots U_n$ be subspaces of $V$, then $V = U_1 \oplus \cdots \oplus U_n$ if the following conditions hold
+          - $V = U_1 + \cdots + U_n$
+          - The only way to write $0_V = u_1 + \cdots + u_n$, is by taking $u_i$ to be 0
+          - **Proof**
+            - Suppose $V = U_1 \oplus \cdots \oplus U_n$, then naturally, $V = U_1 + \cdots + U_n$, and $0 = 0 +\cdots + 0$ (to write this another way violates hyp. (0 representation must be unique))
+            - Supoose $V = U_1 + \cdots + U_n$, and $0 = 0 + \cdots + 0$ (is unique), then fix $v \in V$, where $v = u_1 + \cdots + u_n$, and $v = v_1 + \cdots + v_n$
+            $$v - v = (u_1 - v_1) + \cdots + (u_n -v_n) = 0$$
+            - and $u_i - v_i \in U_i$, and must be 0, otherwise hyp. is contradicted
+        - **Questions**
+          - Prove that the intesection of a collection of subspaces of $V$ is a vector spaces
+            - $0 \in \bigcap_i U_i$, fix $a, b \in \bigcap_i U_i$, then $a + b \in \bigcap_i U_i$, i.e $\forall i, a, b \in U_i \rightarrow a + b \in U_i$, similarly w/ scalar multiplication
+          - Consider $U_2 \cup U_1$, then it is a vector space if $v \in U_1, u \in U_2$, then $v + u \in U_1 \cup U_2 \rightarrow v,u \in U_1 (U_2)$, and $U_1 \subseteq U_2$
+          - $U + U = U$
+          - Sum of sub-spaces associative, as their addition is
+          - Additive identity for subspace addition, is $0$, only $0$ has additive inverse?
+          - If $U_1, U_2, W \subseteq V$, and $U_1 \oplus W = U_2 \oplus W = V$, does $U_1 = U_2$?
+            - Yes, fix $u_1 \in U_1$, consider $u_1 + W \subset V$, then $u_1 + W \subset U_2 + W$, notice $u_1 \not\in W$ (then the representation of $u_1 \in V$ is not unique), thus, $u_1 \in U_2$ (a similar case follows for the converse)
+    - **Finite Dimensional Vector Spaces**
+        - **Linear Combination** - Let $v_1, \cdots, v_n \in V$, then $a_1v_1 + \cdots + a_nv_n$ is a linear combination (where $a_i \in F$)
+          - **span** - The set of all linear combination of $v_1, \cdots, v_n$
+          - Span of any list of vectors $H = v_1, \cdots, v_n$ is a subspace of $V$
+            - $0 \in span(H)$ (take all $a_i = 0$)
+            - Fix $a, b \in span(H)$, then $a + b  = (a_1 + a_1')v_1 + \cdots + (a_n + a_n')v_n$, and $a + b \in span(H)$
+            - scalar multiplication (triv.)
+        - if $span(H) = V$, and $|H| = n$, then $V$ is a $n$-dimensional space
+        - **linear idependence** - If $H = (v_1, \cdots, v_n)$, and the only way to express $0 \in span(H)$, is with $a_i = 0$, then $H$ is linearly independent
+          - In which case, for $v \in span(H)$ there is a unique representation of $v$
+        - Any list of vectors containing $0$ is linearly dependent (coefficient of 0 in linear combination can be non-zero)
+        - **lemma**
+          - If $(v_1, \cdots, v_n)$ is linearly dependent in $V$ and $v_1 \not= 0$, then there exists $1 < j \leq n$
+            - $v_j \in span(v_1, \cdots, v_{j-1})$
+            - If the $j$th term is removed from $(v_1, \cdots, v_n)$, the span of these vectors is the same
+          - Notice, because $(v_1, \cdots, v_n)$ are linearly dependent, there exist $a_1, \cdots, a_n$ (not all zero), where $a_1v_1 + \cdots + a_nv_n = 0$
+            - Fix, $a_j$ to be the last coefficient that is non-zero, then $v_j = -\frac{1}{a_j}(a_1v_1 + \cdots a_{j-1}v_{j-1})$, and $v_j \in span(v_1, \cdots, v_{j-1})$
+          - Consider $(v_1, \cdots v_{j-1}, v_{j+1}, \cdots v_n)$, fix $v \in span(v_1, \cdots, v_n)$, then $v = a_1v_1 + \cdots a_jv_n + \cdots a_nv_n = a_1v_1 + \cdots + (a'_1v_1 + \cdots a'_nv_n) + \cdots a_nv_n \in span(v_1\cdots v_{j-1}, v_{j+1}, \cdots v_n )$
+        - In any finite dimensional vector space the length of any linearly independent list is leq the length of any spanning set
+          - **proof**
+            - Consider $(u_1, \cdots, u_m)$ is a linearly independent set, and $(w_1, \cdots, w_n)$ is a spanning set of $V$. Consider $(u_1, w_1, \cdots, w_n)$, as $span(w_i) = V$, this list is linearly dependent ($u_1 \in span(w_i)$), as such by the **linear dependence lemma** (above), we can obtain a set by removing a $w_i$ where $span(u_1, w_1 \cdots w_{i+1}, \cdots w_n) = V$. Suppose we have done this for $j -1 < m$ steps. Then we can consider $u_j, u_1, \cdots, u_{j-1}, w_i \cdots$. Because the prev. list is lin. dep. however $u_1, \cdots, u_j$ are linearly ind. we must remove one of the $w$s, and we have the same list. If $m > n$, than this process can continue until there are no more $w$'s to remove, in which case the original list is lin. dep. (a contradiction) $\square$
+          - Any vector-space contained in a finite-dim vector-space is also finite-dimensional
+        - **Basis**
+          - a **basis** - Is a set of vectors that is linearly independent, and spans $V$
+            - Can reduce any list of vectors that spans $V$ to a basis (apply **linear dependence lemma** if list of vectors is linearly dependent)
+            - Every set of linearly independent vectors can be expandedt to a basis of $V$
+              - Choose vectors that are not in $span(v_1, \cdots, v_{j-1})$, and recurse 
+                - Eventually, the vectors will all be linearly independent (no vector is in the span of any prev.)
+          - **Suppose $V$ is finite dimensional, and $U \subseteq V$
+          - Suppose $V$ is finite-dimensional and $U$ is a sub-space of $V$. Then there is a subspace $W$ of $V$ such that $V = U \oplus V$
+            - I.e must show that $V = U + V$ (for $v \in V, \exists u \in U, w \in W, v = u + w$), and representation of $0$ is unique (can also show $U \cap W = \{0\}$
+            - Consider $U \subset V$, as $V$ is finite-dimensional, and $U \subset V$, there exists $(u_1, \cdots, u_n)$, that spans $U$. By the linear-dependence lemma, we may reduce this spanning set to basis of $U$ (i.e a linearly independent set of vectors spanning $U$). Denote this basis as $(u_1, \cdots, u_n)$, we may expand this set of linearly independent vectors to a basis of $V$, denote the vectors $w_1, \cdots, w_m$, consider $W = span(w_1, \cdots, w_m)$, naturally $V = U + W$ (the vectors form a basis). Furthermore, as the vectors form a basis of $V$, to suppose that the representation of $0$ is non-unique is a contradiction
+        - ## Dimension
+          - Any two bases of $V$ have the same length
+            - Apply contradiction, assume existence of bases $b, b'$ both span $V$ and are linearly independent, so $len(b) \leq len(b')$, and the other dir. follows, thus they are equal.
+        - **dimension** - The dimension of a vector space $V$ is the length of any basis of $V$
+        - If $V$ is finite dimensional, and $U \subset V$ is a subspace, then $dim U \leq dim V$
+          - Let $b_u, b_v$ be bases of $U, V$ respectively. Naturally, $U \subset span(b_v)$, and $b_u$ is linearly independent in $V$, thus $len(b_u) \leq len(b_v)$
+        - If $V$ is finite-dimensional, then every spanning list in $V$ with length $dim(V)$ is a basis of $V$.
+          - Must show that $b_v$ is linearly independent.
+          - Suppose $b_v$ is a spanning set in $V$, with length $dim V$. If $b_v$ is not a basis, then $b_v$ is not linearly independent, in which case we can remove a vector, and still have a spanning set, thus a basis of $V$ must have length $\leq dim V - 1$ (a contradiction).
+        - If $V$ is finite dimensional, then every linearly ind. set of vecs w/ len $dim V$ is a basis of $V$
+          - show $span(b_v) = V$, use contradiction otherwise, must add vector, show that len $dim V + 1$, however, there exists spanning set of length $dim V < len(b_v)$ a contradiction -> every linearly ind. list must have lenght \leq dim V
+        - If $U_1, U_2 \subset V$, are subspaces of fin. dim. $V$, then $dim(U_1 + U_2) = dim U_1 + dim U_2 - dim (U_1 \cap U_2)$
+        - ## Linear Maps
+          -  **Linear Map**
+             -  Let  $V, W$ be vector spaces, $T: V \rightarrow W$, is a linear map, if it is 
+                1. Additive - $T(v + w) = T(v) + T(w)$
+                2. homogeneous - $T(hv) = hT(v)
+             - Let $\mathcal{L}(V, W)$ be the set of all linear maps from $V$ to $W$
+             - For any basis $(v_1, \cdots, v_n)$ of $V$, $Tv_1, \cdots, Tv_n$ (defines a basis of the range of $T$)
+               - I.e the image of any vector $v = a_1v_1 + \cdots + a_nv_n$, is defined by $a_1T(v_1) + \cdots + a_nT(v_n)$, thus for any $w = T(v)$, can be expressed as a $T(v_i)$ linear combination of $v_1, \cdots, v_n$
+             - For $S, T \in \mathcal{L}(V, W)$, define $(S + T)(v) = Sv + Tv$, and $(aS)(v) = a(S(v))$ (i.e it is a vector space over $F(W)$, using identity is $0 \in \mathcal{L}(V, W)$, where $v \in V, 0(v) = 0_W$
+               - fix $S, T \in \mathcal{L}(V, W)$, then $(S + T)(v + w)$ = $S(v + w) + T(v + w) = Sv + Sw + Tv + Tw = Sv + Tv + Sw + Tw = (S + t)v + (S + T)w$
+               - associativity + commutativity follow from $+$ over $W$, similarly w/ multiplicative properties
+             - Multiplication of operators? I.e composition, ... define $U, V, W$ vector spaces, and $S \in \mathcal{L}(U, V)$, and $T \in \mathcal{L}(V, W)$, then $S * T = S \circ T$
+             - I.e range space of first map, must be a subspace of input space of second map operatione is not commutativee
+         - **Null Space**
+           - For $T \in \mathcal{L}(V, W)$, $null(T) \subseteq V, v \in V, T(v) = 0_W$
+           - Let $T \in \mathcal{L}(V, W)$, then $null(T) \subseteq V$
+             - Identity $O_V \in null(T)$, i.e $T(0) = T(0) + T(0)$,  $T(0) = 0_W$
+             - Additive identity -> trivial
+             - Scalar multiplicative closure -> trivial
+           - If $T \in \mathcal{L}(V, W)$, then $T$ is injective, iff $null(T) = 0$
+             - Forward dir. $T(v) = T(w) \rightarrow v = w$, let $a \in null(T)$, then $T(a) = T(0) = 0$, and $a = 0$, thus $null(T) = \{0\}$
+             - If $null(T) = \{0\}$, then suppose $T(v) = T(w)$, then $T(v - w) = 0$, and $v - w = 0_V$, and $v = w$
+           - $range(T) \subseteq W$, 
+             - 0, $T(0) = 0_W$, thus $0_W \in range(T)$
+             - fix $v, w \in range(T)$, then $T(\hat{v}) = v, T(\hat{w}) = w$, and $T(\hat{v} + \hat{w}) = v + w$
+             - Scalar multiplicative closure -> simple
+           - **surjective** - A map $T \in \mathcal{L}(V, W)$, where $range(T) = W$
+           - $dim(V) = dim(null(T)) + dim(range(T))$
+             - fix some basis $n$ of $null(T)$, then $(n_1, \cdots n_m, u_1, \cdots u_n)$ is a basis for $V$ (as any lin. ind. set of vectors can be expanded to a basis of $V$). All that is left to show now is that $T(u_1), \cdots, T(u_n)$ is a basis for $range(T)$, notice, for $w \in range(T)$, $v \in V, T(v) = T(n_1, \cdots, n_m + a_1u_1 + \cdots a_mu_m) = T(a_1 u_1 + \cdots a_mu_n)$, and $w = a_1T(u_1) + \cdots + a_nT(u_n)$, suppose that $T(u_1), \cdots, T(u_n)$ linearly dependent, then there exists $a_1T(u_1) + \cdots a_nT(u_n) = 0$, and $v = a_1u_1 + \cdots a_nu_n \in null(T)$, and $v = a_1n_1 + \cdots a_nn_n$, thus $(n_1, \cdots, u_n)$ is linearly dependent, a contradiction.
+           - If $V, W$ are finite dimensional, and $dim V > dim W$, no $T \in \mathcal{L}(V, W)$ can be injective
+             - $dim V = dim null(T) + dim range(T) \leq dim null(T) + dim W$, and $dim null(T) > 0$
+           - ## Matrix Of Linear Map
+             - Let $(v_1, \cdots, v_n)$ be a basis of $V$, $T \in \mathcal{L}(V, W)$, then $Tv_1, \cdots, Tv_n$ is a basis for $range(T)$
+               - **A matrix is a visualization of $T(v_i)$ in terms of a basis of $W$**
+             - Let $w_1, \cdots, w_n$ be a basis of $W$, the column vectors are the coefficients, then the matrix of any linear map is constructed as follows,
+               - Suppose $T(v_i) = a_{1,i} w_1 + \cdots + a_{m, i}w_m$, then $T(v) = b_1T(v_1) + \cdots + b_nT(v_n)$ (expand the vectors in a basis of  $W$, and solution presents), 
+             - $\begin{bmatrix} a_{1,1} & \cdots & a_{1, n} \\ \cdots & \cdots & \cdots \\ a_{m,1} & \cdots & a_{m, n} \end{bmatrix}$
+             - How to define matrix multiplication? Consider $U, V, W$ (vector spaces), notice $S \in \mathcal{L}(U, V), T \in \mathcal{L}(V, W)$, $ST \in \mathcal{L}(U, W)$, let $u_i, v_i, w_i$ be bases of $U, V, W$ respectively, then for $u \in U, u = a_1 u_1 + \cdots + a_k u_k$, 
+               - $TSu_k = T\Sigma_n a_{i, k} v_i = \Sigma_i a_{i, k} T(v_i) = \Sigma_i a_{i, k} \Sigma_j b_{j, i} w_j = \Sigma_i \Sigma_j b_{j,i} a_{i, k} w_j$, notice 
+                 - In the above $S(u_k) = a_{1, k}v_1 + \cdots + a_{n,k}v_n$ ($dim V = n$), similarly, $T(v_i) = b_{1, i}w_1 + \cdots b_{m, i}w_m$
+                 - Input matrix is expressing $T(u_i)$ in basis of $V = (v_k)$
+                 - Second matrix is expressing $S(v_k)$ in basis of $W = (w_l)$ (thus, columns of outer = rows of inner)
+               - Given above, notice $Mat(TS)$, each column represents the set of scalar multiples of basis vectors $w_i \in W$, of $T(v_i)$ (where $(v_i)i \in basis(V)$)
+                 - Then for column $k$, row $j$, group terms multiplying $w_j$, i.e $\Sigma_i b_{j, i} a_{i,k}$
+            - **Invertibility**
+              - Let $T \in \mathcal{L}(V, W)$, then $T$ is invertible if there exists $S \in \mathcal{L}(W, V)$, such that $ST = 1_{\mathcal{L}(V, V)}$, and $TS = 1_{\mathcal{L}(W, W)}$
+              - A linear map is invertible iff it is injective and surjective
+                - Let $T \in \mathcal{L}(V, W)$, and it is invertible, i.e $S \in \mathcal{L}(W, V)$ exists where for all $v \in V, ST(v) = v$. Then for $v_1, v_2 \in V$, where $T(v_1) = T(v_2)$, $S(T(v_1)) = v_1 = S(T(v_2)) = v_2$. WTS $range(T) = W$. Fix $w \in W$, then $S(w) \in V, T(S(w)) = w$.
+                - Suppose $T$ is injective, and surjective. Then let $S : W \rightarrow V$, be the map such that for $w \in W, S(w) = v, T(v) = w$. Naturally, $TS = 1_W$. Consider $v \in V, ST(v)$, $T(S(T(v))) = (TS)T(v) =  T(v)$, and $ST(v) = v$ (injectivity of $T$)
+              - $V, W$ are **isomorphic** if there is an injective + surjective map between $V \rightarrow W$
+            - Suppose $dim(V) = 1$, then $T \in \mathcal{L}(V, V), Tv = av$
+              - Let $\{v\} \subset V$ be a basis for $V$, as such $Tv = w \in V$, and $w = kv$ ($v$ spans $V$), thus for $w \in V, Tw = aTv = akv$
+            - Suppose that $V$ is fin. dim, and $U \subset V$, and $S \in \mathcal{L}(U, W)$, then there exists $T \in \mathcal{L}(V, W)$, where $T(u) = S(u), for u \in U$
+              - Consider $T = S | U$ (i.e $u \in U, S(u) = T(u)$), and $v \in V \backslash U, T(v)  = 0$, then $V = U \oplus V$ (prove linear independence straightforward)
+            - $T \in \mathcal{L}(V, \mathbb{F})$, $u \in V \backslash null(T)$, then $V = null T \oplus \{au : a \in \mathbb{F}\}$
+              - Notice, $dim V = dim null T + dim (range T)$, let $n_1, \cdots, n_k$ be basis of $null(T)$. Notice that $dim(V) = k + 1$, and $n_1, \cdots, n_k, u$, $u \in U$ is a linearly independent set of vectors of length $k + 1$, thus it is a basis.
+            - $U, V, W$ finite dimensional, then $dim(null(ST)) \leq dim(null(S)) + dim(null(T))$
+              - $v \in null(T) \rightarrow v \in null(ST)$, wb case where $range(T) \subset null(S)$
+        - ## Polynomials
+          - Let $\lambda \in \mathbb{F}$, and $p \in \mathcal{P}(\mathbb{F})$, then $\lambda$ is a **root** of $p$, iff $p(z) = (z - \lambda)q(z)$, where $q \in \mathcal{P}(\mathbb{F})$
+            - if $z = \lambda$ solution is obvious, suppose $\lambda$ is a root, then subtract $p(z) - p(\lambda) = p(z) = a_0 + a_1z + \cdots a_mz^m - a_0 + a_1\lambda + \cdots a_m\lambda^m = a_1(z - \lambda) + a_2(z - \lambda)^2 + \cdots$ and factor
+          - Suppose $p \in \mathcal{P}_m(F)$ (a poly of degree $m$), then $p$ has at most $m$ roots
+            - Induction on $m$, assume $m-1$, then prev lemma states that if $p$ has a root $p = (z \lambda)q(z)$, where $deg(q) = z-1$
+        - ## Eigen-stuff
+          - ### Invariant subspaces
+            - Let $T \in \mathcal{L}(V)$, where $V = U_1 \oplus \cdots \oplus U_n$, behaviour of $T$ is uniquely determined by behaviour on subspaces (every $v \in V$ is combination of vectors in subspaces)
+              - require $T(U_i) \subset U_i$, i.e $T \in \mathcal{L}(U_i)$ <- may not be the case, if so called a **invariant subspace**
+            - $null(T) \subset V$ is invariant, $range(T)$ invariant
+            - If $U \subset V$ is one-dim, and invariant $dim(U) = $, $ u \in U, Tu \in U$, then $Tu = \lambda u$ (i.e $u$ is an eigenvector) (all $u$ in $U$ are eigenvectors)
+              - $u$ is eigenvector, $\lambda$ is eigenvalue, happens when $(T - I)u = 0$ (where $u \not = 0$) and $T - I$ is not surjective
+              - i.e $T - I$ is not invertible, set of eigenvectors is $null(T - I)$
+            - Eigenvectors for distinct eigenvalues are linearly independent
+              - Let $T \in \mathcal{L}(V)$, where $\lambda_1, \cdots, \lambda_n$ are distinct eigenvalues, and $v_1, \cdots, v_n$ are their corresponding eigenvectors, they are independent
+                - Choose $k$ to be the smallest integer such that $v_k \in span(v_1, \cdots, v_{k-1})$, then $v_k = a_1v_1 + \cdots + a_{k-1}v_{k-1}$, and $T(v_k) = \lambda v_k = \lambda_1 a_1 v_1 + \cdots \lambda_{k - 1} a_{k-1}v_{k-1}$, then $\lambda v_k = \lambda_k (a_1 v_1 + \cdots a_{k-1}v_{k-1})$, and $0 = \lambda_k v_k - (\lambda_1 a_1 v_1 + \cdots \lambda_{k - 1} a_{k-1}v_{k-1}) = (\lambda_k - \lambda_1)a_1 v_1 + \cdots$, and $a_i$ must be 0, as $v_1, \cdots v_{k-1}$ are lin ind.
+            - Each vector-space of $dim(V)$ as at most $dim(V)$ distinct eigenvalues
+              - Length of basis (maximal length of lin. ind. list of vectors) must be $dim(V)$ apply above lemma
+          - ### Polynomials over Operators
+            - Operators can be applied to powers $range(T) \subset dom(T)$, i.e $T^4$ makes sense, whereas, $S \in \mathcal{L}(V, W)$, $S^4$ does not make sense
+              - $T^0$ is $I$
+            - 
+# Algorithmic Game Theory
+- ## Lecture 1
+  - ### Origin
+      - Computers 
+        - Orignally thought of purely in terms of problem solving (Data structures, complexity of algorithms over those data-structures, etc.)
+        - Internet -> now humans interact w/ algos / DSs = game theory?
+      - Difference from pure Game-theory
+        - Setting -> Internet facilitated interaction = auctions, networks, 
+        - Purely quantitative -> seek hard upper / lower bounds on approximation, optimization problems,
+        - Adopts reasonable constraints on actors in each game (polynomial-time)
+  - ### Algorithmic Mech. Design
+    - Optimization problems, where value to be optimized is unknown to designer, must be determined through self-interested participants in game 
+      - How to structure game? Auction -> what is the value of a good -> participants bid on good to determine value
+      - _self interested behavior yields desired outcome 
+    - Auction Theory
+      - **first price auction**
+        - Good is auctioned
+        - Highest bid is price of good
+        - Participants incentivized to under-bid (prisoner's dilemma?)
+      - **second-price auction**
+        - Good is auctioned
+        - Second-highest bid is price of good, however, winner is highest bidder
+        - Participants may as well bid the maximum they are willing to pay for the good'
+          - **proof**
+            - Suppose for player $i$, $b_i$ is player i's bid, and $s_i$ is the value of the good to player $i$, $\hat{b}$ is the highest price of the other players. If $b_i > s_i$, then if $\hat{b} > b_i, s_i$, player $i$ may have just bid $s_i$(she loses anyway), and the same outcome occurs, if $b_i, s_i > \hat{b}$, then she will pay $\hat{b}$ (so she may have just bid $s_i > \hat{b}$), in the case that $b_i > \hat{b} > s_i$, she must bid $s_i$, otherwise she pays more than she would like for the good.
+            - In the case that $b_i < s_i$
+          - **Social Welfare Problem** - Good is allocated to individual w/ has the highest subjective value for the good
+      - To what extent is _incentive compatible efficient computation less powerfuil than classical efficient computation_?
+      - 
+    - ## Lecture 1 Reading
+      - **prisoner's dilemma**
+        -  Two prisoners on trial for crime $p_1, p_2$, and each faces a max of $5$ if they lie and the other doesnt, if they both lie they serve $2$ years, if one tells the truth and the other doesn't they liar serves $5$ and the truthful prisoner serves $1$
+          - Ultimate equillibrium -> both prisoners confess. WLOG $p_1$ remains silent, in which case, if $p_2$ remains silent he is better off confessing, a similar case holds if $p_1$ confesses
+          - What if time for snitching is greater than time for lying? Then if $p_1$ is silent, there is an incentive for $p_2$ to remain silent (why would they do more time?)
+      - **tragedy of the commons**
+        - **pollution game** (extension of prisoners dilemma to multiple players)
+          - $n$ players, each player has choice to pass legislation to control pollution or not. Pollution control has cost of $3$, each country not polluting adds cost of $1$ to legislation. 
+            - Equillibrium -> no players pass legislation to control pollution, for $k$ players don't pass, cost is $k$ for not passing and $k+3$ for passing, once 
+            - Consider case of $2$ players -> trivial both pay $1$, consider case of $3$ -> again trivial all pay $1$ (in worst case where all don't pass still pay $3$), in case of $4$ players, if you pay $3$ it is cheaper for all others to pay $1$ (max will be $3$) and you will pay $6$, so better for you to pay $1$
+            - Alternative -> where cost of legislation remains $3$
+        - $n$ players, have to share bandwith of max 1, player $i$ chooses $x_i \in [0,1]$
+          - Want -> maximize used bandwith, Consequence -> more of bandwith used by all players -> deteriorating connection
+          - model value for $i$, by $max(0, x_i(1 - \Sigma_i x_i))$
+          - Fix player $x_i$, and $t = \Sigma_{j \not= i}x_j < 1$, then $f(x) = x(1- t- x)$ -> maximize to get $x = \frac{1-t}{2}$
+            - Then $x_i = \frac{1 - \Sigma_{j \not= i}x_j}{2}$, assuming all $x_i$ are equal, one has $x = 1/(n + 1)$
+            - Total usage is $\frac{1}{n + 1}(1 - \frac{n - 1}{n + 1}) = \frac{1}{n + 1}^2$
+            - If total used is $1/2$ total value is $1/4$ (much bigger) but ppl overuse the resource
+        - **Coordination game**
+          - Multiple stable outcomes
+          - **Routing Congestion**
+      - ## Games, Strategies, Costs, and Payoffs
+        - **game**
+          - Consists of $n$ players, where player $i$ has $S_i$ strategies, and to play, each player chooses $s_i \in S_i$, notice $S = \Pi_i S_i$ determines the game (i.e the set of all possible combinations of strategies for each player)
+          - For each $s \in S$, player $i$'s outcome depends on $s_i$, must define **preference ordering** over outcomes
+            - I.e  total ordering that is reflexive + transitive over $S$ -> relation unique to player $i$
+              - **weak preference** -> $S_1, S_2 \in S$, then $S_1 \leq_i S_2$ if $i$'s outcome is at least as good with $S_2$ as with $S_1$
+              - Define $u_i : S \rightarrow \mathbb{R}$ (notice map $S$ and not $S_i$ as player $i$ must be aware of other players' strategies)
+            - Standard form -> define / order outcomes for all players + strategies
+        - **solution concepts**
+          - **Dominant Strategy Solution**
+            - If each player has a unique best strategy independent of strategies chosen by other players -> pollution game, prisoner's dilemma
+            - Let $s_i \in S_i$ be the strategy chosen by $i$, and $s_{-1} \in \Pi_{j \not=i}S_j$ be the strategies chosen by the rest of the players
+              - Let $s, s' \in S$, then $s is DS, if $\forall i, u_i(s_i, s'_{-i}) \geq u_i(s_i', s'_{-i})$, i.e for each player, there is a strategy $s_i$ which maximizes utility regardless of the other strategies
+          - **Vickrey Auction**
+            - Each player $i$, has value for item $v_i$, value for not winning $0$, value for paying price $p$, $v_i - p$
+            - Game is only one round, bids are sealed bid
+            - Naive mechanism -> take highest bid is not **DS**
+              - Bid is conditioned upon strategies of other players... How to make **DS**?
+            - **vickrey auction**
+              - Highest bidder, wins item, pays price of second highest bid
+          - **Pure Strategy Nash Equillibrium**
+            - Let $s, s' \in S$, one has $u_i(s_i, s_{-i}) \geq u_i(s'_{i}, s_{-i})$
+              - I.e given a strategy $s$, no player $i$ can change their strategy to $s'_i$ and obtain a higher payoff
+                - Can have multiple diff nash equillibria, i.e a **DS** is a nash-equillibria
+        - **Selfish Routing**
+          - Can you achieve an optimal solution if all commuters co-ordinate when determining congestion of routes for their commute?
+            - Worst case, everyone takes $5 min$ road, although a $6 min$ road is available
+          - Consider a suburb $s$, and train-station $t$ (**pigou**) -> selfish behaviour may not produce socially optimal outcome
+            - Suppose there are two roads to $t$, one skinny and fast, and the other wide + slow
+            - Suppose there are $n$ drivers, and $x$ choose to take skinny road, where time taken from skinny is $c(x) = \frac{x}{n}$, and time taken from wide is $1$
+              - Then if all drivers take the skinny road, the time taken is $1$, thus the equillibrium is $1$ in a selfish case
+              - For optimized case, minimize $n - x - x^2 / n$, to get $x = n/2$
+          - **Braess's Paradox**
+            - Consider suburb $s$, and train-station $t$, and $n$ drivers
+![Alt text](Screen%20Shot%202023-04-11%20at%2011.20.06%20PM.png)
+            - Each path has one wide + short road, i.e $c(x) = 1 + x$, and the roads are equal, thus an equal number of travellers shld cross
+            - Introduce 0 cost path between them, then, optimal route is to take $s \rightarrow v \rightarrow w \rightarrow t$, 
+              - i.e always choose variable path when faced w/ a decision (now the time taken is 2h instead of 1.5)
+              - Solution w/o cross-road strictly better
+      - ## Lecture Notes
+        - Four groups $(A, B, C, D)$, each with 4 teams
+          - Phase 1: all four teams in each group play each other (6 games) -> top two teams advance to phase 2
+          - Phase 2: knockout tourny -> winning > losing
+        - Players want to win medals -> mechanism designer wants players to try
+        - **pairing for quarterfinals**
+          - Top team in A plays worse team in C, C -> B, B -> D, D -> A
+            - A has upset, worst team in tourny is top, best team bottom
+            - Winners of C want to avoid bottom of A, so try to lose match
+-  ## Lecture 2
+  - **Nash equillibrium**
+     - Consider $s \in S$, then $s$ is a nash-equillibrium, if $\forall i, u_i(s_i, s_{-i}) \geq u_i(s'_i, s_{-1})$
+       - I.e player's move is uniquely determined from other players' moves, and vice-versa -> who makes the first move?
+       - If a player is incentivized to make first move, the strategy is **DS**? I.e optimal move is irrelevant of other player's moves?
+  - **Mixed Strategy Nash**
+    - **pure strategy** - Each player deterministically chooses strategy
+    - **mixed strategy** - Players choose strategies at random, and determine outcome via expected value of strategy + utility of strategy (think of opponents as dice)
+      - **risk-neutral** -> Assume players intend to maximize upside, and ignore possible down-side
+    - **Nash Thm**
+      - Any game w/ finite set of players + finite set of strategies has nash equillibrium
+      - Force players to have mixed strategy
+    - **pricing game** (game w/o nash eq.)
+      - Two players sell product to 3 buyers
+        - Each buyer wants to buy 1 unit, w/ max price of 1
+      - Sellers specify price $p_i$ that buyers A, C must pay
+        - Buyer B up for grabs, on tie defer to seller 1
+      - Strategies
+        - Sellers sell for 1 (naturally will have to sell for $\geq 0.5$ (otherwise even if they win they make less than 1))
+          - i.e its a race to $0.5$? Yes, players can always undercut
+        - Other strategy keep at 1
+        - Infinite number of strategies?
+    - **correlated equillibrium**
+      - Two players at intersection at once
+        - Crossing = 1, crashing = -100, stop = 0,
+        - Nash equillibria -> 1 / 2 let car cross while other stop
+      - Coordinator chooses actions of players
+    - Define $P : \times_i S_i \rightarrow [0,1]$, a prob dist, where $p(s)$ is the prob of strategy $s$ being chosen, and $s_i$ is the strategy for player $i$
+      - TLDR: correlated equillibrium when expected utility of $s_i$ cannot be increased by switching to a diff strategy $s'_i$
+      $$\Sigma_{-i}p(s_i, s_{-i})u(s_i, s_{-i}) \geq \Sigma_{-i}p(s_i, s_{-i})u(s'_i, s_{-i})$$
+- ## Finding Equillibria
+  - ### Complexity Of Finding Equillibria
+    - **Two-person-zero sum games**
+      - Sum (over both players) of payoffs for all strategies is zero (i.e one player wins, other loses)
+      - Consider $p, q$, and $A$ a matrix representing the payoffs for each action, i.e $A : S \rightarrow S$ (linear operator), only need to specify winnings for one player in this case
+        - I.e. consider the matrix representing the amt paid to $p$ by $q$, and let $\hat{p} \in [0,1]^{dim(S)}$ represent the probabilities of each strategy for $p$, and $\hat{q} \in [0,1]^{dim(S)T}$ analogously, then the expected payout is $\hat{q}A\hat{p}$ (i.e expected value of strategies chosen by p (conditioned on q)), product w/ probs of strategies for $q$
+        - Suppose strategy for $q$ is known (probability distributions), then the resulting payoff matrix becomes $qA$, i.e for each strategy of q, the expected payout for $p$, and $p$ must choose its own distribution to maximize payout 
+        - Devolves to linear program as follows
+          - Consider $A$, a matrix mapping $A = Mat(T)$, where $T \in \mathcal{L}(S_p, S_q)$, where $S_p$ is the space of mixed strategies for $p$ (i.e a prob distribution over $S_p$)
+          - and $S_q$ is the vector space $\mathcal{L}(\mathcal{S_q}, \mathbb{R})$, i.e $\hat{q}$ is a mapping from the space of expected values paid from q -> p according to a given strategy chosen to $p$
+        - **above-game has a nash equillibrium (if the strategy space is finite)**
+        - **any choice of strategies from each player determines the other** (if in nash-equillibrium)
+          - Player $q$ will want to minimize all entries in $pA$, i.e 
+          - i.e choose $p$ such that $p\cdot A_i$ (i-th row of $A$), or in other-words, for each strat chosen by $q$, $p$ wants to choose a mixed strategy that minimizes the dot-product (expected-value from strategy) for $q$
+          - row player chooses strategy, such that $(pA)_i = v_{i, p}$, choose $p$, such that $max_p(min_i (v_{ip}))$
+            - Maximize profit
+          - Column player, minimize loss (defined analogously)
+    - ## Finding Nash Equillibrium
+      - **Best Response**
+        - Choose strategy $s \in S$, where $s_i$ is strat for $i$, then have all players iteratively determine $max_{s'_i \in S_i}(u_i(s'_i, s_{-i}))$ (assumes that other strategies are held static)
+    - ## Games w/ Turns
+      - **Ultimatum game**
+        - Player $p_1, p_2$, $p_1$ is selling a good (at no particular price), and offers a price to $p_2$ who has value $v - p$, nash eq. $v$? 
+          - In multi-turns equillibrium is at $v/2$
+          - Game has multiple equillibria (buyer buys at any price under $v$), buyer only buys at $p \leq m$, etc. 
+    - ## Bayesian Games (games w/o perfect info)
+      - Players don't know other player' values / strategies
+      - Bayesian first price
+        - If not-bayesian, $p_i$ with highest valuation of item pays second highest
+    - ## Co-operative Games
+      - Games where players co-ordinate strategies?
+      - **Strong Nash Equillibrium**
+        - Given strategy $s \in S$, players $i \in A$, can choose strategy vectors $s_A$ (assuming that) $\forall i \in A, u_i(s_{A_i} s_{-A}) > u_i(s_i, s_{-i})$
+        - $s$ is a strong nash-equillibrium, if no group $A$, can change stragegies to obtain a better outcome
+        - **stronger than nash-eq.**
+      - **transferrable utility**
+        - total value is finite, and shared among $N$ players, for each $A \in N$ $c(A)$ is the cost (utility) of that group in the game for strategy $s_A$
+        - Let $c(N)$ be the total cost, then a _cost-sharing_ is a partition of $c(N)$ among $i$, such that $\Sigma_i cs_i = c(N)$
+          - Let $A \subset N$, then $A$ is in the **core** iff, $\Sigma_{i \in A} x_i \leq c(A)$, i.e leaving $A$ is not beneficial
+            -  Strict inequality means that another set is out-of-core
+        - **shapley-value**
+          - Consider $(p_1, \cdots, p_N)$ (a random ordering of the players), then $c(p_i) = C(N) - C(N-i)$ (marginal cost for player $i$), the **shapley-core** is determined by assigning cost to each player equal to the expected value of their marginal cost over all random orderings
+    - ## Aside (minimax algo)
+      - Algorithm for determining (maximizing minimum gain) (or minimizing maximum loss) used in two player zero sum game
+        - I.e solution
+      - Construct a tree of moves (i.e root is the first player's move, second level are set of third player's moves, etc.)
+        - **back-tracking algo**
+      - Two players 
+        - **maxizer** - maximize minimum win
+        - **minimizer** - minimize maximum loss
+      - ## Evaluation Function
+        - 
+    - ## Markets
+      - $A$ of divisible goods
