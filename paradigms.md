@@ -1,0 +1,27 @@
+# SOLID (https://en.wikipedia.org/wiki/GRASP_(object-oriented_design))
+- ## Single Responsibility Principle (https://reflectoring.io/single-responsibility-principle/)
+  - A class should have only one reason to change
+    - Responsibility $\iff$ reason to change
+  - **A module should be responsible to one, and only one, actor**
+  - Code shld be modular
+    - Implementation details hidden from the user
+    - interface should only change for one specific reason
+  - ### Example Responsibilities
+    - Business Logic - Class that knows how to do some business function, i.e determine preference over tokens, query grpc endpoints on a chain?
+    - External Integration - Integration between modules -> pipe data from (writer) module to (reader) module
+      - Also for integrating w/ external modules, i.e DB, Message broker, TCP socket, etc.
+    - Data -> embodies some piece of data, profile, chain information, config, etc.
+    - Control Flow -> I.e given some object, perform some processing on the object that is provided by multiple modules, i.e write data to in memory buffer, then asynchronously read from that buffer and write to memory
+  - Choose modules such that **they only have one reason to change**
+  - **Reasons**
+    - i.e code is easier to reason abt. -> ignore implementations, only consider resp. of constituent objects and understand aggregate (later specialize)
+  - **Flexibility**
+    - Consider control flow object (now can parametrize by implementations of responsbibility (i.e pass nop-logger to ignore logging))
+  - **Testability**
+    - 
+- ## Open-Closed Principle
+  - Software shld be open for extension, but closed for modification
+- ## Liskov Substitution Principle
+- ## Interface Segregation Principle
+- ## Dependency Inversion Principle
+good talk: https://www.deconstructconf.com/2019/dan-abramov-the-wet-codebase

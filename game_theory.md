@@ -206,9 +206,12 @@
       - If no dictator, then ordering is not dictatorship
     - **independence of irrelevant alternatives** - For all $a, b \in A$ social choice of $a \prec b$ depends on $a \prec_i b$ for all $i$, i.e for all $\prec_1, \cdots, \prec_n, \prec_1' \cdots \prec'_n \in L$, $\prec = F(\prec_1, \cdots, \prec_n)$, $\prec' = F(\prec'_1, \cdots, \prec'_n)$ and $a \prec_i b \iff a \prec_i' b$ for all $i$, then $a \prec b \iff a \prec' b$
       - I.e final ordering between $a, b$ is dependent only on the ordering (between alternatives $a, b$) for each voter
+      - Lack of this property enables strategic manipulation
     - **arrow's theorem** - Every social welfare function over a set $A$, where $|A| \geq 3$ that satisfies unanimity and independence of irrelevant alternatives is a dictatorship
-      - Claim For $\prec_1, \cdots, \prec_n$ and $\prec'_1, \cdots, \prec'_n$ where for all $i \in I$, $a \succ_i b \iff c \succ'_i d$, then $a \succ b \iff c \succ' d$, where $\succ = F(\succ_1, \cdots, \succ_n)$, $\succ' = F(\succ'_1, \cdots, \succ'_n)$. 
-        - Fix $a, b, c, d  \in A$, where $a \succ_i b$, then $c \succ'_i d$, and we can fix a $\succ''_i$ where $c \succ'' a \succ'' b \succ'' d$, satisfying both orders, then for each $\succ_i, \succ''_i$, we may consider the restriction of $\succ''_i$ to $a, b, c, d$, and use unanimity of $F$ to obtain $F(\succ''_1, \cdots \succ''_n) = \succ''$, and we have that $
+    - **gibbard-satterthwaite**
+      - **voting model** - $N  = \{1, \cdots, n \}$, $A = \{a_1, \cdots, a_n\}$ (alternatives), $U$ is the set of all preferences (i.e relations that are transitive, asymmetric, binary), i.e $a, b \in A$, $u(a) < u(b)$ or $u(b) > u(a)$ (not both), profiles are $\in U^n$ (i.e assignment of a ranking for each player)
+        - **voting rule** - $f : U^n \rightarrow A$ (assignment of alternative given a set of rankings for each player)
+      -
   - ## Mechanisms with Money
     - Use money to model a voter's preference on alternatives, instead of total-order, define $v_i : A \rightarrow \mathbb{R}$ (gives total order plus distance metric)
       - Also if $i$ is given $m$ money, $u_i = v(i) + m$, i.e utility fn is **quasilinear** - separable + linear dependence on money
@@ -231,15 +234,54 @@
       - **Incentive compatible mechanisms**
         - Let $\mathcal{M} = (f, p_1, \cdots, p_n)$ denote a mechanism, then for every $v, v' \in V$, denote $a = f(v_i, v_{-i}), a' = f(v_i', v_{-i})$m then $v_i(a) - p_i(v_i, v_{-i}) \geq v_i(a') - p_i(v'_i, v_{-i})$
           - Nash equillibrium? I.e changing valuation for any player $i$ results in a less efficient strategy
+          - I.e consider bid reported is $v'_i$, and internal valuation is $v_i$ (bid will always be valuation)
       - **social-welfare** - $\Sigma_i v_i(a)$
       - **VCG**
-        - Given $v \in V$, $f$ maximized social welfare, $\Sigma_i v(f(v)) = max_{a \in A}(\Sigma_i v_i(a))$
+        - Given $v \in V$, $f$ maximized social welfare, $f(v_i, v_{-i}) \in max_{a \in A}(\Sigma_i v_i(a))$
         - For functions $h_i : V_{-i} \rightarrow \mathbb{R}$ (where $h_i$ is not dependent on choice of $v_i$), for all $v_i \in V_i$, $p_i(v_1, \cdots, v_n) = h_i(v_{-i}) - \Sigma_{j \not = i}v_j(f(v_i, v_{-i}))$
           - Payment to $i$ is equal to sum of values to each player from respective allocation, adjusted by some constant function $h_i$ (treated as constant for player)
           - I.e to maximize payment, maximize $f$, which means choosing $v_i$ over $v_i'$
           - Choice of $h_i$ denotes the payment to the mechanism
       - Every **VCG** is incentive compatible
         - Show IC inequality using first hyp. of VCG i.e $\Sigma_i v_i(f(v_i, v_{-i}))$ is maximal over $v_1 \in V, \cdots, v_n \in V_n$
+    - ## Clarke Pivot Rule
+        - How to choose the right $h_i$? Have $h_i = 0$? Maximize $u_i = v_i(a) - p_i(v_1, \cdots, v_n)$, but mechanism makes nothing
+        - **Definitions**
+          - **Individually Rational**
+            - Players always get non-neg utility, i.e $(v_1, \cdots, v_n) \in V_1 \times \cdots \times V_n$, $v_i(f(v_i, v_{-i})) = v_i(f(v_1, \cdots, v_n)) - p(v_1, \cdots, v_n) \geq 0$
+          - **no positive transfers** - $(v_1, \cdots, v_n) \in V_1 \times \cdots \times V_n$, $\forall i, p_i(v_i, v_{-i}) \geq 0$
+        - **Clarke Pivot Rule**
+          - $h_i(v_{-i}) = max_{b \in A}\Sigma_{j \not= i}v_i(b)$ -> intuitively (choose the best alternative if $i$ was not involved) could be better?
+            - $p_i(v_i, v_{-i}) = max_{b \in A} \Sigma_{j \not= i} v_j(b) - \Sigma_{j \not= i} v_j(f(v_i, v_{-i}))$
+            - In this case, if $i$ is winner $p_i(v_i, v_{-i}) = max_{b \in A} \Sigma_{j \not= i} v_j(b) - \Sigma_{j \not = i} v_j(f(v_i, v_{-i})) = v_2(b)$ -> i.e the payment is the second highest bid
+              - I.e alternative maximizing social welfare is winner is not present is $v_{second}(second \space wins) - 0$
+            - If the player does not win, they pay nothing, i.e social welfare w/o winner is $v_{winner}(a)$, max social welfare w/o player is same ($v_{winner}(a)$)
+          - In other words, players pay diff of outcome w/o their actions, and outcome w/ their actions
+        - **VCG** with clarke pivot payments makes no positive transfers
+          - Fix $(v_1, \cdots, v_n) \in V_1 \times \cdots \times V_n$, fix $i \in N$, then $p_i(v_i, v_{-i}) = h_i(v_{-i}) - \Sigma_{j \not= i}v_j(f(v_i, v_{-i})) = max_{b \in A} \Sigma_{j \not= i} v_j(b) - \Sigma_{j \not= i}v_j(f(v_i, v_{-i})) \geq 0$
+            - And **VCG** has no positive transfers
+        - If $v_i(a) \geq 0$, where $a = f(v_i, v_{-i})$, then VCG is individually rational
+          - $u_i = v_i(f(v_i, v_{-i})) - p_i(v_i, v_{-i}) \geq v_i(f) \geq 0$
+        - **Clarke** -> not work well when alternatives have costs
+      - ## Examples
+      - **Auction of Single Item**
+        - Exactly the VCG where $A = \{i-wins: i\in N\}$, and $v_i(a) = 0, 1$ if $a = i-wins$, thus $v_i(a) \geq 0$, and VCG is no-positive transfers + individual rationality
+      - **Reverse Auction**
+        - Bidder wants to procure item from seller at lowest cost
+        - $V_i = \{v_i(i-wins) \leq 0 \land \forall j \not = i, v_i(j-wins) = 0\}$ - i.e Social welfare $max_{a \in A}\Sigma_i v_i(a)$
+          - To maximize social welfare choose maximal $v_i$ (i.e seller who will perform task at lowest cost)
+        - I.e for mechanism to be individually rational -> there must be a negative transfer..
+          - Clarke pivot rule -> choose second higest payment (still negative) -> implies individual rationality
+      - **Bilateral Trade**
+        - Seller and buyer, where $0 \leq v_s \leq 1$, and $0 \leq v_b \leq 1$, i.e $A = \{trade, no-trade\}$, $f(v_s, v_b) = trade \iff v_s < v_b$
+      - **Multi-Unit Auctions**
+        - Hold auction for $k  > |I|$ items
+        - Combinatorial auction, i.e $k$-th bidder pays $k + 1$-th bid, $A = \{S-wins: S \subset I, |S| = k \}$, and $v_i(S) = v_i(a \in S)$, if $i \in S$, and $i$ wins item $a$
+      - **Public Project**
+        - 
+      - **Buying Path in Network**
+    - # DSIC is Individually Rational + Incentive Compatible
+      - **VCG** is **DSIC**
   - ## Combinatorial Auctions
     - **English (Ascending) Auction**
       - Auctioneer announces bid increments, bidders drop out iteratively once $p_a > v_i(a)$ -> winner utility $u_i = p_a - v_i(a) \geq 0$ (i.e immediately after second user drops win)
@@ -298,3 +340,19 @@
     - **DSIC (dominant strategy incentive compatible)** 
       - Set $b_i = v_i$ maximizes utility (**incentive compatible**) 
       - **Dominant Strategy** - Never lose money by truthtelling, i.e for $v \in V$, $u_i(v_i) \geq 0$
+- ## Lecture 3
+- ## Implementation in Dominant Strategies
+  - ## Games with Strict Incomplete Information
+    - How to model behaviour of players when they do not know what the actions / preferences are of the other players
+    - **independent private values** - Utility of player depends entirely on private info, does not depend on information from others (valuation independent of other valuations)
+    - **Strict Incomplete Information** - No probablistic information in model
+    - **model** (IPV + SII)
+      - $|I| = n$ (players), 
+      - $\forall i \in I, X_i$ (the set of actions for $i$)
+      - $\forall i \in I, T_i$ (set of types for $i$), where $t_i \in T_i$ denotes the private info that $i$ has
+      - $\forall i \in I, u_i : T_i \times X_1 \times \cdots \times X_n \rightarrow \mathbb{R}$
+    - Characterization of player $i$ is determined by a function from $T_i \rightarrow X_i$ (i.e how does the private info affect action)
+    - **Definitions**
+      - $i \in I$, **strategy**: $s_i : T_i \rightarrow X_i$
+      - $s_1, \cdots, s_n$ is **ex-post nash** if for $t_1, \cdots, t_n$, one has that $s(t_1), \cdots, s(t_n)$ are in nash equillibrium for $t_i$, i.e fix $t_1, \cdots, t_n$, $s(t_i) = s_i$, then $u_i(s_i, s_{-i}) \geq u_i(s'_i, s_{-i})$ (notice utility is determined by $T_i$)
+      - Let $s_i \in S_i$, **weakly dominant strategy**, then $\forall t_i \in T_i$, $u_i(t_i, s_i(t_i), x_{-i}) \geq u_i(t_i, x'_i,x_{-i})$, the profile is then $s_1, \cdots, s_n$

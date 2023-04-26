@@ -282,5 +282,111 @@
         - Set of vectors $e_1, \cdots, e_n$ where all vectors are pair-wise orthogonal, where $\langle e_i, e_j \rangle = \sigma_{i, j}$ (norm of vector is 1, inner-product with any other vector is 0)
         - **Gram-Schmidt**
           - Let $v_1, \cdots, v_n$ be a list of lin. ind. vectors in $V$, then there exists an orthonormal list $e_1, \cdots, e_n$ of vectors in $V$, where $span(v_1, \cdots, v_j) = span(e_1, \cdots, e_j), j = 1, \cdots, n$
-            - For $j = 1$, consider $e_1 = \frac{v_1}{\|v_1\|}$
-            - Suppose the thm. holds for $j \leq n$
+            - For $j = 1$, consider $e_1 = \frac{v_1}{\|v_1\|}$, naturally $span(v_1) = span(e_1)$
+            - Suppose the thm. holds for $j \leq n$, i.e $e_1, \cdots, e_n$, where $span(v_1, \cdots, v_n) = span(e_1, \cdots, e_n)$, 
+              - Then for $e_{n + 1}$, set $e_{n + 1} = \frac{v_{n + 1} - (\langle v_{n + 1}, e_1 \rangle e_1 \cdots + \langle v_{n + 1}, e_n)}{\|v_{n + 1} - (\langle v_{n + 1}, e_1 \rangle e_1 \cdots + \langle v_{n + 1}, e_n)\|}$
+              - $v_{n + 1} \in span(e_1, \cdots, e_{n + 1})
+              - And, $\langle e_{n + 1}, e_k \rangle = 0$, as $\langle v_{n + 1}, e_k \rangle - \langle v_{n + 1}, e_k \rangle = 0$
+        - Let $e_1, \cdots, e_n$ be a list of orthonormal vectors, then $e_i$ are linearly independent
+          - Notice $\Sigma_i a_i e_i = 0$, then $\Sigma_i a_i^2 = 0$, and $a_i = 0$, (consider $\langle \Sigma_i a_i e_i, \Sigma_i a_i e_i\rangle$, terms where $\langle e_i, e_j\rangle = 0, i \not= j$)
+          - In fact $e_i$'s dont need to be normal, as long as, $e_i \not= 0$
+        - Every finite-dimensional inner-product space has an ON basis
+          - I.e fix $v_i$ is a basis, apply above thm, then $V = span(v_i) = span(e_i)$, furthermore, $e_i$ are independent, and are thus a basis
+        - Every orthonormal list of vectors in $V$ can be expanded to an orthonormal basis,
+          - Let $e_i$ be an orthonormal list, $e_1, \cdots, e_{j}$, then they are lin. ind. expand to basis of $V$, i.e $e_1, \cdots, e_j, v_{j + 1}, \cdots, v_n$
+            - Notice, $v_{j + 1}, \cdots, v_n$ is lin. ind., thus $\exists$, $e_{j+1}, \cdots, e_n$ orthonormal, where $span(v_{j+1}, \cdots) = span(e_{j + 1}, \cdots)
+          - Suppose $\exists a_i$, where $a_1 e_1 + \cdots + a_n e_n = 0$, fix $k = max_i (a_i \not= 0)$, then $k > j$ (otherwise, $e_1, \cdots, e_j$ not lin. ind.)
+            - If so $e_1, \cdots, e_j, v_{j + 1}, \cdots, v_n$ not lin. ind. (contradiction)
+        - For any complex vectors-space, there is a basis where $T$ has an upper-triangular matrix, wb an orthonormal basis?
+        - Let $T \in \mathcal{L}(V)$. If $T$ has an UT matrix wrt. $v_i$ (basis), then $T$ has UT basis wrt. basis $e_i$
+          - Fix $e_1, \cdots, e_n$ (an ortho basis for $V$). i.e GS applied to $v_i$
+          - Then for $v_k, 1 \leq k \leq n$, $Tv_k \in span(v_1, \cdots, v_k)$, $Te_k = \Sigma_{1 \leq i \leq k} a_i T(v_i) \in span(v_1, \cdots, v_k) = span(e_1, \cdots, e_k)$, 
+          - And for all $e_i$, $Te_i \in span(e_1, \cdots, e_i)$, and $T$ is UT wrt. $e_i$
+      - ## Linear Functionals And Adjoints
+        - **linear functional** - Linear map on $V$ a vector space over field $\mathbb{F}$ to $\mathbb{F}$, i.e $\phi : V_{\mathbb{F}} \rightarrow \mathbb{F}$
+        - Fix $u, v \in V$, then $\phi_v(u) = \langle u, v \rangle$ is a linear functional from $V \rightarrow \mathbb{F}$
+        - Suppose $\phi$ is a linear functional from $V$, then there is a unique $v \in V$, such that $\phi(u) = \langle u, v \rangle$
+          - Fix $u \in V$, and $e_1, \cdots, e_n$ (ON for $V$), then $u = \langle u, e_1 \rangle e_1 + \cdots + \langle u, e_n \rangle e_n$, and $\phi(u) = \langle u, e_1 \rangle \phi(e_1) + \cdots + \langle u, e_n \rangle \phi(e_n) = \Sigma_i \langle u, \overline{\phi(e_i)} e_i \rangle = \langle u, \Sigma_i \overline{\phi(e_i)} e_i \rangle$
+            - ^^ this proves existence of $v = \Sigma_i \overline{\phi(e_i)}e_i$
+          - Uniqueness, suppose $v_1, v_2 \in V$, where $\phi(u) = \langle u, v_1 \rangle = \langle u, v_2 \rangle$, $0 = \langle u, v_1 - v_2 \rangle$, then $u = v_1 - v_2$, $\| v_1 - v_2 \| = 0 \rightarrow v_1 - v_2 = 0$, and $v_1 = v_2$
+        - $W$ is inner-product space, i.e has metric $\phi : W \rightarrow \mathbb{C}$
+        - $T \in \mathcal{L}(V, W)$, **adjoint** ($T^*$) is defined as follows
+          - Consider the composition of linear functional over $W$, i.e $u \in W, \langle \cdot, u \rangle$ with $T$, i.e $v \rightarrow \langle Tv, u \rangle$
+            - i.e denote $\phi_u = \langle \cdot, w \rangle$, then consider $f = \phi_u T$ -> linear functional from $V \rightarrow \mathbb{C}$
+          - Then, $T* : W \rightarrow V$, is defined as follows $\langle \cdot , T^*u \rangle = \langle T\cdot, u\rangle = \phi_u T$
+            - i.e for $v \in V$, $\langle v, T^* u \rangle = \langle Tv, u \rangle$
+        - **Interesting... Let $T \in \mathcal{L}(V, W)$, then $T^*$ is defined by taking an **arbitrary** functional defined by, $v \rightarrow \langle T(v), w \rangle$, i.e if $\phi_w = \langle \cdot, w \rangle$, then the map described is $\phi_w T$, the adjoint $T^*$ then, maps $w \in W$ to the vector $T^*w$, such that $\phi_{T^*w} = \phi_w T$ -> this correspondance is irrelevant of $w$... i.e $w$ is a _bound variable_(lean.md)**
+        - **Example**
+          - Fix $T:\mathbb{R}^3 \rightarrow \mathbb{R}^2$, Where $T(x_1, x_2, x_3) = (x_2 + 3x_3, 2x_1)$
+            - Then to define $T*$
+            $$\langle (x_1, x_2, x_3), T^*(y_1, y_2) \rangle = \langle T(x_1, x_2, x_3), (y_1, y_2) \rangle = \langle (x_2 + 3x_3, 2x_1), (y_1, y_2) \rangle = x_2y_1 + 3x_3y_1 + 2x_1y_2 = \langle (x_1, x_2, x_3), (2y_2, y_1, 3y_1)$$
+            - Thus $T^*(y_1, y_2) = (2y_2, y_1, 3y_1)$ -> adjoint is also a linear operator
+          - Suppose $T \in \mathcal{L}(V, W)$, then $T^* \in \mathcal{L}(W, V)$
+            - Fix $w_1, w_2 \in W$, for all $v \in V$, $\langle v, T^*(w_1 + w_2)\rangle = \langle T(v), w_1 + w_2 \rangle = \langle T(v), w_1 \rangle + \langle T(v), w_2 \rangle = \langle v, T^*(w_1) \rangle + \langle v, T^*(w_2) \rangle = \langle v, T^*(w_1) + T^*(w_2) \rangle$
+            - and $T^*(w_1 + w_2) = T^*(w_1) + T^*(w_2)$ -> additivity
+            - WB for scalar homogeneity?
+              - i.e $T^*(kw) =kT^*(w)$, i.e fix $v \in V$, and $u \in U$, then $\langle v, T^*(ku) \rangle = \langle T(v), ku \rangle = \overline{k}\langle T(v), u \rangle = \overline{k} \langle v, T^*(u) \rangle = \langle v, kT^*(u) \rangle$
+        - Properties of adjoint
+          - **Additivity**
+            - For $S, T \in \mathcal{L}(V, w)$, $(S + T)^* = S^* + T^*\in \mathcal{L}(W, V)$, fix $w \in W, v \in V$
+              - $\langle v, (S + T)^*w \rangle = \langle (S + T)v, w\rangle = \langle S(v), w \rangle + \langle T(v), w \rangle = \langle v, S^*w \rangle + \langle v, T^*w \rangle = \langle v, S^*w + T^*w \rangle$,
+          - **conjugate homogeneity**
+            - Fix $w \in W, v \in V, a \in F$, then $\langle v, (aT)^*w \rangle = \langle aTv, w \rangle = a \langle Tv, w \rangle = a \langle v, T^*w \rangle = \langle v, \overline{a}T^*w \rangle$
+          - **adjoint of adjoint**
+            - Fix $T \in \mathcal{L}(V, W)$, let $S = T^* \in \mathcal{L}(W, V)$, and fix $w \in W, v \in V$, then $\langle Tv, w \rangle = \langle v, Sw \rangle$, also notice that, $\overline{\langle v, Sw \rangle} = \langle Sw, v \rangle = \langle w, S^* v \rangle = \langle w, T^{**}v\rangle$
+              - Thus $\langle Tv, w \rangle = \langle T^{**}v, w \rangle$, and the thm holds
+          - 
+        - ## Orthogonal Projections
+          - Let $U \subset V$, then $U^T := \{v \in V: \forall v \in V, \langle u, v \rangle = 0\}$ -> **Orthogonal Complement**
+            - $U^T$ is a vector space
+              - Additivity, i.e $u, u' \in U$, that is $\forall v \in V, \langle v, u \rangle = \langle u', v \rangle = 0$, as such $\langle v, u + u' \rangle = \langle v, u \rangle + \langle v, u' \rangle = 0$
+            - Scalar multiplicativity -> follows easily
+          - $V = U \oplus U^T$
+            - Fix $e_1, \cdots e_m$ -> orthonormal basis of $U$, then, $v = \langle v, e_1 \rangle e_1 + \cdots + \langle v, e_m \rangle + v - (\langle v, e_1 \rangle e_1 + \cdots + \langle v, e_m \rangle)$, set $u = \langle v, e_1 \rangle e_1 + \cdots + \langle v, e_m \rangle$, $w =  v - (\langle v, e_1 \rangle e_1 + \cdots + \langle v, e_m \rangle)$, and $u \in U$, and for $u \in U$, $u = a_1e_1 + \cdots + a_me_m$, then $\langle u, w \rangle = \Sigma_{1 \leq i \leq m} a_i\langle e_i, v - \Sigma_{1 \leq j \leq m} \langle v,e_j\rangle e_j \rangle = 0$ (i.e consider case where $j = i)$, thus $w \in U^T$, that $U \cap U^T = \{0\}$ is triv.
+          - Notice $v \in V$, $v = u + w$, where $u \in U, w \in U^T$, then let the **orthogonal projection** (from $V$ onto $U$) be $P_U(v) = u$
+        - Let $T \in \mathcal{L}(V, W)$
+          - $null(T^*) = range(T)^T$
+            - $range(T)^T \subset null(T^*)$
+              - fix $w \in range(T)^T$, then consider, $\langle T(v), w \rangle = \langle v, T^* w \rangle = 0$, and $T^*w = 0, w \in null(T^*)$
+            - $null(T^*) \subset range(T)^T$
+              - $w \in null(T^*)$, then forall $v \in V$, $\langle T(v), w \rangle = \langle v, T^*w \rangle = 0$, and $w \in range(T)^T$
+          - $range(T)  = (null(T^*))^T$
+            - Take orthogonal complement of above
+          - $range(T^*) = null(T)^T$
+            - Suppose $T = T^*$, then $null(T^{**}) = range(T^*) = null(T)^T$
+      - ## Conjugate Transpose
+        - Suppose $T \in \mathcal{L}(V, W)$, if $e_1, \cdots, e_n$ is orthonormal basis of $V$, and $f_1, \cdots, f_n$ is orthonormal basis of $W$
+          - $\mathcal{M}(T^*, (e_i), (f_i))$ is the CT of $\mathcal{M}(T, e_i, f_i)$
+          - Consider $\langle f_i, T(e_j) \rangle = a_{ji} = \langle e_j, T^*(f_i) \rangle = \overline{b_{ij}}$, and $b_{ji} = \overline{a_ij}$
+      - ## Problems 
+        - $\langle x, y \rangle = \|x \| \|y\|cos \theta$
+          - Notice $\langle x - y, x - y \rangle = \langle x, x \rangle + \langle y, y \rangle + 2 \|x\| \|y\|cos \theta$, where $x, y \in \mathbb{R}^2$
+            - Also notice that $\langle x, -y \rangle = \langle -y, x \rangle = - \langle x, y \rangle$
+        - Suppose $u, v \in V$, then $\langle u, v \rangle = 0 \iff \|u \| \leq \|u + av \|$
+          - forward dir.. triv
+          - Reverse, suppose $\forall a \in F, \| u + av \| \geq \|u\|$, consider $\langle v, v \rangle + 2a \langle u, v \rangle \geq 0$
+        - Is $\|(x, y)\| = |x| + |y|$ an inner product? No
+          - Not additive in first slot, i.e consider $(1, 1) + (-1, 1)$
+        - What happens if gram-schmidt is applied to a list of vectors that is not lin. ind.
+          - Suppose $v_1, \cdots, v_n$ is not lin. ind., then GS returns an orthonormal basis for $span(v_1, \cdots, v_n)$ (also returns zeroes for $n - dim(span(v_i))$ vectors)
+        - Suppose $V$ is RIS, and $v_1, \cdots, v_m$ is a lin. ind. set of vectors, prove that there exist $2^m$ orthonormal lists of vectors
+          - 
+        - Suppose $P \in \mathcal{L}(V)$ and $P^2 = P$, and $\| Pv \| \leq \| v \|$
+          - Notice $\| v \|= \| P^2v \| \leq \|P v \|$, thus for $v \in null(P)$, $\| P v \| = \| 0 \| = 0 = \| v \|$, and $v = 0$, thus $null(P) = \{0\}$
+        - $T \in \mathcal{L}(V)$ $U \subset V$, $T(U)\subset U$, iff $P_UTP_U = TP_U$
+          - Fix $u \in U$, then range $T(P_U) u = Tu $, and $P_uTu = Tu$, thus $Tu \in U$
+          - Reverse dir. is triv.
+        - $T \in \mathcal{L}(V)$, and $TU \subset U, TU^T \subset U^T$, then $P_uT = TP_U$
+          - Forward direction - Fix $v \in V$, then $v = u + w$, where $u \in U$, $w \in U^T$, and  $P_U(T(v)) =  P_u(T(u) + T(w)) = T(u) = T(P_Uv)$
+          - Reverse - Notice $TP_U = P_UT \in U$, thus $P_UTP_U = TP_U$ and $T(U) \subset U$, consider $u \in U^T$...
+        - Fix $v \in V$ and define $T \in \mathcal{L}(V, F)$ by $Tu = \langle u, v \rangle$, find a formula for $T^*a$
+          - Fix ortho basis $v_i$ for $V$, and for $F$ (notice $\langle \rangle$ devolves to multiplication over the field)
+            - Let $T^*a = \Sigma a_ie_i
+          - Then consider $a_i = \langle e_i, T^*a \rangle = T(e_i) * a$
+        - Let $T \in \mathcal{L}(V)$ and $\lambda \in F$. Prove that $\lambda$ is EV of $T$ iff $\bar{\lambda}$ is an eigenvalue of $T^*$
+          - Suppose $T(v) = \lambda v$, then fix $w \in V$, and $\langle v, T^*w \rangle = \langle \lambda v, w \rangle = \langle v, \overline{\lambda}w \rangle$, and $T^*w = \lambda w$
+          - Reverse direction - Similar logic?
+        - $T \in \mathcal{L}(V)$ and $U \subset V$. $T(U) \subset U$ iff $T^*(U^T) \subset U^T$ 
+          - Forward - Fix $w \in U^T$, $u \in U$, then $0 = \langle T(u), w \rangle = \langle u, T^*w \rangle$, and $T^*w \in U^T$
+          - Reverse - triv.
+        - 
