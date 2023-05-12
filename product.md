@@ -1,0 +1,14 @@
+- Orderflow + blockspace
+  - Orderflow
+    - Free txs + UI (intelligent routing of user txs)
+  - Blockspace
+    - Blockspace market-place (proto-rev)
+    - Closer mempool / tx sequencing
+- Extends capabilities 
+  - Relayer guarantees
+  - POB as a distribution channel
+-  Comparison to SUAVE (credible commitment chain)
+   - Where is commitment settled?
+- Class of intents only settled on chain
+- Adverse Selection?
+  - 

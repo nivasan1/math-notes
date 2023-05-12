@@ -356,3 +356,37 @@
       - $i \in I$, **strategy**: $s_i : T_i \rightarrow X_i$
       - $s_1, \cdots, s_n$ is **ex-post nash** if for $t_1, \cdots, t_n$, one has that $s(t_1), \cdots, s(t_n)$ are in nash equillibrium for $t_i$, i.e fix $t_1, \cdots, t_n$, $s(t_i) = s_i$, then $u_i(s_i, s_{-i}) \geq u_i(s'_i, s_{-i})$ (notice utility is determined by $T_i$)
       - Let $s_i \in S_i$, **weakly dominant strategy**, then $\forall t_i \in T_i$, $u_i(t_i, s_i(t_i), x_{-i}) \geq u_i(t_i, x'_i,x_{-i})$, the profile is then $s_1, \cdots, s_n$
+        - Given some information, regardless of the other choices action profiles, $s(t_i)$ is the most obv. choice
+        - **Dominant strategy eq.** - I.e $s \in \Pi_i S_i$, $s_i$ is a WDS
+      - Let $s_1, \cdots, s_n$ be an ex-post nash of a game $X_1, \cdots, X_n, T_1, \cdots T_n; u_1, \cdots, u_n$. Define $X'_i = \{s_i(t_i)| t_i \in T_i\}$, then $s_1, \cdots, s_n$ is a DS in the game w/ profile space $X'_i$
+        - Fix $t_i \in T_i$, then $u_i(t_i, s_i(t_i), s_{-i}(t_i)) \geq u_i(t_i, s_i'(t_i), s_{-i}(t_{-i}))$, notice as $j \not=i, x_j = s_j(t_j)$, one has that $\forall t_{-i} \in T_{-i}$, $u_i(t_i, s_i(t_i), x_{-i}) \geq u_i(t_i, x'_i, x_{-i})$, and $s_i$ is weakly dom.
+  - ## Mechanisms
+    - Each player has private function mapping, $T_i \times A \rightarrow \mathbb{R}$, i.e valuations are determined by private info, $v_i(t_i, a)$, WTS $F:T_1 \times \cdots \times F_n \rightarrow A$ that aggregates preferences. Define
+      - **outcome fn** - $a: X_1 \times \cdots \times X_n \rightarrow A$ (chooses an alt. in $A$)
+      - **payoff fn** - $p: X_1 \times \cdots \times X_n \rightarrow \mathbb{R}$ (payoff fn. to pay players)
+        - i.e - to determine offset for valuation of allocation at each player
+    - **components**
+      - Type space: $T_1, \cdots, T_n$ (available private info for each player)
+      - Action space: $X_1, \cdots, X_n$ (actions that players can take (bids, etc.))
+      - Alternatives: $A$ 
+      - Valuation fns: $v_i : T_i \times A \rightarrow \mathbb{R}$
+      - Outcome fn: $a: X_1 \times \cdots \times X_n \rightarrow A$
+      - Payment fns: $p_i : X_1 \times \cdots \times X_n \rightarrow \mathbb{R}$
+      - utilities: $u_i(t_i, x_1, \cdots, x_n) = v_i(t_i, a(x_1, \cdots, x_n)) - p_i(x_1, \cdots, x_n)$ -> utility is quasilinear fn of value
+    - Questions: What is the difference between incentive compatibility & nash-equillibrium?
+      - Incentive compatibility -> any allocation generated from deviation from internal valuation is worse
+      - Nash-equillibrium -> $x_1, \cdots x_n$ a set of strategies, deviating from $x_i$ for any player gives worse utility
+    - **social choice function** - $f: T_1 \cdots \times \cdots T_n \rightarrow A$
+      - If for some $s_1, \cdots, s_n$ (dominant strategies), for all $t_1, \cdots, t_n, f(t_1, \cdots, t_n) = a(s_1(t_1), \cdots, s_n(t_n))$
+      - Notice then the mechanism can be defined by $f : T_1 \cdots \times T_n \rightarrow A$ + payments and valuations?
+    - **ex-post equillibrium** 
+      - If for some $s_1, \cdots, s_n$ (ex-post equillibrium) for all $t_1, \cdots, t_n, f(t_1, \cdots, t_n) = a(s_1(t_1)), \cdots, s_n(t_n)) = a(s_1(t_1), \cdots s_n(t_n))$ 
+    - ## Revelation Principle
+      - IF there exists a mechanism that implements $f$ in DS, then there exists an IC mech. that implements $f$. The payments to the players are the same in either case
+  - ## Incentive Compatible Mechanisms
+    - Natural social choice fn -> maximize social welfare $f(x_i, x_{-i}) = max_a \Sigma_i v_i(f(x_i, x_{-i}))$
+    - ### Incentive Compatibility
+      - Mechansim $\mathcal{M} = (f, p_i), f : V_1 \times \cdots \times V_n \rightarrow A, p_i : V_1 \times \cdots \times V_n \rightarrow \mathbb{R}$, is **Incentive Compatible** iff it satisfies the following conditions for every $i$ , and everfy $v_{-i}$
+        - In VCG pivot rule, $p_i = \Sigma_{j \not= i} v_j(a') - \Sigma_{j \not=i} v_j(a)$
+      - $p_i$ does not depend on $v_i$, only depends on $f(v_i, v_{-i}) = a$ (i.e the alternative chosen), i.e $p_i(v_i, v_{-i}) = p_a, a = f(v_i, v_{-i})$
+      - The mechanism optimizes for each player. Ie $\forall v_i, f(v_i, v_{-i}) = max_{v_i \in V_i, a = f(v_i, v_{-i})}(v_i(a) - p_a)$, 

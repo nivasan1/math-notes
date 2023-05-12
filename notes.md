@@ -3301,3 +3301,17 @@ $$p(z) = \Sigma_{0 \leq i \leq m-1} a_i z^i$$
         - 
     - ## Markets
       - $A$ of divisible goods
+## CNS Questions
+- Given a set of channels for a chain
+  - Each channel has unique counter-party (channel-id / port on counter-party)
+    - WTS channel-1 on A, and channel-2 on B are connected?
+      1. Query the client-state associated w/ channel-1 on A -> how to determine which chain's state the client is light-client of?
+         - Each channel is associated w/ unique client (client-id idx), then for each channel on a chain, identify client-id
+         - Identify `client-id` on `A`, call this `client`
+         - Notice, `client` is a light-client of some chain, if we have that chain in DB + RPC urls for chain, check that the client is indeed a valid LC of chain `B`
+         - We now know, transfer-channel `A`'s client is an LC of `B`, `A`'s counter-party has `counter-party-channel-id` + port, and is in our DB, if it exists we can make the association
+  - Implementation         
+    - Client has `ClientState` + `ConsensusState` 
+- ## Connections
+  - For each channel in the DB, query the client-state associated with-it, if the channel for that client is in DB, check the chain associated with the channel, if that is in the DB, then make RPC query the counter-party chain
+  - 
