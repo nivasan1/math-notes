@@ -12,3 +12,14 @@
 - Class of intents only settled on chain
 - Adverse Selection?
   - 
+
+- ## Skip Solve
+  - High level -> low-level
+  - 2 phases
+    - Getting route
+    - Getting recommendations for tokens
+  - **Endpoints**
+    - Snippet
+      - Request -> response -> ibc-messages
+    - First on-boarding service for a dev
+  - Pretend sitting down w/ dev and walking thru swagger UI

@@ -1,4 +1,4 @@
-- ## Finite Fields
+
 - **Field**
   - Consists of a set $\mathcal{F}$, and two operations $+$ and $\cdot$ over the set $\mathbb{F}$ (resp. $\mathbb{F} \backslash \{0\}$), such that the set and the operation form an abelian group (commutative group)
   - Another important property holds (**distributivity**) - for $a,b,c \in \mathbb{F}, a * (b + c) = a*b + a*c$
@@ -785,12 +785,138 @@ $$p(z) = \Sigma_{0 \leq i \leq m-1} a_i z^i$$
     - Consider over $\mathbb{Z}_3$ must have linear factor (degree is odd, i.e $f(1) = 0 \lor f(2) = 0$)
   - Show that $\langle n, X \rangle, n \geq 2$ is not principal, and $\mathbb{Z}[X]$ is not PID (but is UFD)
     - Notice $\langle n, X \rangle$ is maximal, i.e set of $f(X) \in \mathbb{Z}[X]$ where $2 | a_0$, thus if
-  - If  $F$ is field, then $F[X, Y]$ 
+  - If $F$ is field, then $F[X, Y]$ 
 # Commutative Algebra
 - 
 # Fields
+ - Let $F$ be a field, then $F[X]$ is a **euclidean domain**, take $\phi : F[X] \rightarrow \mathbb{Z} := deg$, then use euclidean alg. $p, q \in F[X]$, where $deg(p) > deg(q)$, then $p = aq + r$, where $a_n = q_n^{-1}p_n$ (and $n$ is index of leading coeff in $q$), and $deg(r) < deg(p)$
+   - Implies that $F[X]$ is PID $\rightarrow$ UFD (every $p \in F[X]$ can be written as product of IRDs)
  - **field** - Commutative ring with identity, where $S \subset F\backslash\{0\}$ is multiplicative grp.
- - **extension** - $K \supseteq F$ is a field-extension, and can be treated as a vector-space over $F$
+ - **extension** - $K \supseteq F$ is a field-extension, and can be treated as a vector-space over $F$, $E/F$, $E \leq F$
+ - Let $f : F \rightarrow E$ be HM of fields, then $f$ is ring HM (thus inverses are preserved), then $f$ is MM
+   - notice $ker(f)$ is ideal of $F$, thus $ker(f) = \{0\}$ or $ker(f) = F$, notice $1_F \not \in ker(f)$ thus $ker(f) = \{0\}$
+ - Let $f \in F$ be non-constant poly. Then there is $E, F \leq E$, and $\alpha \in E$, where $f(\alpha) = 0$
+   - Consider $F[X]/ \langle f \rangle$, where $F \cong F' \subset F[X]/\langle f \rangle$ (take $a \in F, a + f \in F[X]$, i.e $a_0' = a + a_0$), then $a, b \in F, (a + f)(b + f) = \Sigma_i \Sigma_{0 \leq j \leq i} (a + f)_j(b + f)_{i - j}, a_0' = (a + f)_0 (b + f)_0$
+   - Take $X + f \in F[X]/\langle f \rangle$, then $f(X + f) = \Sigma a_i (X + f) = \Sigma a_i X^i + \Sigma a_i f^i = f + I = I$, and $\alpha = X + f \in F[X]/\langle f \rangle$ is root
+ - $f, g \in F[X]$. Then $f$ and $g$ are relatively prime iff $f,g$ have no common root in any $E/F$
+   - Forward - Suppose $f, g$ are relatively prime, then $a(X), b(X) \in F[X], a(X)f(X) + b(X)g(X) = 1$, (constant, but $f, g$ share a root)
+   - Reverse - Suppose $f, g$ are not relatively prime, then $\langle f , g \rangle = \langle h \rangle$, then take $E$ to be the extension field where $h$'s root exists, 
+- If $f,g$ are monic IRD poly. over $F$, then $f, g$ have no common roots in any extension of $F$
+  - $F[X]$ is UFD, thus $f, g$ prime, and are relatively prime, thus above result holds
+- ### Extensions
+  - Suppose $F$ is field, $E \geq F$, and $f \in F[X]$, where $\alpha \in E, f(\alpha) = 0$, consider the field $F[\alpha]$ (i.e smallest sub-field of $E$ where $f$ has a root)
+  - If $E/F$ and $\alpha \in E$, $\alpha$ is **algebraic** over $F$, if $\exists f \in F[X], f(\alpha) = 0$, otherwise $\alpha$ is **transcendental**, if every element of $E$ is algebraic over $F$ then $E$ is an **algebraic extension** of $F$
+  - Let $\alpha \in E$, where $ \alpha$ is transcendental over $F$, then $I = \{f(x) : f(\alpha) = 0\} \subset F[X]$ is an ideal (closed under addition / scalar multiplication in $F$), thus $I = \langle g \rangle$
+    - Notice, generators unique up to multiplication by associates in $F[X]$ (field elements), thus choose monic
+    - If $g \in F[X]$, $g(\alpha) = 0 \iff m(X) | g(X)$
+      - Forward - $g \in \langle m \rangle$
+      - Reverse - Triv. $g(X) = c(X)m(X) \rightarrow g(\alpha) = c(\alpha)m(\alpha)$
+    - $m(X)$ is monic poly. of least degree such that $m(\alpha) = 0$
+      - Suppose that $l(\alpha) = 0$, then $l \in \langle m \rangle$, and $deg(l) = deg(pm) = deg(p) + deg(m) \geq deg(m)$
+    - $m(X)$ is unique MIRD poly. where $m(\alpha) = 0$
+      - Notice, if $m' \in \langle m \rangle$, then $m' = cm$ (where $c$ must be an associated $m'$ is IRD), thus if $m'$ is monic $c = 1$ and $m = m'$
+      - Notice $m$ IRD, as $m(X) = k(X)h(X)$, where $0 < deg(k) < deg(m) \land 0 < deg(h) < deg(m)$, however $0 = m(\alpha) = h(\alpha)k(\alpha)$, and $F$ is an IRD, thus $h(\alpha) = 0 \lor k(\alpha) = 0$, and WLOG $h \in \langle m \rangle \rightarrow deg(h) \geq deg(m)$ (contradiction)
+  - Intuition, is $E$, the extension of $F$, where $E = F[\alpha_1, \cdots, \alpha_n]$, where for some $f \in F[X], f(\alpha_i) = 0$, $E \cong F[X]/ \langle f \rangle$
+  - **definition** - $F(\alpha)$ is the set of all $\frac{a_0 + a_1 \alpha + \cdots + a_n \alpha^n}{b_0 + \cdots b_m \alpha^m}$ (i.e smallest field containing $F \cup \alpha$
+  - If $\alpha \in E$ is alg. over $F$, and $m$ is min. poly. of $\alpha$ over $F$, where $deg(m) = n$, then $F(\alpha) = F[\alpha]$, and $1, \alpha, \cdots, \alpha_n$ form basis of $E$ over $F$, thus $[E : F] = n$
+    - Show that $F[\alpha] \subset F(\alpha)$
+      - $F[\alpha]$ is a field
+        - take $f \in F[X] \backslash \langle m \rangle$, notice, $m \in F[X]$ is IRD, and thus $f, m$ are relatively prime, and $a(X)f(X) + b(X)m(X) = 1$, thus $a(\alpha)f(\alpha) + b(\alpha)m(\alpha) = a(\alpha)f(\alpha) = 1$, where $f(\alpha) \in F[\alpha]$ and $F[\alpha]$ is a field
+        - Otherwise $f \in \langle m \rangle$, and $f(\alpha) = 0$
+      - $F[\alpha] \cong F[X]/\langle m \rangle$?
+      - $F[\alpha] \subset F(\alpha)$
+        - This follows naturally, where the denominator is $1$
+      - Thus since $\alpha \in F[\alpha] \land F \subset F[\alpha]$, then  $F(\alpha) \subset F[\alpha]$, and $F[\alpha] = F(\alpha)$
+      - Notice $F[\alpha]$ is the span of $1, \alpha, \cdots, \alpha^{n - 1}$, 
+        - Suppose $\exists b_0, \cdots, b_n$, where $0 = b_0 \alpha + \cdots + b_{n- 1} \alpha$, then $f = \Sigma_{n - 1} b_i \alpha^i \in \langle m \rangle$, where $deg(f) < deg(m)$ (contradiction)
+- ### Degree is Multiplicative
+  - Suppose $F \leq K \leq E$ are extensions, and $\alpha_i$ form basis of $E$ over $K$, and $\beta_i$ form basis of $K$ over $F$, then $\alpha_i \beta_j$ form basis of $E$ over $F$
+    - Fix $a \in E$, then $a = \Sigma_i a_i \alpha_i = \Sigma_i \Sigma_j b_j \beta_j \alpha_i, b_j \in F$ (notice $a_i \in K$)
+    - $\alpha_i \beta_j$ are linearly independent
+      - Suppose $\Sigma_i \alpha_i \Sigma_j a_{ij}\beta_j = 0$, then for each $i$, $\Sigma_j a_{ij} \beta_j = 0$, thus $a_{ij} = 0$, and $\alpha_i \beta_j$ are lin. ind.
+  - As a corollary to the above, $[E : F] = [E : K][K : F]$
+- If $E$ is a finite extension of $F$, then $E$ is algebraic extension of $F$
+  - Suppose $[E : F] = n$, then $\alpha \in E$, $(1, \alpha, \cdots, \alpha^n)$ is linearly dependent, thus $a_0 + \cdots + a_n \alpha^n = 0$, and $f(x) = \Sigma_i a_i X^i \in F[X]$
+- **problems**
+  - Let $E$ be an extension of $F$, and $S \subset E$. If $F(S)$ is the SF of $E$ generated by $S$ over $F$, i.e the smallest field $F' \supset F \cup S$
+    - Let $m_s$ be the min. poly. for $s_i \in S$, then $[F(S) : F] = \Pi_s deg(m_s) - |S| + 1$
+  - Assume that $\alpha$ is algebraic over $F$, with $[F[\alpha] : F] = n$, show that $[F[\beta] : F] | [F[\alpha] : F]$
+    - Notice $F[\beta] \subset F[\alpha]$, $\beta = a_0 + \cdots a_{n-1}\alpha^{n-1}$, thus $[F[\alpha] : F] = [F[\alpha] : F[\beta]][F[\beta] : F]$
+  - The minimal poly. of $\sqrt{2}$ over $\mathbb{Q}$ is $X^2 - 2$, thus $\mathbb{Q}[\sqrt{2}] = \{a_0 + \sqrt{2} a_1: a_0, a_1 \in \mathbb{Q}\}$, then minimal poly of $\beta = -1 + \sqrt{2} \in \mathbb{Q}[\sqrt{2}]$ has deg at most 2, find the poly.
+    - $x^2 + 2x - 1$
+  - If $E/F$, and $\alpha \in E$ is transcendental over $F$, show that $F(\alpha)$ is iso-morphic to $F(X)$
+    - MM from $F(\alpha) \rightarrow F(X)$ (naturally exists)
+    - MM from $F(X) \rightarrow F(\alpha)$?
+      - Suppose $\phi : F(X) \rightarrow F(\alpha)$, where $\phi(f/g) = f(\alpha)/g(\alpha)$
+  - If $E/F$, and $\alpha \in E$ is algebraic over $F$, where $m \in F[X]$ is min. poly. let $I = \langle m \rangle$, show that $F(\alpha) \cong F[X]/I$
+    - Consider $\phi : F[X] \rightarrow F(\alpha)$, where $\phi(f) = f(\alpha)$, then $ker(\phi) = \langle m \rangle$, thus $F[X] / \langle m \rangle \cong F(\alpha)$
+  - If $f$ is IRD in $F[X]$, then $I = \langle f \rangle$ is maximal. Show conversely, that if $I$ is a maximal ideal, then $f$ is IRD.
+    - Suppose $I = \langle f \rangle$, consider $f = gh$, then (WLOG), $\langle f \rangle \subset \langle g \rangle$, where $g$ is not a unit, but $\langle f \rangle \supset \langle g \rangle$, and $f, g$ are associates
+  - Suppose $F \leq E \leq L$, with $\alpha \in L$, what is relation of min. poly of $\alpha$ over $F$ and over $E$?
+    - Notice $E[\alpha] \supset F[\alpha] \supset F$, and $E[\alpha] \supset E \supset F$, thus express $[E[\alpha] : F]$  in two ways, and compare
+    - i.e $[F[\alpha] : F] | [E[\alpha] : E]$
+    - Alternative, let $m \in F[X]$ be the min. poly. of $\alpha$ in $F[X] \subset E[X]$, then consider $I$ the ideal of all $f \in E[X]$, where $f(\alpha) = 0$, then $I = \langle m' \rangle, m \in \langle m' \rangle \rightarrow m' | m$
+  - Suppose $\alpha_1, \cdots, \alpha_n$ are algebraic over $F$, show that $[F[\alpha_1, \cdots, \alpha_n] : F] \leq \Pi_i [F[\alpha_i] : F] < \infty$
+    - Apply above thm + use induction on $\alpha_i$ holds for 1, then for $[F[\alpha_1 \cdots \alpha_{n + 1}] : F] = [F[\alpha_1 \cdots \alpha_{n+1}] : F[\alpha_1, \cdots, \alpha_n]][F[\alpha_1, \cdots,\alpha_n] : F]$, take $E = F[\alpha_1, \cdots, \alpha_n]$, then $[F[\alpha_1, \cdots, \alpha_{n + 1}] : F] = [F[\alpha_1, \cdots, \alpha_{n + 1}] : F[\alpha_1, \cdots, \alpha_n]][F[\alpha_1, \cdots, \alpha_n] : F] = [E[\alpha_{n + 1}] : E][E : F]$, apply thm. above to obtain $[E[\alpha_{n + 1}] : E] | [F[\alpha_{n + 1}] : F]$
+## Splitting Fields
+- Let $E \geq F$, and $f \in F[X]$, then $f$ **splits** over $E$, if $f = \lambda(x - \alpha_1) \cdots (x - \alpha_n)$, where $\alpha_i \in E, \lambda \in F$
+- If $K \geq F$, and $f$ splits over $K$, but does not split over any sub-field of $K$, then $K$ is the **splitting field** of $f$
+- If $f \in F[X]$ and $deg(f) = n$, then $f$ has a splitting field $K$ over $F$, with $[K : F] \leq n!$
+  - Notice, $f$ has $n$ roots, thus, for $\alpha_1, f(\alpha_1) = 0 = \Sigma_{0 \leq i \leq n} a_i \alpha^i$, and $[F[\alpha_1] : F]  = n$, next consider, $[F[\alpha_2, \alpha_1] : F[\alpha_1] = n - 1$ (consider $f / (X - \alpha_1)$), and $F[\alpha_1, \cdots, \alpha_n] = [F[\alpha_1, \cdots, \alpha_n] : F[\alpha_1, \cdots, \alpha_{n - 1}]\cdots [F[\alpha_1] : F]$
+- If $\alpha, \beta \in E$ are roots of $f \in F[X]$, then $F(\alpha) \cong F(\beta)$
+  - Consider $\phi : F(\alpha) \rightarrow F(\beta)$, where $f(\alpha) \in F(\alpha), \phi(f(\alpha)) = f(\beta)$ (it is the id. on $F$)
+  - Let $I \subset F[X]$ be the ideal of poly. with root $\alpha$, and $J$ for $\beta$, notice $f \in I \land f \in J$, furthermore, $I = \langle f \rangle = J$ ($f$ is IRD, if not generator, $f' | f$), thus $F[X]/I \cong F(\alpha)$, and $F[X]/J \cong F(\beta)$
+- ## Isomorphism Extension Theorem
+  - Suppose that $F, F'$ are IM fields, and $i$ carries $f \in F[X] \rightarrow f' \in F'[X]$, if $K$ is splitting field for $f$ over $F$, and $K'$ is splitting field for $f'$ over $F'$, then $K \cong K'$
+    - Triv.
+- **problems**
+  - What is degree of splitting field $K$ of $\mathbb{Q}$ of $X^2 - 2X + 4$
+    - Suppose $K' \subset K$, is a sub-field of $K$ in which $X^2 - 2X + 4$ has roots, then $[K' : \mathbb{Q}] | [K : \mathbb{Q}]$ thus $[K' : \mathbb{Q}]$ must be $1 \lor 2$ (simple analysis shows $2$)
+  - Find splitting field $K$ for $X^4 - 2$  over $\mathbb{Q}$, and determine $[K : \mathbb{Q}]$ (4, 2, 1), degree is $2$
+  - Let $\mathcal{C}$ be family of poly. over $F$, and $K/F$, show that the following two conditions are equivalent
+    - Each $f \in \mathcal{C}$ splits over $K$, but if $F \leq K' \leq K$, then it is not true that each $f \in \mathcal{C}$ splits over $K'$
+    - Each $f \in \mathcal{C}$ splits over $K$, and $K$ is generated over $F$ by the roots of all poly. in $\mathcal{C}$
+      - Forward -
+        - Suppose the first condition is held, then if $f_i \in \mathcal{C}, f = \lambda_i(X - \alpha_{i1}) \cdots (X - \alpha_{in})$, then, $K_i = F(\alpha_{i1}, \cdots, \alpha_{in}) \subset K$ ($f_i$ splits in $K$), similarly, if $K' \subset K = F(\alpha_{11}, \cdots, \alpha_{nn})$, then one of the $f_i$ is not fully split.
+      - Reverse - Triv.
+  - SUppose $K$ is a splitting field for the finite set of poly. $\{f_1, \cdots, f_n\}$, notice, for each $f_i \in F$, $\cap_i \langle f_i \rangle = \langle m \rangle$, then the splitting field of $f_i$ is the splitting field of $m$,
+    - Let $K$ be a splitting field for $m$, then $m = \lambda f_1 \cdots f_n$
+  - If $m,n$ are distinct square-free integers, greater than 1, show that the splitting field, $\mathbb{Q}(\sqrt{m}, \sqrt{n})$ of $(X^2 - m)(X^2 - n)$ has deg. 4 over $\mathbb{Q}$
+    - Must have at least deg $2$
+- ## Algebraic Closures
+  - If $C$ is a field, the following are equivalent
+    - for all $f \in C[X]$, $f$ has at least one root in $C$
+    - All $f \in C[X]$ splits in $C$
+    - Every irreducible poly. in $C$ is linear
+    - $C$ has no proper algebraic extensions
+  - Proofs
+    - $1 \rightarrow 2$
+      - Fix $f \in C[X]$, then $\alpha \in C, f(X) = g(X)(X - \alpha), g(X) \in C[X]$, and continue until $f$ splits
+    - $2 \rightarrow 3$
+      - Fix $f \in C[X]$, Then if $deg(f) > 1$, $f$ splits, and $f$ is not IRD.
+    - $C/F$, $C$ has no proper algebraic extensions
+      - Let $E \geq C$, be an AE of $F$, then take $\alpha \in E$, notice, $\exists f \in F[X]$, where $f(\alpha) = 0$, take $I = \{f(\alpha) = 0: f \in C[X]\}$, then $\langle I \rangle = \langle m \rangle$ where $m$ is IRD, but $deg(m) = 1$, thus $\alpha \in C$
+    - $4 \rightarrow 1$
+      - Suppose $C$ has no proper AEs, then fix $f \in C[X]$, where $f$ has no roots in $C$, then take $E$ to be the min. extension of $C$ where $f$ has a root, thus $E \geq C \land C \not = E$ (contradiction)
+  - **definitions**
+    - If $C$ is a field, and any (thus all) of the above properties hold, then $C$ is **algebraically closed**
+    - If any field extension $C/F$ satisfies the above properties and is algebraic over $F$, then $C$ is the **algebraic closure** of $F$
+  - If $E/F$, and $A \subset E$, where $a \in A$ is algebraic over $f$, then $A$ is a field, i.e $A = \overline{F}\cap E$
+    - Notice, $0, 1 \in A$, fix $a, b \in A$, then consider $F(\alpha, \beta)$, where $[F(\alpha, \beta) : F] = 2$ (finite, extension), and is thus algebraic over $F$, therefore $F(\alpha, \beta) \subset A$, thus the product, sum, difference, and fraction are in $A$
+  - If $E$ is algebraic over $K$, and $K$ is algebraic over $F$, then $E$ is algebraic over $F$
+    - Fix $\alpha \in E$, then $f \in K[X], f = \Sigma a_i X^i$ has $\alpha$ as a root, and $a_i \in K$, consider $K = F(a_1, \cdots, a_n)$, notice, $[K:F]$ is finite ($a_i$ is algebraic over $F$), thus $K$ is algebraic over $F$, furthermore, $[K[\alpha] : K] = n$, thus $[K[\alpha] : F] \leq [K[\alpha] : K][K : F]$, thus $K[\alpha]$ is algebraic over $F$, and since $\alpha \in K[\alpha]$, $\alpha$ is algebraic over $F$
+  - Let $C$ be AE of $F$. Then $C$ is AC of $F$ iff every NC poly. in $F[X]$ splits over $F$
+    - Forward
+      - Suppose $C$ is ALC of $F$. Then $C$ is algebraically closed, thus for $f \in F[X] \subset C[X]$, then $f$ splits in $C$
+    - Reverse
+      - Suppose $\forall f \in F[X]$, $f$ splits over $C$. Fix $E \geq C$, where $E$ is AE of $C$, then fix $\alpha \in E$, then by above, there exists $m \in F[X]$ (min. poly.), where $m(\alpha) = 0$, however, $m$ splits over $C$, thus $\alpha \in C$, thus $E \subset C$, and $E = C$, thus $C$ is algebraically closed.
+  - **problems**
+    - Suppose $E \geq F$, where $[E:F] = n$, then $E$ is generated by finitely many elements that are algebraic over $F$
+      - Triv.
+    - Show that there are countably many numbers that are algebraic over $\mathbb{Q}$
+      - Let $\alpha \in \mathbb{C}$, where $f \in \mathbb{Q}[X]$ such that $f(\alpha) = 0$, then take $f' = \beta f \in \mathbb{Z}[X]$, where $\beta$ is the lcm of the denominators in $f$, thus there are countably many of such polynomials $f'$
+    - Give example of $C / F$, where $C$ is AC but not AE of $F$
+      - 
 # Number Theory
 - Let $a \in \mathbb{Z}$, then $ord_p(a) = n \iff p^n | a \land p^{n + 1} \not | a$
 - If $a, b \in \mathbb{Z}$, then $\exist q, r \in \mathbb{Z}$ where $r < b$, 

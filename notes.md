@@ -3314,4 +3314,32 @@ $$p(z) = \Sigma_{0 \leq i \leq m-1} a_i z^i$$
     - Client has `ClientState` + `ConsensusState` 
 - ## Connections
   - For each channel in the DB, query the client-state associated with-it, if the channel for that client is in DB, check the chain associated with the channel, if that is in the DB, then make RPC query the counter-party chain
+
+## PushGateway
+- What is it?
+  - For services that are not daemons (execute for a finite amt. of time, and quit), the pushgateway serves as the daemon / prometheus server that hosts a `/metrics` endpoint for a grafana agent
+    - In short, if you have a script / short-job to run, and want to collect metrics, use this [package](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/push), and push to the skip prometheus push-gateway
+## Configuration
+- All jobs that are pushing metrics to the push-gateway will be scraped as if they all originate from the push-gateway
+  - To identify metrics per job, it is possible to attach a `job` attribute to each metric
+    - Note that each time a job writes metrics to the push-gateway, it will overwrite all metrics written previously w/ the same job-name
+- The skip push gateway is at `pushgateway-prod.skip-internal.money`, all metrics pushed here will be identifiable by their name
+  - Notice, the `instance` that these metrics originated from will be the push-gateway (not the instance the job was run on)
+- Nomad jobspec for push-gateway is here
+## Metrics For Batch Jobs
+- I consider metrics from these jobs to fall into two categories
+  - Was the job completed successfully?
+    - Last time the job was completed successfully
+    - Failure rate (counter paginated by success / failure)
+  - Metrics specific to the job
+    - You're on your own here...
+## Why we used the Push Gateway for Solve Indexing
+ - Currently solve relies on on-chain data
+   - This data is scraped from chains periodically through the [**indexing job**](https://github.com/skip-mev/solve/tree/main/indexing)
+ - The indexing job runs periodically, and is short lived
+    - This means that the usual way we export metric (through a server running along-side the service) will not work
+    - To accomodate this, we export all metrics from each job to the prometheus push-gateway
+    - The metrics exported by the indexing job are detailed [here](https://www.notion.so/skip-protocol/Metrics-785b29903c10476fa8521710521b408d)
+## Supporting Consumer ConsAddress changes in the sentinel
+- **problems**
   - 
