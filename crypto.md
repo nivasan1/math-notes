@@ -317,14 +317,28 @@
       - $r$ number of registers, i.e instructions can perform operations on these
       - $l$ instructions, the set of operations that can be performed on registers
   - ## Circuit Satisfiability Problem
+    - **circuit evaluation** - Given $\mathcal{C}$ (circuit), and $x$ (input), and $y$ (output), prove that $\mathcal{C}(x) = y$
+    - **circuit satisfaction** - $\mathcal{C}$ takes two inputs, $x$ (input), $w$ (witness). Given $\mathcal{C}$, $x$ (input), $y$ (output), prove whether $\exists w, \mathcal{C}(x, w) = y$
+      - Sometimes proof that $w$ exists is not enough
+      - **knowledge soundness** - Prover also proves that it knows a $w$
     - Given $\mathcal{C}$, takes two inputs, $x$ (input) $w$ (witness), determine whether $\mathcal{C}(x, w) = y$ (outputs)
       - **problem** - Given $\mathcal{C}$, $x, y$, determine whether or not there exists a witness $w$, such that $\mathcal{C}(x, w) = y$
     - More expressive than circuit evaluation
+    - **intuition**
+      - **CE** - Given some machine $M$ find a proof that $M(x) = y$
+      - **CS** - Prove that some proof $w$ exists that $M(x) = y$, and show that $M'(x, w) = y$ (show that proof exists, and is correct)
+        - Intuitively, knowing that a proof exists, and checking the proof is easier than finding it
+    - **example**
+      - Suppose $\mathcal{C}$ is a circuit that evaluates an arithmetic expression over $\mathbb{F}_q$, including $*, +, /$, notice $a / b$ is represented as $ab^{-1}$
+        - In arithmetic circuit for $\mathcal{C}$, gates are only +, *, this $\mathcal{C}$ for each divison $a / b$, has to be replaced w/ circuit finding $b^{-1}$ (complex)
+      - Instead treat $\mathcal{C}'$ (CSAT) circuit, where witness $w = (e_1, \cdots, e_n)$, where $e_1$ corresponds to the $b^{-1}$ for each $b$ involved in a division $a / b$
+      - Now circuit is j multiplication + addition (much less deep), but wider by $len(w)$, for each $e_i$, have a check that $e_i * b_i = 1$
     - **Succint Arguments**
       - $\mathcal{P}$ sends $w$ to $\mathcal{V}$, then $\mathcal{P}, \mathcal{V}$, evaluate GKR on $\mathcal{C}(x, w)$
         - Instead of sending $w$ in full, send $commit(w)$ to $\mathcal{V}$, and have $\mathcal{P}$ open commitment at random points
         - Final step of GKR requires evaluation of $\tilde{u}$ (MLE of $(x, w)$)
-  - ## Transformation
+  - ## Transformation (Circuit -> CSAT)
+    - Able to transform program in RAM that runs in $T$ time-steps, and uses $s$ memory cells into $log(T)$ depth, and width $T$
     - high-level
       - Specify **trace** of RAM $M$, i.e $T$ steps, where each step has values of each register in computation ($O(1)$) registers
     - **details**
@@ -338,11 +352,18 @@
       - Checks
         - Must check that values in memory are read / written to correctly (**memory-consistency**)
           - I.e value read is the latest value written
-        - Must check that $(t, m_1, \cdots, m_r, a_t) \rightarrow (t + 1, m'_1, \cdots, m'_r, a_{t + 1})$ follow correctly from state-transition defined by $\mathcal{C}$ (**time-consistency**)
+        - (Assuming memory-consistency) Must check that $(t, m_1, \cdots, m_r, a_t) \rightarrow (t + 1, m'_1, \cdots, m'_r, a_{t + 1})$ follow correctly from state-transition defined by $\mathcal{C}$ (**time-consistency**)
+          - What is instruction is LDUR? BC of memory-operation we can check that this value resulted from last write
       - Circuit construction
         - Represent transition function, as a small circuit that takes $l(i)$ (i.e $i$-th element of list), and checks that $l(i + 1)$ follows correctly (**time-consistency**)
         - **memory-consistency** - Order $l(i)$ according to $a_i.loc$, and time, check that for each read $a_t.val = a_{t'}.val$ where $t'$ is the latest time-step at which a write occurred to $a_t.loc$
-      - **transition-fn**
+    - ## Representing Transition Function
+      - For each time-step, have a selector (which instruction $l(t)$) is being executed
+      - From there represent configuration at $t$,  $C(t)$, as inputs to sub-circuit, and apply instruction sub-circuit on relevant inputs 
+        - Notice, application of sub-circuit for instruction has size $poly(W)$
+    - ## Representing Memory Consistency
+      - ## Sorting?
+        - Revisit
 - ## Succint Arguments
   - ## Arguments of Knowledge + SNARKs
     - **knowledge-soundness**
@@ -356,9 +377,194 @@
     - What does GKR need to know abt $w$
       - Let $w, x \in \{0,1\}^n$, can reprsent input $z = x \| w$, can construct $\tilde{z}(r_0, \cdots, r_{log(n)}) = (1 - r_0)\tilde{x}(r_1, \cdots, r_{logn}) + r_0 \tilde{w}(r_1, \cdots, r_{logn})$
       - $\mathcal{P}$ only has to open commitment to $\tilde{w}$ at $r_1, \cdots, r_{logn}$
-    - ### Knowledge Soundness
-      - 
-- ## Zero-Knowledge Proofs and Arguments
+  - ## What does $\mathcal{V}$ need to know about $\tilde{w}$
+    - Notice, final round of $\mathcal{V}$ evaluating GKR on $\mathcal{C}(x, w) = y$
+    - Let $z = w \| x$, where $len(x) = len(w) = n$, then $degree(\tilde{z}) = 2^{1 + log(n)}$
+      - Where $\tilde{z}(r_0, \cdots, r_{log(n)}) = (1 - r_0)\tilde{x}(r_1, \cdots, r_{log(n)}) + r_0 \tilde{w}(r_1, \cdots, r_{log(n)})$
+  - ## Knowledge Soundness
+    - **witness extraction** If $\mathcal{P}$ convinces $\mathcal{V}$ of $\exists w, \mathcal{C}(x, w) = y$, then there exists an efficient $\mathcal{E}$, w/ rewinding access to $\mathcal{P}$ can extract a $w$ satisfying CS
+    - **extractability of poly. commits**
+      - commitment scheme, where if $\mathcal{V}$ is able to rewind $\mathcal{P}$'s poly. commit, then it can extract $p$ (i.e $\mathcal{P}$ certainly knows a $p$ from the commitment)
+- ## Low Degree Tests
+  - Form of poly. commitment
+    - Not exactly, only works for low-degree MV poly.
+  - Given $\mathcal{O}$ (oracle), which gives evaluation of poly. at specified point
+  - The LDT guarantees that the commitment has low Hamming-Degree distance from specified poly. $p$
+    - i.e $s, p$ agree on $\lambda$ (fraction) of all points
+  - Example given $s$, commitment to some $p : \mathbb{F}^k \rightarrow \mathbb{F}$, take $l : \mathbb{F}^k \rightarrow \mathbb{F}$ (line), and check that $s(l) = p(l)$
+- ## MIPs / Succint Arguments
+  - **protocol** - Involves $k$-provers, $\mathcal{P}_i$, and $\mathcal{V}$ (PPT-verifier)
+    - Transcript defined analogously $t = (\mathcal{V}(r), \mathcal{P}_1, \cdots, \mathcal{P}_k)$
+      - $\mathcal{P}_i$ have no interaction w/ each other -> otherwise $MIP = IP$
+  - ## Second Prover?
+    - **non-adaptivity** - $\mathcal{P}_1$'s response to $\mathcal{V}(r)_i$ (message from $\mathcal{V}$ at $i$), cannot depend on $\mathcal{P}_i$'s prev. answers, as $\mathcal{V}$ could have also sent diff. messages to $\mathcal{P}_2$
+    - analog is prisoners being interrogated
+      - prisoner's dilemma if any of the other provers are truthful, the other lying provers can be detected
+    - Let $\mathcal{L}$ be language, $M$ PPT oracle TM for $\mathcal{L}$. Let $M^{\mathcal{O}}$ be the $M$ when given access to $\mathcal{O}$. Suppose if $x \in \mathcal{L}$, $\exists \mathcal{O}, where Pr[M^{\mathcal{O}}(x) = 1] = 1$, and for $x \not \in \mathcal{L}$, $\forall \mathcal{O}, Pr[M^{\mathcal{O}}(x) = 1] < 1/3$. Then there is 2-prover MIP for $M$
+      - **proof**
+        - **idea** - Construct 2-prover MIP w/ perfect completeness, and high-soundness, then repeat protocol 
+        - **2-prover MIP**
+          - $\mathcal{V}$ executes $M^{\mathcal{O}}(x)$, and for each $\mathcal{O}(q)$, $\mathcal{V}$ posits query to $\mathcal{P}_1$, for value
+            - Final round, $\mathcal{V}$ poses random query to $\mathcal{P}_2$, and cross-verifies w/ $\mathcal{P}_1$'s answer
+          - **perfect completeness**
+            - Triv, $\mathcal{P}$, $\mathcal{P}_2$ j respond w/ $\mathcal{O}$
+          - **soundness**
+            - If $x \not \in \mathcal{L}$, and $\mathcal{P}$ responds w/ any $\mathcal{O}$, then $Pr[\mathcal{V} reject] \geq 2/3$, otherwise, if $\mathcal{P}_1$ responds w/ diff $\mathcal{O}'(q)$, prob of $\mathcal{V}$ asking
+      - **intuition**
+        - $\mathcal{P}_2$ is treated as oracle 
+          - Only asked 1 query, w/ no-communication elsewhere, thus must return some random value $\mathcal{O}$
+        - If $\mathcal{P}_1$ acts adaptively (i.e not as an oracle / circuit), then $\mathcal{P}_2$ will disagree
+    - ### Why non-adaptivity
+      - Buys succinctness for NP statements
+        - Analogous to protocol for evaluating $\mathcal{C}(x, w) = y$, where $\mathcal{P}$ commits to $\tilde{w}$, and $\mathcal{V}$ executes GKR on $\mathcal{C}$
+    - ### MIP for C-SAT
+      - **warmup**
+        - **intuition** - Use $\mathcal{P}_2$ to function as poly. commit, i.e $\mathcal{P}_2$ functions to make $\mathcal{P}_1$'s response non-adaptive
+        - I.e use $\mathcal{P}_2$ to perform a low-degree test of $\tilde{w}$ to ensure that $\mathcal{P}_1$'s response of $\tilde{w}(r)$ was correct
+      - **protocol**
+        - **summary**
+          - Let $\mathcal{C}(x, w)$ be C-SAT over $\mathbb{F}$, let $S = 2^k$ be the # of gates in $\mathcal{C}$
+            - Let $W : \{0,1\}^k \rightarrow \mathbb{F}$ be a **transcript** for $\mathcal{C}$ (i.e description of execuction) where $W(b)$, is the $b-th$ gate assignment
+          - Let $W$ be the witness for $\mathcal{C}(x) = y$
+        - **overview**
+          - $\mathcal{P}_1$ claims to hold $Z = \tilde{W}$ for $\{\mathcal{C}, x, y\}$
+          - Identify $g_{x, y, Z}: \mathbb{F}^{3k} \rightarrow \mathbb{F}$, where $\Sigma_{a,b,c \in \{0,1\}^k} g_{x, y, Z}(a, b, c) = 0 \iff Z = \tilde{W}$
+            - i.e apply SC to $g_{x, y, Z}$
+        - Comparison to GKR
+          - GKR executes sum-check for each layer of circuit
+            - Prover only making claim about input alone
+              - Verifier does not execute circuit, does not have access to information abt. intermediate gates (in single prover)
+            - Verifier does not a-priori know the gates of the circuit (CE)
+          - MIP  executes GKR on all gates at once, how?
+            - Proof of CS, take witness as intermediate gates in execution of circuit
+            - $\mathcal{V}$ has access to multiple provers, can prod other provers for info abt the intermediate gates
+              - Can get the same benefit by having prover commit to transcript, and reveal evaluations later (non-adaptivity)
+        - **details**
+          - $add, mult: \{0,1\}^{3k} \rightarrow \{0,1\}$ - functions where $add(a, b, c) = 1$, if $a$ adds $b, c$
+          - $io : \{0,1\}^{3k} \rightarrow\{0,1\}$, where $io(a, b, c) = 1$ if $a$ is input and $b = c = 0$, or $a$ is output, and $b, v$ are children of $a$
+          - $I_{x, y} : \{0,1\} \rightarrow \mathbb{F}$, where $I_{x,y}(a) = x_a$ or $I_{x, y}(a) = y_a$
+        - Construction of $G_{x, y, W}(a, b, c) : \{0,1\}^{3k} \rightarrow \mathbb{F}$, where $\forall a,b,c, G_{x, y, W}(a, b, c) = 0 \iff W = \mathcal{C, x, y}$
+          - $G_{x, y, W}(a,b,c) = io(a, b, c)(I(x, y)(a) - W(a)) + add(a, b, c)(W(a) - (W(b) + W(c))) +  mult(a, b, c)(W(a) - W(b)W(c))$
+          - Then for $Z$ (a proposed mLE of $W$), $g_{x, y, Z}(a, b, c) = \tilde{io}(a, b, c)(\tilde{I}(x, y)(a) - Z(a)) + \tilde{add}(a, b, c)(Z(a) - (Z(b) + Z(c))) + \tilde{mult}(a, b, c)(Z(a) - Z(b)Z(c))$
+        - Construction of $h_{x, y, Z}$, where $\Sigma_{a, b, c \in \{0,1\}^k} h_{x, y, Z}(a, b, c) = 0 \iff \forall a, b, c g_{x, y, Z}(a, b, c) = 0$
+    - ### Succint Argument For Deep Circuits
+      - Polynomial commit schemes are bottleneck for prover + verifier
+      - MIP argument, takes transcript as witness, and only requires evaluation of SC on witness based poly.
+      - GKR linear in depth
+    - ## Circuit-SAT -> R1CS-SAT
+      - Arithmetic circuit satisfiability -> Form of **intermediate representation**
+      - R1CS -> also form of **intermediate representation**
+      - **R1CS**
+        - Set of $A, B, C \in Mat(\mathbb{F}, n)$, is satisfiable if $\exists, z \in \mathbb{F}^n, (A\cdot z) \odot (B \cdot z) = C \cdot z$ ($z$ is witness)
+          - $\odot$ is pair-wise multiplication of entries in vector (Hadamard product)
+          - **rank-1-constraint** - Denote $A_i$ as the $i$-th row of $A$, then $\langle A_i, z \rangle \langle B_i, z\rangle = \langle C_i, z \rangle$
+          - **rank-1** - Operation only involves single multiplications + additions
+      - Any instance of ACS -> R1CS
+      - **relationship**
+        - #of rows / columns in $A/B/C$ is ~ #of gates in $\mathcal{C}$ (ACS for a circuit)
+        - #of non-zero entries in $A/B/C$ bound-above by fan-in of circuit (matrices are sparse)
+        - **transformation**
+          - Let $\{\mathcal{C}, x, y\}$ be ACS, and $\mathcal{P}$ wants to convice $\mathcal{V}$ $\exists w, \mathcal{C}(x, w) = y$
+          - Let $N$ be the #of gates of $\mathcal{C}$ (excluding at depth 0) + $len(w) + len(x)$, i.e $a \in \mathbb{F}^N$ (contains gates + x + w)
+          - **constraints**
+            - One for each non-input / output gate, 2 for each output gate, thus matrices are $M \times (N + 1)$ (witness length is $N + 1$), and $M = N + y - w$
+            - How to construct $z$, $A, B, C$ s.t $(A \cdot z) \odot (B \cdot z) = (C \cdot z)$, $z$ iff $\exists w, \mathcal{C}(x, w) = y$?
+              - Each entry in $z$ represents either $x_i, w_i$ or a gate in circuit, first entry $z_1 = 1$
+              - **inputs** - For $j$-th entry in $z$ ($z_j$), corresponding to $x_i$, constraint is that $z_j = x_i$, i.e j-th row of $A$ is $e_1$, j-th row of $B$ is $e_j$, and j-th row of $C$ is $x_i \cdot e_1$, thus $z_j - x_i = 0$
+              - **outputs** - Same is done for outputs, i.e for $z_j$ capturing $y_i$, capture $z_j - y_i = 0$
+              - **addition gates**
+                - For $z_j$ representing an addition gate between $z_{k}, z_m$ (either inputs or witness), capture $z_j - (z_k + z_m)$
+                - i.e $A_j = e_1$, $B_j = e_k + e_m$, $C_j = e_j$
+              - **multiplication gates**
+                - For $z_j$ representing multiplication gate between $z_k, z_m$ capture $z_j - z_k * z_m$
+                - $A_j = e_k$, $B_j = e_m$, $C_j = e_j$
+      - ### MIP for R1CS-SAT
+        - View matrices $A,B,C$, as $f_A, f_B, f_C : \{0,1\}^{log_2m}\times \{0,1\}^{log_2n} \rightarrow \mathbb{F}$, transcript viewed as $Z : \mathbb{F}^{log_2(n)} \rightarrow \mathbb{F}$, and, $\forall a \in \{0,1\}^{log_2m}$ (i.e for each constraint)
+          $$g_{A, B, C, Z}(a) = (\Sigma_{b \in \{0,1\}^{log_2n}}\tilde{f_A}(a, b)Z(b)) \cdot (\Sigma_{b \in \{0,1\}^{log_2(n)}}\tilde{f_B}(a,b)Z(b)) - \Sigma_{b \in \{0,1\}^{log_2n}}\tilde{f_C}(a, b) Z(b) = 0$$
+        - Polynomial above is $log_2(m)$ variate poly. , and sum over all inputs must be $0$
+          - Apply sum-check to the poly.?
+          - Slight modification - Must create $h_{A, B, C, Z}$ such that, $g_{A, B, C, Z}$ vanishes on $\{0,1\}^{log_2(m)}$ iff $\Sigma_{b \in \{0,1\}^{log_2(m)}} h_{A, B, C, Z} = 0$
+- ## PCPs and Succint Arguments
+  - IP - $\mathcal{P}$ asked questions by verifier, and $\mathcal{P}$ behaves adaptively
+  - **PCP** - proof is $\pi$, i.e static object, that has well-defined responses to each query $q_i$ asked by $\mathcal{V}$, answers are not dependent upon $q_j, j < i$
+    - A PCP for $\mathcal{L}$, is $(\mathcal{V}, \pi, x)$, $\pi \in \Sigma^l$
+      - **completeness** - For every $x \in \mathbb{L}$, there exists a $\pi \in \Sigma^l$, where $Pr[\mathcal{V}^{\pi} = 1] \geq 1 - \delta_c$
+      - **soundness** - For every $x \not\in \mathcal{L}$ and each proof string $\pi \in \Sigma^l$, $Pr[\mathcal{V}^{\pi}(x) = 1] \leq \delta_s$
+  - ### MIP -> PCP
+    - Suppose $\mathcal{L} \subset \{0,1\}^*$ has a $k$-prover MIP, where to each $\mathcal{P}_i$ $\mathcal{V}$ sends a single query of size $r_Q$, and response size of $r_A$, then the PCP has length $k * 2^{r_Q}$
+      - I.e for each prover, PCP has to accomodate all possible queries that $\mathcal{V}$ could have sent. (NON-interactive?), i.e MIP $\mathcal{P}$ can act adaptively, and lessen problem space to set of questions that $\mathcal{V}$ has asked
+      - Prover run-time increase significantly from MIP, verifier run-time is the same
+  - ### PCP -> succint argument?
+    - I.e want to have a succint PCP for CS of $\{\mathcal{C}, x, y\}$
+      - With GKR (IP), send PC of $\tilde{w}$, and evaluate GKR on $\mathcal{C}(x, w) = y$
+    - Any PCP -> SA
+      - Any PCP -> 4 message argument system for all of NP
+      - Each communication step (Oracle samples), $O(log(n))$ hash values (merkle-proof?)
+      - Applying FS, yields NIP in ROM
+    - **intuition**
+      - Prover makes $\pi$ (PCP), and forms merkle tree w/ leaves as evaluations of $\pi$ for all possible evaluations (i.e charaters of string) (COMMIT PHASE)
+      - $\mathcal{V}$ simulates PCP-verifier, and requests evaluations from merkle tree at all specified evaluations from PCP-verification
+      - **completeness** - Triv.
+      - **soundness** - Rely on collision resistance, i.e intractable for prover to find collisions, thus if $\mathcal{P}$ sends $C(\pi)$ it is impossible to send $\pi'(q_i)$ for any $i$, unless $\pi'(q_i) = \pi(q_i)$
+    - **question**
+      - Commitment to $\pi$, $C(\pi)$ (if it is merkle VC), how to address LDT? For $\pi$
+        - I.e $\mathcal{V}$ has no assurance that leaves are all / only evaluations of $\pi$? Choose random evaluation
+    - ## Witness Extraction of PCP / Knowledge Soundness
+      - As long as underlying PCP is KS, the FS + succinct PCP is also Knowledge sound, thus it is a SNARK
+    - ### MIP -> PCP
+      - Can transform MIP using SC over $h_{x, y, Z}$ (where $x, y$ is input/output, and $Z$ is MLE of transcript), into a PCP, where $\pi$ is set of all possible evaluations of $Z$ (restricted to line), 
+- # Interactive Oracle Proofs
+  - Messages sent from $\mathcal{P}$ are not read in full by $\mathcal{V}$
+    - i.e leads to sub-linear time verifier strategies
+  - ## Polynomial IOPs
+    - Let $m_i$ be a message from $\mathcal{P}$ that is not read in full by $\mathcal{V}$, 
+      - $m_i$ represented as string, and $\mathcal{O}$, oracle to give query access to symbols of $m_i$
+    - In **polynomial IOP**, _special messages_ (messages not fully processed by $\mathcal{V}$), represented as poly. $h_i$ over $\mathbb{F}$ w/ max degree $d_i$
+      - Poly. usually uni-variate
+      - Max degree generally large, For R1CS may be as large as $S$ (prefer to send commitment)
+    - Steps for obtaining SNARK 
+      1. Design poly. IOP for circuit / R1CS-SAT
+      2. Replace _special messages_ w/ poly. commitment scheme
+      3. Apply FS
+    - IP / MIP as poly. IOP?
+  - ## Polynomial IOP for R1CS-SAT
+    - ### Univariate Sum-Check
+      - Results in constant rounds (as opposed to $O(log(n))$ rounds in MV-SC)
+      - **description**
+        - **fact** - Let $\mathbb{F}$ be finite field, and $H \subset \mathbb{F}$ a MG where $O(H) = n$, then $\Sigma_{a \in H} q(a) = q(0) * H$
+          - Notice, for $\Pi_{a \in H} (x - a) = X^n - 1$, coeff of $X^{n - 1}$ is $\Sigma_{a \in H} a = 0$
+            - Thus for $q(X) = X, \Sigma_{a \in H} q(a) = 0$
+          - Similarly, for $q(X) = X^m$ where $gcd(m, n) = 0$, let $\langle h \rangle = H \rightarrow \langle h^m \rangle = H$, then $\Sigma_{a \in H} q(a) = \Sigma_{a \in H} (h^m)^j = \Sigma_{a \in H} a = 0$
+          - For $q(X) = X^m$ where $gcd(m, n) =d$, $\langle h^m \rangle = H' \subset H$, i.e $h^m$ generates sub-grp of $H$, and $\Sigma_{a \in H}q(a) = (1 + h + h^2 + \cdots + h^d) \Sigma_{a \in H'}q(a) = 0$
+          - Thus for $q(a) = \Sigma_i q_i a^{i}$, $\Sigma_{a \in H} q(a) = \Sigma_i q_i\Sigma_{a \in H} a^i = \Sigma_{a \in H} q_0 = q(0)*H$
+        - Let $\mathbb{Z}_H(X) = \Pi_{a \in H} (X - a)$ (poly vanishes on $H$)
+        - $\Sigma_{a \in H} p(a) = 0 \iff p(X) = q(X)(X^n - 1) + X \cdot f(X)$
+          - Forward
+            - Triv
+          - Converse
+            - Triv
+          - Intuition, the same as proving that $p(0) = 0$, i.e $p(X)$ has no constant term
+    - Problem
+      - For USC, where $\Sigma_{a \in H} p(a) = 0$,
+        - Problem of committing to $p(a) = 0$, is triv. prover j commits to some poly. where $q(0) = 0$, how to get around this?
+      - Commit to $q(x), f(X)$ (above), and prove evaluations at some random point co-incide
+    - Second Problem
+      - Why not use MIP for R1CS? Requires $O(log(m)log(n))$ rounds, i.e for each constraint have to send $log(n)$-variate poly.
+      - Instead, only send uni-variate poly. that results in constant rounds
+    - **description**
+      - Given $A, B, C$ R1CS instance, and $z$ (witness), let $\hat{z}$ be the uni-variate extension of $z$, $\hat{z_A}, \hat{z_B}, \hat{z_C}$ the analogous univariate extensions of $Az, Bz, Cz$
+        - Thus $\forall h \in H, \hat{z_A}(h) \cdot \hat{Z_B}(h) = \hat{z_C}(h)$
+          - Then $\hat{z_A}\cdot \hat{z}_B - \hat{z}_C = h^*(X) \cdot \mathbb{Z}_H(X)$ ( apply schwartz-zippel and check eval at random)
+        - $h \in H, M \in \{A, B, C\}, \hat{z_M}(h) = \Sigma_{j \in H}M_{h, j}\hat{z}(j)$
+      - Checking $M \in \{A, B, C\}$, let $\hat{M}(X, Y)$ denote bi-variate MLE of $M$, thus $\hat{z}_M(X) = \Sigma_{j \in H}\hat{M}(X, j)\hat{z}(j)$
+        - Then $q(Y) = \hat{M}(r', Y)\hat{z}(Y) - \hat{z}_M(r')O(H)^{-1}$, $\Sigma_{X \in H}q(X) = 0$
+          - Apply univariate sum-check (constant number of rounds)
+      - $\mathcal{V}$ has to compute $\hat{M}(r', r'')$ (is this hard?)
+  - ### FRI poly commit
+    - 
+- # ZK via Commit And Prove 
+  - 
+- # Zero-Knowledge Proofs and Arguments 
   - Verifier learns nothing from $\mathcal{P}$ apart from validity of statement being proven
     - Existence of **simulator** - Given inputs to be proved, produces distribution over transcripts indistinguishable from the distribution over transcripts produced when $\mathcal{V}$ interacts with honest prover
   - Let $\mathcal{P}$, $\mathcal{V}$ be a PS, then it is **zero-knowledge** if $\forall, \hat{\mathcal{V}}$ (poly. time verifier), there exists a PPT $S$, where $\forall x \in \mathcal{L}$, the distribution of the output $S(x)$ is indistinguishable from $View(\mathcal{P}(x), \hat{\mathcal{V}}(x))$ (distribution of all transcripts from execution of $\mathcal{P}, \mathcal{V}$)
@@ -415,6 +621,7 @@
     - Protocol consists of 3-messages, $(a, e, z)$
     - Perfect completeness
   - **special soundness** - There exists PPT $\mathcal{Q}$, where when given $(a, e, z)$, and $(a, e', z')$ (accepting transcripts), where $e \not= e'$, $\mathcal{Q}$ outputs, $(h,w) \in \mathcal{R}$
+    - Useful for witness extraction (proving knowledge-soundness)
   - **attempt protocol**
     - $\mathcal{R}_{DL} = \{(h,w) : h = g^w\}$
     - $\mathcal{P}, \mathcal{V}$ know $h, g$, $\mathcal{P}$ hold $(h,w)$
@@ -437,7 +644,7 @@
 - ## Fiat-Shamir in $\Sigma$-protocols
   - If $(a, e, z)$ is the transcript from a $\Sigma$-P $\mathcal{I}$, and $\mathcal{Q}$ be the NI argument obtained from applying FS, where $e = R(h, a)$
     - Notice, by **special-soundness**, a witness $w$ can be obtained from $\mathcal{Q}$ by executing twice, contradicting intractibility of $\mathcal{R}$
-  - 
+  - ### Creating argument of knowledge from $\Sigma$-Protocol via FS
 - ## Commitment Schemes
   - Two parties, $\mathcal{P}$ (comitter), $\mathcal{V}$ (verifier)
   - **binding** - Once $\mathcal{P}$ sends $\mathcal{C}(m)$, $\mathcal{P}$ cannot _open_ the commitment to anything else, i.e $\mathcal{C}(m_1) \not= \mathcal{C}(m_2)$
@@ -455,10 +662,17 @@
       - Retrieve CS from schnorr $\Sigma$-protocol
       - $(h,w) \leftarrow Gen$, $ck = vk = h$, i,e $h = g^w$
         - $w$ is considered toxic-waste (i.e must be removed otherwise, binding is not satisfied)
+        - Construction of SRS?
       - To commit to $m$
-        - Committer runs simulator to obtain $S(h) = (a, m, z)$, send $a$ as commitment
+        - Committer runs simulator to obtain $S(h, m) = (a, m, z)$, send $a$ as commitment
+          - Notice $S$ (simulator) is specially-HVZK, i.e can also take $m$ (challenge) and generate indistinguishable challenges
       - Verification
         - Send $m, z$, verifier runs $\Sigma$ on $(a, m, z)$
+          - Notice, $S(h, m) = (a, m, z)$, where $z \leftarrow^{R} \mathbb{G}$, i.e $a = (h^m)^{-1}g^z$
+      - **pederson commitments**
+        - Apply Damgard trans. to Schnorr $\Sigma$ protocol (common params are $\langle g \rangle = \mathbb{G}, \langle h \rangle = \mathbb{G}$)
+        - $\mathcal{P}$ wants to commit to $m$, $\mathcal{C} = g^m h^z$ (notice, $g^m$ is also a hiding / binding commitment, $z$ is essentially salt)
+        - $\mathcal{P}$ opens via $(m,z)$
     - **Properties**
       - Perfectly hiding
         - Commitment $a$ is independent from $m$ (challenge)
@@ -466,7 +680,32 @@
         - 
       - Computational Binding
         - Special soundness of $\Sigma$, implies that if $(a, m', z'), (a, m, z) \in \mathcal{R}$, then witness extraction is poly. time computable **hardness** of $\mathcal{R}$ is violated
-- 
+    - $(h, _)$ (cvk, vrk) can be generated transparently, as long as generator $h$ is chosen, choose $h' \leftarrow^{R} \mathbb{G}$, and no toxic waste exists
+  - **pederson commitments**
+    - Additively HM
+      - I.e for $m_1, m_2$, where $c(m_1) = (a_1, m_1, z_1)$, and $a_1 = g^{z_1}h^{-m_1}$
+        - $c(m_1 + m_2) = a_1a_2 = g^{z_1}h^{-m_1}g^{z_2}h^{-m_2}$
+    - **how to make PC hide the message**? (HVZK)
+      - In above protocol $m$ is revealed in opening info... how to open commitment $c$ without revealing $m$?
+        - Even better, prove knowledge of opening (but don't open commitment)
+      - Goal- $\mathcal{P}$ proves to $\mathcal{V}$, that it knows $m, z$, where $c = g^mh^{z} = Com(m, z)$
+      - **protocol** (notice this is the opening procedure for $\mathcal{C} = PC(m, z) = g^m h^z$)
+        - $\mathcal{P}$, $d, r \leftarrow^{R} \mathbb{Z}$, sends $a = g^dh^r = Com(d, r)$
+        - $\mathcal{V}$ sends $e \leftarrow \mathbb{Z}$ to $\mathcal{P}$
+        - $\mathcal{P}$ sends $(me + d, ze + r)$, and $g^{me + d}h^{ze + r} = (g^mh^z)^e a = c^ea$
+- # Masking Polynomials
+  - **commit and prove**
+    - $\mathcal{P}, \mathcal{V}$ want to agree on $\mathcal{C}(x, w) = 1$, then $\mathcal{P}$ can commit to $Com(w)$ to $\mathcal{V}$, execute $\mathcal{C}(x, w) = 1$
+      - $\mathcal{P}$ sends PCs to all $w_i$, and for each multiplication gate in $\mathcal{C}_x$
+        - Round 1. Use HVZK opening of $w_i$ to prove opening
+        - Round 2. For height $h$, take comms from $h - 1$ if addition add comms, if mult. $\mathcal{P}$ sends comms
+        - Final round, use schnorr for ZK knowledge of PC to $y$
+  - ## Adaptations (ZK via Masking Poly.)
+    - How to reduce number of commitments to be sub-linear in witness size + multiplicative
+      - Commit to $\tilde{w}$ using extractable poly. commitment (FRI, bulletproofs, KZG, etc.)
+    - **ZK sum-check**
+- # Poly Commitments from KZG
+  - 
 - # Cryptograhic Pairings
   - **DLP** - Suppose $G = \langle P \rangle$, then given $Q = aP$, it is intractable to determine $a$ from j $Q, P$
     - Multiplicative grp. of finite field
@@ -619,3 +858,142 @@
       - Quadratic Non-Residue zk-proof
       - Schnorr
         - Brief intro to grp. theory
+# Ferveo
+ - Tying consensus layer security assumptions w/ threshold cryptography to achieve strong mempool layer privacy guarantees
+   - Txs encrypted until block-finalization
+   - Txs decrypted in order at block finalization
+ - **ferveo** - DKG + TPKE protocol for TM based PoS blockchains
+   - ~10ms compute per tx
+ - **DKG**
+   - Generates pub-key and $n$ priv-key shares held by set of entities (validators)
+ - **TPKE** 
+   - For fixed threshold $t$, allows any subset of at least $t \subset n$ shares to decrypt messages encrypted with pub-key generated above
+ - **alternatives**
+   - **Timelock Encryption** - Based on VDF, requires $T$ timesteps to decrypt txs
+   - **TEE Encryption** - 
+   - **Witness Encryption** - 
+ - ## Techniques + Design Goals
+   - **properties**
+     - Information safety: infeasible to decrypt contents of tx prior to finalization of block containing it
+     - Execution Guarantee: Once a valid tx is committed to a block, it must be executed
+     - Efficiency: Computationally + communication efficient to not limit thru-put + latency of network
+   - **bottlenecks**
+     - Number of key-shares linearly increases time for decryption
+       - I.e large-validator set = large distribution of tokens = requires larger number of shares to align w/ validator set distribution
+   - **partitioning**
+     - Take $\lfloor\frac{power(val_i)}{total\_power} * total\_shares \rfloor$ (leads to some approximate error), i.e $n$ validators can be mis-allocated
+       - Under-estimate stake?
+   - **public fees**
+     - Fees are public, i.e don't execute tx before block is committed, so must exhaust all of gas_limit on submission (tx-reversion possible),
+     - Simulate txs before submission for approx. gas consumption determination?
+   - **consensus efficiency**
+     - Per tx, all priv-key shares must be broadcast for validator
+   - **maliciously crafted txs?**
+   - **epoched staking**
+     - I.e must determine shares in advance for each epoch (one DKG round per epoch)
+- ## Crypto
+  - Uses **scrape**
+    - $scrape.Deal(bp, ek_1, \cdots, ek_n) \rightarrow pvss$, where $ek_i = [dk_i]H$, where $ek_i$ are public, but only each $P_i$ knows $dk_i$
+      - Randomly uniformly select $f(x) = a_0 + a_1x + \cdots + a_tx^t$
+      - $(a_i, \cdots, a_t) \leftarrow \mathbb{F}^t$
+      - $F_0, \cdots, F_t \leftarrow [a_0]G, \cdots, [a_t]G$, $\langle G \rangle = \mathbb{G_1}$
+      - $A_1, \cdots, A_n \leftarrow [f(\omega_1)]G, \cdots, [f(\omega_n)]G$
+      - $Y_1, \cdots, Y_n \leftarrow [f(\omega_1)]ek_1, \cdots, [f(\omega_n)]ek_n$
+      - $pvss \leftarrow (F_0, \cdots, F_t, A_1, \cdots, A_n, Y_1, \cdots, Y_n)$
+  - **verification**
+    - $scrape.Verify(bp, ek_1, \cdots, ek_n, pvss) \rightarrow \{0,1\}$
+      - Choose uniformly random $\alpha \leftarrow \mathbb{F}$
+      - Check $\Pi_{j = 1}^n A_j^{l_j(\alpha)} = \Pi_{j = 0}^t F_j^{\alpha_j}$
+        - Poly evaluation at $\alpha$ hidden via pederson commitments
+      - Check $\forall j, e(G, Y_j) = e(A_j, ek_j)$
+  - Scrape yields a HM additive transcript
+- ## DKG
+  - Requires no trusted party
+    - Each validator acts as a PVSS dealer, add all shares together
+  - **algorithm**
+    - Each validator $V_i \in ValSet$
+      - $V_i$ generates $dk_i$
+      - $V_i$ announces $ek_i = [dk_i]H$ on blockchain
+    - Each validator $V_i$ runs _PartitionDomain_
+      - Allocates shares to validators in set according to voting-power
+    - Each validator $V_i$
+      - $V_i$ computes $pvss_i \leftarrow Scrape.Deal$
+      - $V_i$ post $pvss_i$ 
+    - Each validator $V_i$
+      - For each $V_j \in ValSet, j \not= i$
+        - $V_i$ runs $Scrape.verify(pvss_j)$
+        - $V_i$ computes $pvss \leftarrow pvss + pvss_j$
+      - When $2/3$ by voting power of vals have posted $pvss_j$ exit
+    - Liveness dependent upon $1/3$
+  - Final pub-key for DKG is $F_0$
+- ## Encryption
+  - Given $Y$ (public key, $Y \in \mathbb{G}_1$), $aad$ (authentication-data (nonce, etc.)) generate a shared secret $S$ (symmetric encryption / decryption key)
+    - Generate $(U,W)$ (cipher-text (posted to block-chain)), and $S$ symmetric key used to encrypt tx (AEAD)
+  - Given $TPKE.Encrypt(Y, aad)$ to create $(U, W, aad)$ (public), $S$ (secret)
+    - Where counter-party with priv-key for $Y$ can recover $S$ from $(U, W)$
+    - Let $r \leftarrow \mathbb{F}$
+    - Let $S = e([r]Y, H)$
+    - Let $U = [r]G$
+    - Let $W = [r]H_{\mathbb{G}_2}(U, aad)$ ($H_{\mathbb{G}_2}$ is hash fn. mapping into $\mathbb{G}_2$)
+  - **validity checking**
+- ## Decryption Shares
+  - Decryption share for $V_i$ for $(U, W)$ is $D_i = [dk_i^{-1}]U$
+  - Verification for $V_j$, can be done as follows $e(D_i, ek_i) = e([dk_i^{-1}]U, dk_iH) = e(U, H)$
+  - If validator owns multiple shares, only single DS is necessary
+- ## Tx Decryption
+  - $V_p$ selected as block-proposer
+  - $V_p$ fills block w/ encrypted txs $(U_i, W_i)$ (**PrepareProposal**)
+  - For each validator $V_i \in val\_set$ (**ExtendVote**)
+    - For each $(U_j, W_j) \in Block$
+      - $V_i$ check validity of $(U_j, W_j)$
+      - $V_i$ computes $D_{i,j} = [dk_i^{-1}]U_j$
+    - $V_i$ includes $D_{i,j}$ in block (notice, this is linear in $len(block)$)
+  - For each validator $V_i$ (**VerifyExtension**)
+    - For each $D_{k, j}$ from $V_k$ for each $(U_j, W_j)$ in block
+      - $V_i$ checks validity of $D_{k, j}$
+    - If all of $V_k$'s shares are valid, add vote from $V_k$
+  - **commit**
+    - For each $(U_i, W_i)$ in block
+      - $V_p$ aggregates $D_{j,i}$ from $V_j \in signers(block)$ into $S_i$, and decrypts $tx_i$
+      - Executes, and publishes $S_i$ in block (instead of shares)
+
+# Lit
+ - Network of nodes participating in DKG
+ - enables nodes to accept $A$ (condition) for message $ID$, and only produce $D_i$ (decryption share) if $A$ is satisfied
+## Encryption (not dependent on liveness of lit?)
+- User requests $D$ from lit for access conditions $A$ (block header of next block (or within $n$ blocks)), for $ID = hash(message)$
+  - Important, the generation of $D$ (symmetric key) does not depend on Lit val-set (I assume that this process will change as val-set of lit changes, so depends on liveness of lit network)
+- User encrypts tx, ID according to $D$, and posts to chain
+## Decryption
+- block-builder presents IDs for encrypted txs to lit
+  - Waits for response from lit
+- Proposer waits for txs for become finalized
+- Proposer combines shares to decrypt txs
+
+# Fairblock
+- Only broadcast shares $O(len(val\_set))$ use identity-based encryption
+- **identity based Encryption**
+  - Pk is determined uniquely from identifying info, i.e TTP generates pbk from pvk + $ID_A$
+- **phases**
+  - Enrollment - validators bond tokens to participate in DKG
+  - DKG
+    - Vals generate shared pk $spk$, and $msk_i$ (sharded master key) (run every-time keeper set changes)
+  - Encryption + commitment
+    - Use BF IBE, where $h = ID$ (block-id), and pk is $spk$
+    - broadcasts encrypted tx + commitment to tx plain-text (maintain ordering)
+  -
+# Presentation Outline
+## High Level Overview
+- Problem: stop front-running
+- Potential Solutions
+  - Proto-rev, cowSwap
+  - SGX
+  - etc.
+- Threshold Decryption + DKG
+  - DKG + TD
+  - Ferveo
+    - Considerations
+    - Disadvantages
+      - One share per tx in block (have to b.c vals can't reveal priv-key shares for risk of running DKG again)
+  - Lit
+- 

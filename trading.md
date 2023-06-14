@@ -1,0 +1,17 @@
+# Trading
+- Write smth here every day
+- ## Bad-kids
+  - Stride?
+- ## Zk-EVMs
+  - Polygon?
+    - What is Matic prev. max MCAP
+  - Scroll?
+- ## Remilia?
+  - Invest in meme
+- ## Osmosis?
+  - Stride?
+- ## Ghostly Ghosts?
+  - Good meme? First omni-chain NFTs
+- Time horizon for trades?
+- ## Money Markets?
+  - Non-crypto trades?
