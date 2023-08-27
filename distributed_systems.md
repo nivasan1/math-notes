@@ -2213,8 +2213,27 @@ type EventuallyPerfectFailureDetector interface {
     - Organize validators into sequencers, punish misbehaviour
     - Validators selected to sequence shards via an on-rollup sequencer (think of randao selection of committees)
     - Clients generate fraud proofs and post to DA
+## Two-Phased Commit
+- **scenario**
+  - Data stored (replicated or sharded) among multiple services
+  - Want to atomically commit txs (data-operations on entries across clusters). How to do this?
+- **response**
+  - Cannot make operations atomic w/o responses from other nodes (i.e tx is cross cluster, one applies other does not = bad)
+  - **prepare**
+    - Nodes promise to carry out operation (if possible)
+  - **commit**
+    - Nodes carry out
+- What happens if only prepare?
+  - Suppose some nodes get required prepares, but other nodes don't?
+
+## PBFT
+- **model**
+  - Asynchronous network
   - 
 ## Gasper
+ - Mental model
+   - Finality separated from block-production
+   - Casper is analog of tendermint. i.e justification (pre-vote) -> finalization (pre-commit)
  - Casper FFG + LMD GHOST
     - FFG (provides finality for blocks produced)
         - Denotes certain blocks as `finalized`, agnostic to underlying consensus engine (POW, POS, etc.)
@@ -2304,6 +2323,11 @@ type EventuallyPerfectFailureDetector interface {
      - Let $G = view(V)$, then there exists $F(G) \subset J(G)$, where $F(G)$ are **finalized** blocks, and **J(G)** are justified blokcs
        - The $B_{genesis}$, is both finalized and justified
        - If a check-point block $B$ is justified, and there are $> 2/3$ stake-weighted attestations for $B \rightarrow A$, and $A$ is a checkpoint-block, then $A$ is justified, and if $h(A) = h(B) + 1$, then $B$ is finalized
+     - **question**
+       - Is it ever possible for conflicting checkpoints to be justified?
+         - Unequivocally, yes
+       - Say that for some vals, the attestations voting for $B_1 \rightarrow B_2$ are not included by B_2's epoch end
+         - In which case, B_3's epoch begins w/ vals attesting to LJ(B) = (B_1, 2) (i.e carry into epoch 3)
    - **slashing conditions**
      - No validator makes distinct attestations $\alpha_1$, $\alpha_2$, where $\alpha_1 = (s_1, t_1), \alpha_2 = (s_2, t_2)$ and $h(t_1)= h(t_2)$, vals only attest to one block per height
      - No val makes two attestations $\alpha = (s_1, t_1), \alpha_2 = (s_2, t_2)$ , where $h(s_1) < h(s_2) < h(t_1) < h(t_2)$
@@ -2315,6 +2339,18 @@ type EventuallyPerfectFailureDetector interface {
    - ### Justification / Finalization
      - Fork-choice rule (**LMD-GHOST**) (executed per view, according to latest message containing attestations)
      - Greedily choose path through tree w/ largest number of stake-weighted attestations
+   - ### Dynamic Validator Sets
+     - Consider $b$, then $dynasty(b) = |\{h \in chain(B_{genesis}, B), finalized(h)\}|$
+       - If deposit submitted at $b, dynasty(b) = d$, then validator $\mathcal{v}$ start-dynasty is block where $dynasty(b) = d + 2$
+       - Similar for withdrawals (i.e unbonding period starts at (first) block w/ $d + 2$)
+     - **rear / forward-validator sets**
+       - $\mathcal{V}_f = \{v : DS(v) \leq d < DE(v) \}$ - vals who may have entered active set this block, but cannot leave this epoch
+       - $\mathcal{V}_r = \{v : DS(v) < d \leq DE(v)\}$ - vals who have entered active set in prev. block but can leave this epoch
+     - Notice, $\mathcal{V}_f(d) = \mathcal{V}_r(d + 1)$
+     - Super-majority now defines as $2/3$ of $\mathcal{V}_f(d) / \mathcal{V}_r(d)$ 
+       - I.e consider block at epoch $e$'s finalization, then to finalize $e$, super-majority for $e \rightarrow e'$ (finalization of $e$), and $e'' \rightarrow e$ (justification of $e$) are the same
+        ![Alt text](Screen%20Shot%202023-08-13%20at%2010.30.32%20PM.png)
+      - Possible safety violation if stitching mech. does not work
    ## Gasper
    - **epoch boundary pairs** - Ideally blocks produced per epoch (checkpoints in Casper), represent as follows $(B, j)$ ($j$ is epoch number, $B$ is block)
    - **committee** - Vals partitioned into _committees_ per epoch (composed of slots), one committe per slot (propose blocks per committee?) 
@@ -2322,16 +2358,24 @@ type EventuallyPerfectFailureDetector interface {
    - **justification + finalization** - Finalize + justify **epoch boundary pairs**
    - ### Epoch Boundary Blocks + pairs
      - Let $B$ be a block, $chain(B)$ the unique chain to genesis, then
-       -  $EBB(B, j)$, is defined as $max_{B \in chain(B)}(i \leq j, h(B) = i * C +  k), 0 \leq k < C$, i.e the latest block before a certain epoch boundary.
+       -  $EBB(B, j)$, is defined as $max_{B \in chain(B)}(h(B) = i * C +  k \leq jc), 0 \leq k < C$, i.e the latest block before a certain epoch boundary.
        -  For all $B$, $EBB(B, 0) = B_{genesis}$
        -  If $h(B) = j * C$, then $B$ is an EBB for every chain that includes it (notably $chain(B)$)
        -  Let $P = (B, j)$, then attestation epoch $aep(B) = j$, same block can serve as EBB for multiple epochs (if node was down for some amt. of time, chain forked, and earliest ancestor is several epochs ago)
+     - Nuance not found in Casper b.c Casper assumes live block-production, GASPER does not
+       - There can be scenarios where no checkpoint is justified / finalized for several epochs
+     - 
      - **Remark**
        - EBB serves as a better way to formally model safety under asynchronous conditions, (algo. is only probablistically live)
+       - Reason being that there is a difference between GASPER / CASPER in which a block may appear as a checkpoint more than once, i.e block tree linearly increasing as new committees propose blocks, nodes may not have been online to finalize / justify checkpoints tho
+     - 
     - ### Committees
       - Each epoch ($C$ slots), we divide set $|\mathcal{V}| = V$, into $C$ slots (assume $C | V$), and for each epoch $j, \rho_j: \mathcal{V} \rightarrow C$ (selects committees from val-set randomly)
         - Responsibilities of Committee $C_i$ for slot $i$
-          - For epoch $j$, denote $S_0, \cdots, S_{C - 1}$ committees, 
+          - For epoch $j$, denote $S_0, \cdots, S_{C - 1}$ committees
+            - At $d(s) - 1$ a large number of vals joined (green), and the existing validator set purple exits
+            - Purple vals cause a fork w/o getting slashed, i.e they all voted to finalize $s$ incrementing dynasty in one fork, then green enters
+            - In other fork, they don't reach super-majority until next block
     - ### Blocks + Attestations
       - **Committee work**
         - Proposing blocks (single val (potentially more in sharding?)) (block message)
@@ -2350,8 +2394,13 @@ type EventuallyPerfectFailureDetector interface {
               - $slot(\alpha) = jC + k$
               - $block(\alpha) = B$ (same block as $P(B')$, where $B'$ was j proposed, or $B = B'$?), where $slot(block(\alpha)) \leq slot(\alpha)$ (GHOST vote) fork-choice
               - **checkpoint edge** - $LJ(\alpha) \rightarrow^{V} LE(\alpha)$, where $LJ, LE$ are EBBs (CASPER vote) for justification + finalization
+            - Only nodes in Committee sign these attestations
+              - The $LE$ here is the latest checkpoint block in $chain(B)$, in which case block needs 1 epoch for justification, and 1 more for finalization
+                - 2 epochs in total
         - ### Justification
           - Given $B$, define $view(B)$ as the view consisting of $B$ and its dependencies, define $ffgview(B)$ to be $view(LEBB(B))$ (view that Casper operates on) (only finalizes + justifies checkpoints)
+              - How does super-majority calculation work if only a commitee votes on blocks?
+              - I.e for final block in epoch, not possible to have >2/3 stake voting for SJ link between LJ(B) -> B
             - $view(B)$ looks at continuous LMD view
             - ffgview(B) looks at frozen at latest checkpoint view
           - Let $B = LEBB(block(\alpha))$, where $\alpha$ is an attestation
@@ -2365,10 +2414,170 @@ type EventuallyPerfectFailureDetector interface {
           - Once a view finalizes a block $B$, no view will finalize any block conflicting with $B$ (unless the block-chain is $> 1 /3$ slashable$
           - **finalization**
             - $(B_0, 0) \in F(G)$ if $B_0 = B_{genesis}$
-            - $(B_0, j), (B_1, j + 1), \cdots , (B_n, j + n) \in J(G)$, and $(B_0, 0) \rightarrow^J (B_n, j+n)$ (likely $n = 1$), then $(B_0, j) \in F(G)$ 
+            - $(B_0, j), (B_1, j + 1), \cdots , (B_n, j + n) \in J(G)$, and $(B_0, 0) \rightarrow^J (B_n, j+n)$ (likely $n = 1$), then $(B_0, j) \in F(G)$
+              - All are adjacent, i.e $B_0 \in chain(B_n)$
         - ### Hybrid LMD GHOST
-
-## Health Checking services
+          - How to determine last justified block in view? We want to make this well-defined
+            - $LJ(B) = LE(ffgview(B))$ (i.e frozen at beginning of epoch)
+            - $B_j$ changes as new blocks / attestations come in? Want to find version that does not change in middle of epoch
+            ![Alt text](Screen%20Shot%202023-08-26%20at%2010.15.19%20PM.png)
+          - Intuition sibling blocks can include diff. attestations, suppose one proposer didn't include necessary attestations in block, while other did
+        - 
+        - ### Slashing conditions
+          - No validator makes two distinct attestations $\alpha_1, \alpha_2$, where $ep(\alpha_1) = ep(\alpha_2)$
+            - notice, no two attestations are for the same height / epoch
+          - No makes two distinct attestations $\alpha_1, \alpha_2$ where
+            - $$aep(LJ(\alpha_1)) < aep(LJ(\alpha_2)) < aep(LE(\alpha_2)) < aep(LE(\alpha_1))
+          - validator rewards
+            - Proposer reward - including attestations in block
+            - attester reward - validator rewarded for attesting to block that becomes justified
+        - ### Safety
+          - In $view(G)$ if $(B_F, f) \in F(G)$, and $(B_J, j) \in J(G)$ where $j > f$, $B_F$ must be an ancestor of $B_J$, or blockchain is $(1/3)$-slashable
+            - Suppose so, let $(B_F, f) \rightarrow_J (B_{J'}, j')$, and consider $(B_{F''}, f'') \rightarrow (B_J, j)$
+            - Notice, $j > j'$ (otherwise there is a contradiction), since $B_{J} \not= B_{J'}$, similarly for $B_{F''}$, thus $f'' > f$, violating S2
+        - **safety**
+          - Any pair in $F(G)$ stays in $F(G)$ as view is updated (i.e finalized blocks are not reverted)
+            - Follows from def. of finalization
+          - If $(B, j) \in F(G)$ then $B$ is in the canonical chain of $G$
+            - Notice, all justified checkpoints sprout from latest finalized block, 
+            - Must show that no finalized blocks conflict
+              - Suppose so, $(B_1, f_1), (B_2, f_2)$ conflict, then one is justified and apply above theorem
+      - ### Liveness
+        - **plausible**
+          - Suppose $slot = i = j * C$, thus $ep(slot) = j$, and first block for epoch $B$, is also EBB $EBB(B, j) = LEBB(B) = B$, thus all votes in epoch have attestation $LJ(B) \rightarrow B$, and $B$ is justified by slot $j + 1$
+          - Similar scenario follows to finalize $B$ in slot j + 1
+        - **probablistic**
+          - assumptions
+            - 2/3 honest vals
+            - Synchronous messages (i.e messages are delivered w/in $\delta$ of $T$ (time of send))
+          - High probability of high weight block in first slot of epoch
+          - If high-weight block is found in first slot, subsequent slots increase weight of blocks descending -> high prob of justification (attestations are included in the subsequent blocks)
+          - high justification prob -> high finalization prob
+      - ### Attestation Inclusion
+## DA
+- Make it possible for light-clients to receive and verify fraud proofs of invalid blocks
+  - DA proofs also useful for sharding
+- Light-clients only verify blocks in accordance w/ consensus-rules (not tx-validity rules)
+- merkle-trees / sparse-merkle trees
+- **UTXO**
+  - Each tx produces outputs that can only be referenced by a future tx once (notes / nullifiers)
+- **merkle-trees + SMTs**
+  - **SMTs** (use for key-value store (i.e map / state))
+    - Pre-determined (extremely large size) capacity, majority of nodes are not filled
+    - Default-value determined by level in tree
+      - Level 0: default is 0
+      - Level 1: default is $H(0, 0) = L_1$
+      - Level 2: default is $H(L_1, L_1)$
+      - ...
+    - SMT enables root-calculation in $O(k * log(n))$ time?
+      - Initialize all values to 0
+        - Add in $k$ values, and determine hashes up the ladder (log(n)) steps for each value
+      - there are $log(n)$ levels,
+    - Also enable log(n) non-inclusion proofs
+  - **merkle-trees**
+    - Use for list of items
+- **erasure-code / RS-codes**
+  - Given $k$ bits, expand to message of $n >> k$, s.t message can be recovered from $< n$ bits (potentially $k$)?
+  - **reed-solomon code**
+    - Given $x_1, \cdots, x_n$ generate Lagrange interpolating poly. (over $i = 1, \cdots, n$) where $P(i) = x_i$, has degree $n - 1$
+    - Extend $x_1, \cdots, x_n$ to $x_1, \cdots, x_n, x_{n + 1}, \cdots x_{2n}$, where $P(i) = x_i, i > n$, notice, poly can be recovered from any $k$ symbols
+  - Can extend code multi-dimensionally
+  - **intuition**
+    - Concerned abt losing message? Broadcast more bits, and retain higher prob. of message recovery
+- **model**
+  - chain: $H = (h_0, \cdots, h_n)$ (chain of headers), where  $h_1.prev \rightarrow h_0$, $T_i \in h_i$ (root of txs merkle-tree for $h_i$)
+    - Given $S_{i - 1}$ (state after applying all $T_k, k \leq i -1$ in sequence on top of $S_0$), $transition(T_i, S_{i - 1}) = \{S_i, err\}$
+      - where $transition(T, err) = err$ (i.e once entered $err$ state, impossible to exit)
+- **goal**
+  - Convince light-clients of $validity = transition(T_i, S_{i - 1})$ in sub-linear time
+    - Trivial w/ linear time, apply all txs. Not reasonable for light-clients? Have to do this verification each block -> full-node
+  - Goal eliminate honest-supermajority assumption for tx-validity?
+    - Underlying consensus still requires super-majority assumption
+- **nodes**
+  - Full nodes - vote on blocks, etc. execute all txs in blocks to determine final state
+  - Light clients - Only consume headers + apply fork-choice to intermediate blocks (validate consensus-logic)
+- **threat model** (strongest form of adversary)
+  - blocks can be arbitrarily created (and relayed to light clients)
+  - full-nodes may relay bad blocks / withhold information
+  - each light-client connected to at least a single full-node
+  - Limit threat that dishonest majority of nodes can have
+## Fraud Proofs
+- **block structure**
+  - prev-hash of parent
+  - dataRoot - attestation to (tx, intermediate-state-root) in block
+  - state-root - root of SMT for state of block-chain
+  - dataLength (# of txs)
+- **execution-trace**
+  - UTXO
+    - Keys in map are tx out-put IDS (i.e hash of tx -> outputs)
+  - Account-based
+    - Keys map to store-values
+- Can execute txs
+  - Given set of all keys / tx-outputs accessed, and merkle-proofs of inclusion for those keys / values in SMT
+  - Can also re-construct new state given siblings up to root (of all children?)
+- **data-root**
+  - Attestation to list of following form $(tx, inter-state)$
+- **proof of invalid ST**
+  - light-client accepts a block
+  - altruistic full-node creates fraud-proof (i,e shares involved (+ proofs of inclusion)) apply txs on prev-inter-state-root, and check for validity of intermediate state-root
+## DA proofs
+- **soundness**
+  - If light-client accepts block as available, then at least 1 full-node has the full block contents
+- **agreement**
+  - If an honest light-client accepts a block as available, then all other light-clients will eventually accept the block as available
+- Strawman
+  - block constructed consisting of $k$ shares, extends to $2k$ shares using RS code
+  - light-clients receive block attesting to shares,
+    - query
+    - For node to make data-unavailable, they must be hiding 50% of the shares
+    - thus 1/2^n prob of not encountering query in censored portion
+  - What if the node incorrectly constructs the extended data?
+    - Only way to verify is to reconstruct original poly. and check
+    - Requires all shares anyway
+  - **Use 2d-RS code so its easier to verify RS code construction**
+      ![Alt text](Screen%20Shot%202023-08-26%20at%207.19.26%20PM.png)
+    - Construct a 2d RS code, i.e given $n$ shares, split into matrix of size $\sqrt{n} \times \sqrt{n}$, and extend each row horizontally via RS
+      - Extend each column vertically via RS, and extend either horizontally / vertically using RS on extended data'
+    - $data_root_i = root(r_1, \cdots, r_k, c_1, \cdots, c_k)$
+      - then further extend, s.t each row_root / column_root has $2k$ elements in tree
+  - **random sampling in 2d scheme**
+    - For any share to be unrecoverable $(k + 1)^2$ shares must be un-recoverable
+      - Notice, only half of row / column must be available to re-generate column / row (which also generates values in any intersecting column / rows)
+    - **protocol**
+      - light-client receives header $h_i$, and $row_root_1, \cdots, row_root_n, col_root_1, \cdots, col_root_n$, checks construction of data_root
+      - LC makes queries for random shares in matrix, and checks inclusion proof across row / column roots (does this for $< (n + 1)^2$ iterations)
+      - After making first query, LC retrieves $k$ shares from column or row, and reconstructions to ensure data is available
+- **fraud proofs**
+  - full-nodes can publish to accepting light-clients
+- **intuition**
+  - Purpose of DA is to enforce that light-clients have the ability to verify execution of transactions
+    - To do so 
+## Packet bill-board (makes sense)
+  - Node operators run sync-chain node + node for all other chains they are validating on?
+    - Node operators forced to post packets for each of their chains to sync-chain, also forced to reap packets from sync-chain to other chains
+  - Other design (host auction for paths / channels on-chain)
+    - 
+## Lib p2p
+- Peers
+  - Each peer subcribes / publishes to a **topic** (consider as sub-net of network)
+- **design goals**
+  - Reliable, all messages published to a topic are broadcast to all subscribers
+  - Speed, messages are delivered quickly 
+  - Efficiency bandwidth of network must not be affected by large volume of messages
+  - Resilience, peers join + leave network w/o disrupting
+  - scale
+  - simple
+- Discovery
+  - DHT (kademlia)
+- **Peering** (gossipSub)
+  - **connection types**
+    - full-message - few connections between each peer (sparsely connected **mesh**)
+      - Limit network connection / bandwidth consumption
+    - meta-data only
+      - densely connected
+      - Which messages are available, maintain full-message connections
+  - Connections are bi-directional
+- Peers keep track of which nodes are subscribed to which feeds
 - 
 ## IBC Notes
 - Provides facilities for interfacing two modules on separate consensus engines
@@ -2400,7 +2609,7 @@ type EventuallyPerfectFailureDetector interface {
         TRYOPEN,
         OPEN,
     }
-    interface ConnectionEnd {
+      interface ConnectionEnd {
         state: ConnectionState
         counterpartyConnectionIdentifier: Identifier
         counterpartyPrefix: CommitmentPrefix
@@ -2606,3 +2815,13 @@ type EventuallyPerfectFailureDetector interface {
     - Multiple validators participate in fork, can be done if a val. on main chain unstakes (no longer disincentive to not participate), 
   - **Stake-Bleeding**
     - 
+# Ethereum Reading
+## Core Protocol (Serenity)
+- **networking**
+- **beacon**
+- **roll-out**
+## Prysm Implementation
+## Looking Forwards
+### DAS
+### Sharding
+### Use of KZG Commits

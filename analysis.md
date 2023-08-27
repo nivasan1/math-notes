@@ -1,0 +1,96 @@
+# Probability
+- **sample space** - $\Omega$ set of all possible outcomes of experiment
+  - $\omega \in \Omega$ - sample outcome
+  - $E \subset \Omega$ - Event
+- **definitions**
+  - Let $A_i \subset \Omega$, the sets are increasing if $A_{i} \subset A_{i + 1}$, and $lim_{n \rightarrow \infty} = \bigcup_i A_i$
+    - If $A_i \supset A_{i + 1}$, then the sets are decreasing and $lim_{n \rightarrow \infty} = \bigcap_i A_i$
+  - **probability**
+    - A function $f : \Omega \rightarrow [0,1]$ is a **probability measure** or a **distribution** if
+      - For each $A \subset \Omega$, $f(A) \geq 0$ (non-neg)
+      - $f(\Omega) = 1$
+      - Given $(A_i)_i, A_i \cap A_j = \emptyset, i \not = j, f(\bigcup_{i} A_i) = \Sigma_i f(A_i)$
+    - **properties**
+      - $f(\emptyset) = 0$, take $\Omega = \Omega + \emptyset, 1 = f(\Omega \cup \emptyset) = f(\Omega) + f(\emptyset)$
+- **independence**
+  - Let $A, B \subset \Omega$, then $A, B$ are independent, if $f(A \cap B) = f(A)f(B)$
+  - Disjoint events $A, B, A \cap B = \emptyset$ are not independent, $0 = f(\emptyset) = f(A \cap B) = f(A)f(B) > 0$
+- **conditional prob.**
+  - Let $A, B \subset \Omega$, then $\mathbb{P}(A | B) = \frac{\mathbb{P}(AB)}{\mathbb{P}(B)}$
+- **Bayes**
+  - Let $A_1, \cdots, A_k$ be a partition of $\Omega$, that is $A_i$ are disjoint, and $\Omega \subset \cup_i A_i$
+    - $\forall B \subset \Omega, \mathbb{P}(B) = \Sigma_i \mathbb{P}(B | A_i) \mathbb{P}(A_i)$
+  - **theorem**
+    - Using the same partition above, $\mathbb{P}(A_i | B) = \mathbb{P}(A_iB) / \mathbb{P}(B) = \frac{\mathbb{P}(B | A_i) \mathbb{P}(A_i)}{\Sigma_i \mathbb{P}(B | A_i) \mathbb{P}(A_i)}$
+- **problems**
+  - Let $A_i$ be monotone decreasing collection, i.e $A_i \supset A_{i + 1}$, $lim_{n \to \infty} \mathbb{P}(A_n) \rightarrow \mathbb{P}(A)$
+  - Toss coin until 2 heads, probability that $k$ tosses are needed
+    - $k - 1$ positions, $k - 1 / 2^k$?
+  - Suppose $\mathbb{P}(A_i) = 1, \forall i$, prove $\mathbb{P}(\bigcap_i A_i)$
+    - $P(A_1 | A_2) = P(A_1 A_2)$, notice $A_i = \Omega$, i.e $A\subset \Omega \land \mathbb{P}(\Omega) \leq \mathbb{P}(A_i) \rightarrow \Omega \subset A_i$
+  - Monty Hall Problem
+    - Intuition, first choice $2/3$ chance picked empty door, monty opens, intuition affirmed
+    - $\Omega = \{(\omega_1, \omega_2) : \omega_i : \{1,2,3 \}\}$, where $\omega_1$ is prize-door, $\omega_2$ is door opened
+    - Assuming uniform dist. prob. that door-opened is prize door is $1/3$, on first selection there is $1/3$ chance, on second $1/2$
+  - Event space $\Omega = \{c_1, c_2 : c_i \in \{1,2\}\}$, suppose $c_1$ is front, and is $1$, total of 3 chances of happening $2/3$ chance back is green
+# Analysis
+ - **Inadequacy of rationals**, 
+   - no $p \in \mathbb{Q}, p = \sqrt{2}$, 
+     - otherwise fix $p, q \in \mathbb{Z}$, where $(p,q) = 1$, then $\frac{p}{q}^2 = 2$, and $p^2 = 2q^2$, naturally, $2 | p^2$, and $2 | p$, then $4 | 2q^2$, thus $2 | q^2$, and $2 | q$, and $(p, q) = 2$
+   - Let $A = \{p : \mathbb{Q}: p^2 < 2\}$, and $B = \{q : \mathbb{Q} : q^2 > 2\}$, then $A, B$ have no largest (resp. smallest) element
+     - Let $A = \{p : p^2 < 2\} \subset \mathbb{Q}$, $A$ contains no largest element.
+      - For $p = max(A)$, construct $q = p - \frac{p^2 - 2}{p + 2} = \frac{2p + 2}{p + 2}$, $2 - q^2 = 2 - \frac{(2p + 2)^2}{(p + 2)^2} = \frac{2(p + 2)^2 - (2p + 2)^2}{(p + 2)^2}$, and $2p^2 + 8p  + 8 - 4p^2 - 8p - 4 = 4 - 2p^2 = 2(2 - p^2) > 0$, and $q \in A$, but $q > p$
+    - For $p = min(B)$
+      - Consider $q = p - \frac{p^2 - 2}{p + 2}$, $q < p$
+    - $p^2 < 2$, then $(p + a)^2 < 2$?, $p^2 + 2pa + a^2 < 2$,and $2pa + a^2 = a(2p + a) < 2 - p^2$
+- **bounded sets**
+  - Suppose $E \subset S$, where $S$ is an ordered set.
+    - $E$ is **bounded above** if $\exists \beta \in S$, where $\forall x \in E, x \leq \beta$
+    - $E$ is **bound below** if $\exists \beta \in S$, where $\forall x \in E, x \geq \beta$
+  - **least upper bound (supremum)**
+    - Denote $\beta L \iff \forall x \in E, x \leq \beta$, then $min(L)$ (if it exists) is the lub of $E$ if there 
+  - **greatest lower bound(infimum)**
+    - Define similarly, take $max(L)$ (if it exists)
+      - When would it not exist? $E$ has no bounds, consider $B$, notice $\beta \in A$ is lower bound, however, there is no maximal element of $A$, so a glb. does not exist
+  - **least upper bound property** 
+    - Property of $S$ (ordered set), if $E \subset S$, $E \not = \emptyset$, and $\exists \alpha \in S, \forall x \in E, x \leq \alpha$, then $sup(E) \in S$ (it exists)
+      - Similar case for glb
+  - $\mathbb{Q}$ does not have lub/glb- proprty, $A$ is non-empty + bound above, but does not have sup
+  - Let $S$ be ordered set w/ lub prop., take $B \subset S, B \not= \emptyset$, and $\exists \alpha \in S, \forall x \in B, x \geq \alpha$, let $L$ be set of all lower bounds of $B$, then $\alpha = sup(L) \in S$, and $\alpha = inf(B)$
+    - Notice, $\alpha \in L$, thus $L \not= \emptyset$, and $\beta = sup(L) \in S$. Furthermore, take $\beta \in B$, then, fix $x \in L$, then $x \leq \beta$, $\beta$ is upper-bound of $B$, thus $\exists \alpha = sup(L) \in S$ (lub-property).
+    - Take $\alpha' > \alpha$, where $\forall x \in B, x \leq \alpha'$, then $\alpha' \in L$, and $\alpha$ is not an upper-bound of $L$ (contradiction), thus $\alpha' \leq \alpha$
+- **ordered field**
+  - Field $S$ which is also ordered set, s.t
+    - $x, y, z \in S, y < z \to x + y < x + z$
+    - $x, y > 0 \to xy > 0$
+  - **properties**
+    - If $x > 0 \rightarrow -x < 0$
+      - Notice $x > 0 \rightarrow 0 = -x + x > -x + 0 = -x$
+    - If $x \not= 0$, $xy = x \to y = 1$
+      - $1 = x (1/x) = (1/x)xy = (1/x x) = y$
+    - If $x > 0 \land y < z \to xy < xz$
+      - $x(z - y) > 0 \rightarrow xz - xy > 0 \rightarrow xz > xy$
+    - If $x < 0 \land y < z$ then $xy > xz$
+      - inverse of above, show $-x(z - y) = -xz + xy > 0$
+    - If $x \not= 0$, $x^2 > 0$
+      - $x > 0$ apply axiom of ordered field
+      - If $x < 0 \rightarrow (-x) > 0 \rightarrow (-x)^2 = x^2 > 0$
+    - If $0 < x < y$ then $0 < 1/x < 1/y$
+- **There exists a set $R \supset \mathbb{Q}$ that has the lub-property**
+  - If $x \in R, y \in R$, and $x > 0$, then there is a positive integer $n$, where $nx > y$ (**archimedian property of $\mathbb{R}$**)
+    - Suppose otherwise, then consider $x \in L = \{nx : n \in \mathbb{N}\} \not= \emptyset$, and $y \geq nx, \forall x$. Therefore, via the lub property $\alpha \in sup(L)$ exists. Notice, fix $\beta \in L$, where $\alpha - \beta \leq x$ (notice, that this exists is triv. 
+      - otherwise, continue incrementing). Notice, $\beta = nx$, thus consider $(n + 1)x > \alpha$ (contradiction)
+      - finding $\beta$? where $\alpha - \beta \leq x$
+      - Consider $\alpha - x < \alpha$, thus $\exists m, mx > \alpha - x$ (how to find $\beta$)
+  - If $x, y \in \mathbb{R}$, $x < y$, then there exists $p \in \mathbb{Q}$, where $x < p < y$ (**$\mathbb{Q}$ is dense in $\mathbb{R}$** )
+    - Strategy, can fix $p \in \mathbb{Q}$, where $p < x$, and find $n$, where $np > x$, how to fix $np < y$?
+      - Possible to choose $p \in \mathbb{Q}, p < x - y$, 
+      - Find $n \ni np > y$ (choose minimum), then $x < (n - 1)p < y$
+- Proof of n-th root, take $x \in \mathbb{R}$, $\exists y \in \mathbb{R}, y^n = x$
+  - Take $L = \{y \in \mathbb{R}: y^n < x\}$, notice, $x$ is upper-bound of $L$, thus $\alpha = sup(L)$ exists. Notice $(1 + x)^n > x^n$
+    - $\alpha^n \leq x$
+      - Suppose $\alpha^n > x$, $x - \alpha^n$
+    - $\alpha^n \geq x$
+        - Suppose $\alpha^n < x$
+- **problems**
+  - Fix $b > 1$

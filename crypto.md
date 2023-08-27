@@ -704,8 +704,191 @@
     - How to reduce number of commitments to be sub-linear in witness size + multiplicative
       - Commit to $\tilde{w}$ using extractable poly. commitment (FRI, bulletproofs, KZG, etc.)
     - **ZK sum-check**
+      - 
 - # Poly Commitments from KZG
-  - 
+  - **Bilinear pairings**
+    - Not all curves (grps.) on which the DLP is hard have efficiently computable bilinear pairings defined over them
+    - Grp. operations in pairing friendly grps. tend to be slower
+  -  **DDH (Decisional Diffie Helman)** - Given $\langle g \rangle = \mathbb{G}$, and $g^a, g^b$ it is hard to determine $g^{ab}$
+  -  **KZG**
+     -  Let $e : \mathbb{G} \times \mathbb{G} \rightarrow \mathbb{G}^t$ be BP, $o(\mathbb{G}) = p$ (prime), and $g \in \mathbb{G}$
+     - **structured reference string** - Let $\tau \in \mathbb{F}_p$ (toxic waste), srs is $g^{\tau}, g^{\tau^2}, \cdots, g^{\tau^D}$ ($D$ is max deg. of poly. committed to)
+       - $\tau$ is toxic waste, i.e if $\tau$ is exposed, **binding** is broken
+     - To commit to poly. $q = \Sigma_i a_i x^i$, send $g^{q(\tau)} = \Pi_i (g^{\tau^i})^{a_i}$ (computable via composition of SRS elements)
+       - Suppose $q(v) = z$, then $q(x) - z$ has a root at $v$, then $(X - v) | q(X) - z$, and $w(X)(X - v) = q(X) - z$, and $w(\tau)(\tau - v) = q(\tau) - z$ (notice prob. of finding root is $n / \mathbb{F}$)
+       - $\mathcal{P}$ sends $g^{w(\tau)}$, $\mathcal{V}$, checks that $e(cg^{-z}, g) = e(g^{q(\tau) - z}, g) = e(y, g^\tau g^{-v}) = e(g^{w(\tau)}, g^{\tau - v})$
+     - **binding**
+       - Suppose $q(v) \not= z$, then $w(X) = \frac{q(X) - z}{X - v}$ is not poly. rather rational fn. $w(X) = q'(X)/(X - v)$ (how to compute given only SRS?), i.e need to send $g^{(q(tau) - z) / \tau - v}$
+       - Given $\tau$, it is easy to compute ${(\tau - z)^{-1}}$, and then send $c = g^{(q(\tau) - z)^{(\tau - z)^{-1}}}$
+       - If $c$ is KZG commitment to $q$, that can be opened to $v, v', v \not = v'$, then SDH is violated
+       - **intuition**
+         - **binding** - If $\mathcal{P}$ can open $\mathcal{C}(q)$ to $v, v', v \not = v'$, SDH is violated
+           - that is, $\mathcal{P}$ sent $w(\tau)$, $w'(\tau), q(\tau) - v' = w(\tau)(\tau - z)$, and $q(\tau) - v = w'(\tau) (\tau - z)$, thus $\mathcal{P}$ can solve for $\tau - z$
+  - ## Knowledge Extraction
+    - **Polynomial Knowledge Extraction**
+      - **Intuitive** - For every $\mathcal{P}$ that succesfully answers challenges from $\mathcal{V}$, $\mathcal{P}$ must know a satisfactory poly.
+      - **formal** -  There exists $\mathcal{A}$ (efficient adversary) that can extract a $p$ from $c$, that satisfies all openings of $c$ (evaluations)
+        - Have to show construction of $p$?
+        - Rewinding access?
+      - **binding** - Only shows that openings are unique for queries, how to show that openings are evaluations of poly?
+    - **first attempt**
+      - Modify SRS by $(g,g^{\alpha}, g^{\tau}, g^{\alpha \tau}, \cdots, g^{\tau^d}, g^{\alpha \tau^d})$, where $\tau, \alpha \leftarrow \mathbb{F}_p$
+      - **PKOE (Power Knowledge of Exponent)**
+        - Let $\mathcal{A}$ be a ppt alg. given access to SRS (modified SRS above), that outputs $g_1, g_2 \in \mathbb{G}$, where $g_1 = g_2^{\alpha}$
+        - Then it must be the case that $\mathcal{A}$ constructed $g_1 = \Pi (g^{\tau_i})^{c_i}$, thus $g_2 = \Pi_i (g^{\tau_i})^{\alpha c_i}$
+          - Algo. must know $c_i$ to satisfy relation 
+          - I.e no efficient prover can retrieve $\alpha$ from SRS (thus only way to construct elements w/ given relation is thru SRS)
+      - **protocol**
+        - KZG commitment is $(U = g^{q(\tau)}, V = g^{\alpha q(\tau)})$, same check as above for opening w/ $w(\tau), z$, and additional check that $e(U, g^{\alpha}) = e(g, V)$
+      - How is it extractable?
+        - Guarantees that $U$ is composition of SRS (which are exponents), must be linear, thus it is a poly. :)
+      - **Extractor**
+        - Given $U, V, U^{\alpha} = V$, there must be $c_i$, such that $U = \Pi_i (g^{\tau_i})^{c_i}$, thus extract $p(X) = \Sigma_i c_i X^i$
+      - Non-falsifiable
+        - Given $(g_1, g_2)$, how can challenger verify that $\mathcal{P}$ knows $c_i$? It cannot, no attack game exists to verify
+        - All zk-SNARKS for ACS based on non-falsifiable assumptions
+  - ## Generic / Algebraic Group Model
+    - AGM
+      - Given $g' \in \mathbb{G}$, constructed as composition of _known_ grp. elements $(L_1, \cdots, L_n)$ (thus unmodified KZG in AGM is extractable)
+      - 
+- # Linear PCPs And Succint Arguments
+  - Short PCPs for arguments of knowledge (length quasilinear in circuint (witness) size)
+  - Can transform to succint argument, by merkle hashing symbols of $\pi$
+  - **problem**
+    - Prover still has compute $\pi$ (all symbols) and commit to it (any way for $\mathcal{P}$ to get around this?)
+      - Yes, if proof has specific structure (linearity)
+  - ## Linear PCPs
+    - $\pi$ represented as function evaluation table $\mathbb{F}^v \rightarrow \mathbb{F}$, where for queries $q_1, q_1$, $\pi(d_1 q_1 + d_2 q_2) = d_1 \pi(q_1) + d_2 \pi(q_2)$
+    - Proof
+      - $\mathcal{P}$ commits to $\pi$ (leverages linearity so that it doesn't have to evaluate all of $\pi$)
+      - $\mathcal{V}$ interactively issues queries to $\pi$, and receives openings
+      - Can't be rendered non-interactive (no public coin randomness)
+    - GGPR (yields snark), w/ proof length of $|\mathbb{F}|^{O(S)}$ + can be turned interactive (SNARK)
+    - **characteristics**
+      - If $len(\pi) = L$, then choice of symbol from $\mathcal{V}$ is $log(L)$
+        - Represent queries in terms of SRS (at least in commit phase)
+        - Each SRS dependent upon circuit being proved (diff. circuits require diff trusted-setup)
+  - **tools**
+    - Homo-morphic encryption, i.e $Enc(d_1m_1 + d_2m_2) = d_1Enc(m_1) + d_2Enc(m_2)$
+  - ## Commitment To Linear PCP
+    - Let $\pi : \mathbb{F}^v \rightarrow \mathbb{F}$
+      - Question: how to commit to $\pi$, and open commitment to queries $q_1, \cdots, q_k$
+    - **Commit Phase**
+      - $\mathcal{V}$ sends $(Enc(r_1), \cdots, Enc(r_v)) \in \mathbb{F}^v$ to $\mathcal{P}$
+        - $\pi(r) = \Sigma_i d_i r_i = \langle d, r \rangle$, thus $Enc(\pi(r)) = \Sigma_i d_i Enc(r_i)$
+      - $\mathcal{P}$ sends $Enc(\pi(r))$ (notice $\mathcal{P}$ does not know $r$ (Enc is Semantically Secure)) (analog of hiding for encryption schemes)
+      - $\mathcal{V}$ decrypts $s = Enc(\pi(r))$ to get $\pi(r)$
+      - **notice**
+        - What if $\mathcal{V}$ sent $\mathcal{C}(r_i)$ (assume $\mathcal{C}$ is additively HM CS), then $\mathcal{P}$ can compute $\mathcal{C}(\pi(r))$ (how does $\mathcal{V}$ open $\mathcal{C}(\pi(r))$)?
+    - **Reveal Phase**
+      - Now $\mathcal{V}$ requests answers to queries $q^{(i)}$, and $q^* = r + \Sigma_i \alpha_i q_i$
+      - $\mathcal{P}$ responds w/ $a_i = \pi(q_i)$, and $a^* = \pi(q^*)$
+      - $\mathcal{V}$ checks that $a^* = \pi(r) + \Sigma \alpha_i a_i$
+    - **binding**
+      - $\mathcal{P}$ after sending commitment must answer all of $\mathcal{V}$'s queries using the same fn. $\pi$
+        - Only way to violate, is to know $\alpha_i$, and prover can retrieve $r$ from $q^*$ (violates SS of Enc)?
+      - ## When k = 1
+        - Only one query $q$, and $q^* = r + \alpha q$
+        - **binding**
+          - If $\mathcal{V}$ sends $q, q^* = r + \alpha q$, and $q, \hat{q} = r + \alpha ' q$, and $\mathcal{P}$ responds w/ $a, a'$ (answers to $q$), then $a = a'$ (otherwise SS of $Enc$ is broken, i.e $\mathcal{P}$ knows $r$)
+        - What happens in prover knows $\alpha, \alpha'$
+          - Suppose $\mathcal{P}$ gets $q, q^* = r + \alpha q, \hat{q} = r + \alpha' q$, then all $\mathcal{P}$ has is that $\hat{q} - q^* = (\alpha - \alpha')q$, then if $r' = r - cq$, $\alpha + c, \alpha' + c$ satisfy above inequality
+          - Thus to identify $\alpha, \alpha'$ (with more than randomly guessing), $\mathcal{P}$ must know smth abt $r$ (i.e some bound on $c$) (violates semantic security of $Enc$)
+        - What happens if $\mathcal{P}$ responds w/ $a, a', a \not = a'$
+          - Suppose prover responds w/ $a, a^*$ from $q, q^* = r + \alpha q$, and $a', \hat{a}$ from $q, \hat{a} = r + \alpha' q$, then $a^* - \hat{a} = \alpha a - \alpha' a'$, and $\mathcal{P}$ has that $q^* - \hat{q} = (\alpha - \alpha')q$
+            - Two lin ind. equations in two unknowns, and solve for $\alpha, \alpha'$, thus $\mathcal{P}$ must have known smth abt $r$ SS broken...
+    - ## Linear PCP for ACS
+      - Let $\{\mathcal{C}, x, y\}$, let $W \in \mathbb{F}^S$ be assignment of values to gates in execution
+      - **constraints**
+        - Constraints placed on $W$, $W$ is correct execution iff $l = S + |y| - |w|$ constraints
+          - For in-gate $a$, $W_a - x_a = 0$
+          - Out gate $a$, $W_a - y_a = 0$
+          - Add-gate $a$, $W_a - (W_{in_{left}(a)} + W_{in_{right}(a)}) = 0$
+          - Mult-gate $a$, $W_a - W_{in_{left}(a)}W_{in_{right}(a)} = 0$
+        - Constraints are of form $Q_a(W)$, (poly. in entries of $W$), i.e $deg(Q_a(W)) \leq 2$ (mult is non-linear?)
+      - Not all constraints are non-linear :( (get around this via hadamard encoding)
+        - I.e take $(W, W \otimes W)$), vector of length $S + S^2$, where $W \otimes W$ represents, $W_i W_j$ (set of all multiplication gates)
+        - Defined $f_{(W, W \otimes W)} = \langle \cdot, (W, W \otimes W) \rangle$ (linear functional on $W, W \otimes W$)
+      - $\pi$ represents all evaluations of $f_{(W, W \otimes W)}$ (of size $\mathbb{F}^{S + S^2}$)
+      - Checks
+        - Linearity (must check that $\pi$ is linear)
+          - Probe $\mathcal{P}$ with $q_1, q_2$, check that $\pi(q_1 + q_2) = \pi(q_1) + \pi(q_2)$
+        - Must check that $\pi$ is of form $f_{W, W \otimes W}$ for transcript $W$
+          - $\mathcal{V}$ chooses $q_3, q_4$, and requests $\pi(q_3, \cdots), \pi(q_4, \cdots)$, and $\pi(\cdots, q_3 \otimes q_4)$
+          - $\mathcal{V}$ checks that $\pi(q_3, \cdots) \pi(q_4, \cdots) = \langle q_3, \cdots \rangle \langle q_4, cdots \rangle = \Sigma_i W_i q_i^{(3)} \Sigma_j W_j q_j^{(4)} = \pi(\cdots, q_3 \otimes q_4)$
+        - Must check all $l = S+ |y| - |w|$ constraints
+          - Must check that $Q_i(W) = 0, \forall i$, avoid querying $l$ constraints? Instead make single query
+          - I.e choose $\alpha_i$, and expect $\Sigma_i \alpha_q Q_i(W) = 0$, deg 2 ML in $W$, thus Schwartz Zippel insinuates that only $2$ points where poly. can be zero (if not uniformly)
+          - Also is linear in $(W, W \otimes W)$, and can be evaluated in single query to $\pi$
+      - All queries combined w/ Linear PCP commit / reveal scheme
+    - ## GGPR
+      - Above protocol w/ linear PCPs requires PCP len $\Theta(S^2)$, GGPR leads to $O(S)$ (also solves more general R1CS)
+      - **R1CS**
+        - Given matrices $A, B, C$ R1CS-sat iff, $\exists z, (A \cdot z) \odot (B \cdot z) = C \cdot z$
+          - $A, B, C \in Mat(m \times l)$ (l constraints, $M = S - |w| + |y|$ variables)
+          - Can reduce to equation, where $A_i$ ($i$-th row of $A$) $l$ constraints of form $\langle A_i, z \rangle \langle B_i, z \rangle = \langle C_i, z \rangle$
+      - **goal**
+        - define $g_z$ univariate poly. vanishing on $H \subset \mathbb{F}$ (multiplicative grp.) iff $z$ is witness to $A, B, C$
+      - ### **Protocol**
+        - $H = \{\sigma_1, \cdots, \sigma_l\} \subset \mathbb{F}$ arbitrary constants (one for each constraint)
+        - Define $\mathcal{A_j}$ (interpolation of $j-th$ column of $A$), i.e $A_j(\sigma_i) = A_{i,j}$, (Sum of Lagrange bases for $A_{i}$)
+        - Define poly vanishing over $H$, iff $z$ is witness to R1CS
+          - $g_z(t) = (\Sigma_{j \in 1, \cdots, S}  z_j \mathcal{A}_j(t))(\Sigma_{j \in 1, \cdots S} z_j \mathcal{B}_j(t)) - \Sigma_{j \in 1, \cdots, S} z_j \mathcal{C}_j(t)$
+          - Thus for $\Sigma_i$, $g_z(\sigma_i) = (\Sigma_{1, \cdots S} z_j \mathcal{A}_j(\sigma_i))(\Sigma_{1, \cdots S} z_j \mathcal{B}_j(\sigma_i)) - (\Sigma_{1, \cdots S} z_j \mathcal{C}_j(\sigma_i)) = (\Sigma_{j \in S} z_j A_{i, j})(\Sigma_{j \in S} z_j B_{i, j})  - \Sigma_{j \in S} z_j C_{i, j} = \langle A_i, z \rangle \langle B_i, z \rangle - \langle C_i, z \rangle$
+        - **Proof**
+          - Notice, $deg(g_z(t)) \leq 2(l - 1)$ (i.e $deg(\mathcal{A}_i) = deg(\mathcal{B}_i) = deg(\mathcal{C}_i) = l - 1$), thus if $g_z(t)$ vanishes on $H, |H| = 1$, $\mathbb{Z}_H = \Pi_{\alpha \in H} (t - \alpha)$, $g_z(t) = h^*(t)\mathbb{Z}_H(t)$, where $deg(h^*) \leq deg(g_z(t)) - deg(\mathbb{Z_H(t)}) = l - 2$, thus choose random evaluation and apply SZ
+          - $\pi$ consists of $f_{coeff(h^*)}, f_{coeff(h^*)}(1, r, \cdots, r^d) = h^*(r)$, and $f_z$ s.t $g_z$ can be evaluated as follows, $f_z(\mathcal{A}_1(r), \cdots, \mathcal{A}_S(r) f_z(\mathcal{B}_1(r), \cdots, \mathcal{B}_S(r)) - f_z(\mathcal{C}_1(r), \cdots, \mathcal{C}_S(r))$
+      - ## Non-Interactivity
+        - LIP - Linear interactive proof, (results from transformation of linear-PCP), guarantees that all queries answered by _same_ linear fn.
+          - (2-message)
+            - Ask all queries
+            - Ask sum of queries (check equality)
+        - ## Protocol (SNARK)
+          - Above LPCP protocol is not **public coin**
+            - Relies on priv. key known only to verifier (HM Enc fn.), if made public, then $\mathcal{P}$ is not bound to $\pi$ (how to fix?)
+              - SRS!!
+            - Make $\mathcal{V}$ public coin, then apply FS
+          - Use SRS to get around using additive HM w/ keys unique to verifiers (SRS essentially generates this + toxic waste)
+          - ### Trusted Setup
+            - SRS (prover)
+              - For each of queries $q^{(1)}, \cdots, q^{(5)}$, SRS contains $(g^{q^{(i)}_j}, g^{\alpha q^{(i)}_j})$ (i.e HM encoding of queries in basis representation ), i.e alternatively have SRS be $1, r, \cdots, r^{l - 1}$ (max degree of $\mathcal{A}, \mathcal{B}, \mathcal{C}$)
+            - SRS (for verifier)
+              - $g, g^{\alpha}, g^{\mathbb{Z}_H(r)}, g^{\beta_1}, g^{\beta_2}, g^{\beta_3}$
+          - ### Protocol
+            - $\mathcal{P}$ sends $(g^{f_z(q^{(1)})}, g^{\alpha f_z(q^{(1)})}), (g^{f_z(q^{(2)})}, g^{\alpha g^{q^{(2)}}}), (g^{f_z(q^{(3)})}, g^{\alpha \cdots}), (g^{f_{coeff(h^*)(q^{(4)})}}, g^{\alpha f_{coeff(h^*)}(q^{(4)})}), (g^{f_z(q^{(5)})}, g^{\alpha f_z(q^{(5)})})$
+              - Where $q_j^{(5)} = \beta_1 q_j^{(1)} + \beta_2 q_j^{(2)} + \beta_3 q_j^{(3)}$
+            - $\mathcal{V}$ checks $e(g_1, g_2) = e(g_4, g^{\mathbb{Z}_H(r)})e(g^{(3)}, g)$ (check that $g_z = \mathbb{Z}_H * h^*$)
+            - $\mathcal{V}$ checks that $\Pi_{1 \leq i \leq 3}e(g^{\beta_i}, g_i) = e(g_5, g)$ (linearity check PCP -> LIP transform)
+              - Notice $\beta_i$ is unknown to verifier, but $g^{\beta_i}$ is known (hence utilization of pairing checks)
+            - $e(g_i, g^{\alpha}) = e(g, g_i')$ (check that response is linear comb. of SRS)
+          - ### Assumptions
+            - **Knowledge of Exponent**
+              - Similar to PKoE, i.e given $g_i, g_i^{\alpha}$, if $\mathcal{P}$ sends $f, f^{\alpha}$, then $\mathcal{P}$ can explaing $f = \Pi g_i^{c_i}$
+            - **Poly-power DL is hard**
+              - Let $r \leftarrow \mathbb{F}_p$, then it is hard to determine $r$ from $g, g^r, \cdots, g^{r^t}$
+          - **what abt inputs?**
+
+        - ## Zero Knowledge
+# NIZK
+- **Components of ZK**
+  - Interaction: $\mathcal{P}$ + $\mathcal{V}$ talk back + forth
+  - Hidden Randomization: $\mathcal{V}$ tosses coins that are hidden from $\mathcal{P}$, and embeds this randomness in responses
+  - Computational Difficulty: $\mathcal{P}$ embeds in proofs difficulty of some other problem
+- How to achieve non-interactivity
+  - Shared randomness?
+- **notation**
+  - efficient non-uniform algorithm: sequence $\{T_n\}$ of turing-machines, s.t on input $x, |x| \leq n$, $O(T_n(x)) \leq n^c$ (i.e diff. input lengths have diff. TM, and TMs are aware of input lengths)
+  - random selector: Random oracle, taking $(s, \mathcal{S})$, where $s$ is a seed, and $\mathcal{S}$ is a set, and outputs $r \in \mathcal{S}$ (i.e $r = RO(s, \mathcal{S})$)
+  - Random Selecting algorithm: Turing machine w/ access to $RS$
+    - Note strictly more powerful than access to a public-coin / Random oracle, i.e $b_i = Select(x \circ b_{i -1}, \mathcal{S})$ (appears as random coin tosses to algorithm, each draw independent of prev.)
+    - Think of hash-chain
+  - **Quadratic Residuosity**
+    - $p \in \mathbb{Z}^*_x$, iff $\exists q \in \mathbb{Z}^*_x, p^2 \equiv q (x)$, let $\mathcal{Q}_x = \begin{cases} 1 & \text{y is QR (x)} \\ 0 \end{cases}$
+    - 
+- # GGPR  
+- 
+# Groth-16
+
 - # Cryptograhic Pairings
   - **DLP** - Suppose $G = \langle P \rangle$, then given $Q = aP$, it is intractable to determine $a$ from j $Q, P$
     - Multiplicative grp. of finite field
@@ -858,6 +1041,10 @@
       - Quadratic Non-Residue zk-proof
       - Schnorr
         - Brief intro to grp. theory
+
+## Pederson Secret Sharing
+- Distribute secret shares to $n$ ppl, where $k \leq n$ can recover the secret, but $< k$ shares retrieve no (shannon info) abt the secret
+- 
 # Ferveo
  - Tying consensus layer security assumptions w/ threshold cryptography to achieve strong mempool layer privacy guarantees
    - Txs encrypted until block-finalization
@@ -997,3 +1184,637 @@
       - One share per tx in block (have to b.c vals can't reveal priv-key shares for risk of running DKG again)
   - Lit
 - 
+# **Computation**
+- ## Computational Tasks + Models
+  - ### Computational Tasks
+    - **search problems**
+      - Intuitively, mapping between instances $x$ (input), to solutions $y$ (output). Problem is to identify set of solutions for given instances
+      - Let $R \subset \{0,1\}^* \times \{0,1\}^*$ be a relation, where $(x,y) \in R$ denotes that $y$ is a solution to $x$ (instance). Denote $R(x) = \{y : (x,y) \in R\}$ (set of solutions to $x$). Function $f : \{0,1\}^* \rightarrow \{0,1\}^* \cup \{\bot\}$, $f(x) \in R(x)$ if $R(x) \not= \emptyset$, and $f(x) = \bot$ otherwise
+        - $f$ finds an answer when one exists, and fails otherwise (never outputs wrong answer) (sound?)
+        - Consider $R$, where $\forall x \in \{0,1\}^*, |R(x)| = 1$ (relations w/ unique soln.), $R(x)$ is a fn.
+    - **decision problems**
+      - Determination of set membership. I.e given $\mathcal{S} \subset \{0,1\}^*$, determine $x \in \{0,1\}, x \in \mathcal{S}$
+        - Can also make analog to **search problems**, i.e $\mathcal{S} = \{x \in \{0,1\}, R(x) \not= \emptyset\}$
+      - **Solution** - function $f : \{0,1\}^* \rightarrow \{0,1\}$, where $f(x) = 1$ if $x \in \mathcal{S}$, and $f(x) = 0$ otherwise
+  - ### Uniform Models (Algorithms)
+    - **What is computation (intuitively)**
+      - Modification of environment (witness / inputs / state, etc.), via repeated application of a _simple_ rule
+        - _simple_ - depends on / effects a subset of the environment (**active zone**)
+      - active set is bounded, environment is possibly unbounded (unlimited disk, limited RAM, etc.)
+    - **Turing Machines**
+      - Computation can be solved by any model of computer iff it can be solved by turing-machine
+      - Definition
+        - A turing machine is a 7-tuple $(Q, \Sigma, \Gamma, \delta, q_0, q_{accept}, q_{reject})$
+          - $Q$ - finite set of states
+          - $\Sigma$ - **finite** set of input symbols 
+          - $\Gamma$ - finite ($\Gamma  \subset \Sigma$) set of tape symbols, where $\Sigma \subset \Gamma$
+          - $\delta : Q \times \Gamma \rightarrow Q \times \Gamma \times \{L, R\}$ (transition function)
+          - $q_0 \in Q$ (start state)
+          - $q_{accept} \in Q$ (accept state)
+          - $q_{reject} \in Q$ (reject state)
+      - **intuition**
+        - environment - Infinite sequence of cells, each containing a symbol from finite alphabet $\Sigma \subset \{0,1\}^*$
+          - Sequence of cells called, tape
+          - TM has reference to current position in tape
+        - TM also has notion of internal state, i.e $q \in Q$
+        - Computation Rule
+          - Finite rule, i.e $\delta: \Sigma \times Q \rightarrow \Sigma \times Q \times \{-1, 0, 1\}$
+            - I.e $\Sigma$ (current symbol), $Q$ (current state), $\Sigma$ (new symbol), $Q$ (new state), $\{-1, 0, 1\}$ (tape movement)
+            - New symbol written to current cell before moving forward (does this order even matter?)
+      - **k-tape TM**
+        - **scratch-pad** - Consists of k-tapes
+          - each tape Consists of tape-head (read / write symbol from tape)
+        - **input-tape**
+          - First tape contains input for machine (read-only)
+        - Rules
+          - Read $k$ symbols (each at head), read current-state
+          - Apply state-transition (new symbols for $k - 1$ write tapes), get new state, move each head
+      - **definitions**
+        - **time-constructible**
+          - $T : \N \to \N$ is time-constructible if $T(n) \geq n$, and $M_T$ computes $T$ in time $T(n)$
+        - **restriction of $\Gamma$ to $\{0,1, \square, \triangle \}$**
+          - If $f : \{0,1\}^* \rightarrow \{0,1 \}^*$ in $T(n)$ time with $\Gamma$ then $f$ is computable in $4log (|\Gamma)T(n)$ with alphabet $\{0,1, \square, \triangle\}$
+            - each $\alpha \in \Gamma$ can be encoded in $log(\Gamma)$ cells in $\{0,1\}^*$, transform each work-tape using encoding
+              - What states are needed for scanning?
+            - Read symbols (how to store symbol?)
+              - Must have some delimiter between symbols in encoded tape? nope, j represent in $log_2(|\Gamma|)$ cells
+            - Start
+              - read $log_2(|\Gamma|)$ cells (from input-tape)
+                - How to store historical symbols? Must encode into state (registers)
+                  - I.e for each state in $q \in Q$
+                    - Must store whether $\tilde{M}$ is done reading
+                    - Must store progress in reading (counter)?
+                      - Store $log_2(\Gamma)$ states for each $q \in Q$
+                    - Must do this for each tape, i.e $|\tilde{Q}| = |\Gamma|^kQ$
+              - Apply transition (have to store symbols read in state)
+              - Write back new symbol to each tape
+                - **intuititon**
+                  - Can map multiple diff. state spaces i.e $\delta(q_1, \cdots, q_n)$ into one via $Q_1 \times \cdots \times Q_n$
+              - After reading apply transition to new state
+                - For each work-tape, have to write symbol (consists of $log_2(\Gamma)$ steps?)
+        - **k-tapes to 1-tape**
+          - Reference OG-transformation
+          - Also store each $\alpha_i$ on tape $i$, in $i-th$ spot, i.e $j-th$ symbol on tape $i$, is in $jk + i$-th spot in single tape
+            - intermediate states for storing inputs
+            - Also have to store each head + move them independently
+          - i.e first read + store in state (for each $q \in Q$) the symbols of $M$ in $\tilde{M}$
+          - Apply state-transitions (store head movements in state + intermediary state (on path to new state))
+            - Update symbols at each head $kT(n)$ steps
+            - Sweep back for each tape $k$, and reposition head ($k T(n)$ steps)
+            - transition to new state
+          - start again
+        - **bi-directional to uni-directional**
+          - Transform to 2-tape uni-directional TM
+            - Bottom work-tape represents right
+            - Top represents left
+          - Transition head as necessary
+          - Transform from multi-tape to single tape (either OG or AB-transform)
+        - 
+      - **Universal Machines**
+        - TMs $M$ are finite, i.e can be represented as $\lfloor M \rfloor \in \{0,1\}^*$
+          - All strings are TMs, i.e $\alpha \in \{0,1 \}^*$ is $\forall x, M_{\bot}(x) = 0$ if $\alpha$ is not a valid TM
+        - **Universal Turing Machine**
+          - Given as input $(\alpha, x) \in \{0,1\}^* \times \{0,1\}^*$ returns $M_{\alpha}(x)$, denote this as $\mathcal{U}$, where $\mathcal{U}(x, \alpha)$ halts in $Tlog(T)$ steps, iff $M_{\alpha}(x)$ halts in $T$ steps.
+            - Suppose $M$ is TM, w/ work, input, output tapes
+            - Then $\mathcal{U}$ has same input tape (storing $x$), and tape holding description of $M$ ($\alpha$) (including transition fn.)
+            - $\mathcal{U}$ has tape holding current state of $M$, work tape holding same contents as $M$
+            - and output tape
+          - **intuition**
+            - Start
+              - Read symbol of input tape, read current state (start-tape), find entry corresponding to current values in transition-tape + output, perform transition on input (move head), $M$-simulation-work tape (write symbol + move head), write output, write new state
+            - Next-step
+              - Read state, read input, read work-tape, find entry corresponding to current state
+                - Notice, transform TM tapes into infinite (to right), (search is finite + well-defined) (each search will take approx. $len(\lfloor \delta\rfloor))$ steps to compute (hence, $CT$ steps?)
+              - Transition function determines when machine halts
+                - I.e if in accept-state, $\delta$ always stays
+          - Transform to single tape via OG-transform
+          - What states for $\mathcal{U}$
+            - Notice
+              - States -> registers
+              - tape -> disk (RAM) lookup, etc.
+            - states purely used for reading transition fn. / determining output?
+              - $q_{compare_i}$ - compare entry at $i$-th input / work tape from $M$ to current entry in transition-tape
+              - $q_{exec}$ - accept-state, first stage of transition comparison
+      - **Church-Turing Thesis**
+        - A function can be computed by some TM iff it can be computed by some machine of any other (reasonable (Turing complete)) model of computation
+        - **sanity-check**
+          - TM can emulate RAM
+            - **RAM**
+              - infinite memory cells
+              - finite number of registers
+              - Program counter (index into sequence defined below)
+              - Program - Sequence of instructions selected from finite set
+              - Instructions
+                - $reset(r)$ - set $r$ to $0$, where $r$ is the index of register
+                - $inc(r)$ - increment $r$ (index of register)
+                - $load(r_1, r_2)$ - $r_1, r_2$ indices of registers, $r_2$ holds index of memory $m$, value of $m$ is loaded into $r_1$
+                - $store(r_1, r_2)$ - Store contents of $r_1$ into $m$ where $m$ is indexed by contents of $r_2$
+                - $cond-goto(r, l)$ - $r$ index of register, $l$ index of instruction, if $r > 0$ then jump to instruction $l -1$
+            - Conversion from RAM -> TM
+              - What is stored on tape?
+                - Contents of memory cells (including inputs), notice, only need to store accessed memory
+                  - All instructions
+                - Contents of registers
+              - How to represent instructions?
+                - Instructions are finite? Append them to language?
+                - No represent via state-transition fn. (i.e $\delta$)
+              - How to represent state?
+                - Program counter
+                - Current instruction
+                  - Stored on tape, access via index into tape
+                - Current state
+    - **modelling efficiency**
+      - Model efficiency based on number of steps necessary for computation
+      - Given $f : \{0,1\}^* \rightarrow \{0,1\}$, and $M_f$ computing $f$ ($\forall x, f(x) = M_f(x)$) in $T(n)$ time, then $M_f(x)$ takes at most $T(|x|)$ steps to complete
+    - **Uncomputable funtions**
+      - **halting problem**
+        - Given machine $M$, determine if $M$ halts on input $x$ (i.e runs in finite steps, and outputs some $y$), define $h : \{0,1\}^* \times \{0,1\}^* \rightarrow \{0,1\}$, where $h(M, x) = 1$ if $M$ halts on $x$, and $h(M, x) = 0$ otherwise
+      - **THEOREM**
+        - The decision problem $(M, x) \in h^{-1}(1) = \{(M, x) \in \{0,1\}, h(M,x) = 1\}$
+          - Notice here we are conflating $M$ (machine) and $\langle M \rangle$ (machine's description), where $\langle M \rangle \in \{0,1\}^*$ is a finite-string
+          - **idea**
+            - Show that _diagonal_(**diagonalization**) of $h$ is not computable, i.e $d : \{0,1\}^* \rightarrow \{0,1\}$, where $d(M) = h(\langle M \rangle, \langle M \rangle)$
+              - i.e running $M$ w/ $\langle M \rangle$
+              - Use this to imply that $h$ is not computable
+            - To show diagonal is non-computable, define $d' : \{0,1\}^* \rightarrow \{0,1\}$, where $d'(M) = \begin{cases} 1 & h(\langle M \rangle, \langle M \rangle) = 1, \land M(\langle M \rangle) = 0 \\ 0 \end{cases}$
+            - Suppose $d'$ is computable by $M_{d'}$, then, $M_{d'}(M_{d'}) = d'(M_{d'})$, suppose $d'(M_{d'}) = 1$, then $M_{d'}(M_{d'}) = 0$ (contradiction). Conversely, suppose $d'(M_{d'}) = 0$, then $M_{d'}(M_{d'}) = 1$ (contradiction), thus $M_{d'}(\langle M_{d'} \rangle)$, and $d'$ is not computable
+            - If $d$ is computable, then $d'$ is computable
+              - Let $M_d$ be machine computing $d$, then for $d'(M)$, transform $M \rightarrow M'$, where $\phi : M'(x) = M(x)$ iff $M(x) = 0$ , otherwise, $M'$ loops infinitely. Notice, $d(M')$ is computable, and $d(M') = d'(M)$, thus $M_d(\phi)$ computes $d'$
+            - Thus $d$ is uncomputable, and $h$ is as well
+      - **Turing Reductions**
+        - $f \rightarrow^T f'$, if when given $A_f$ (algorithm computing f), one can obtain an algorithm $A_{f'}$ computing $f'$
+      - **Rice's Theorem**
+        - Let $\mathcal{F}$ denote a set of computable partial functions $f : \{0,1\}^* \rightarrow \{0,1\}$, let $\mathcal{S}_{\mathcal{F}}$ denote strings that define machines computing functions in $\mathcal{F}$.
+          - decision problem for $\mathcal{S}_{\mathcal{F}}$ is un-computable. Prove via Turing reduction from $d$
+      - **Universal Machine**
+        - TM $M$, s.t given $\langle M' \rangle || x$, outputs $M'(x)$ if $M'$ halts, otherwise undefined
+          - TM exists, computes partial function, can make more granular to bound computation, then becomes computable
+      - **Oracle Machines**
+        - TM augmented s.t it can pose questions externally
+          - TM-reductions using oracle as another TM, write $M^f(x)$, when $M$ is given access to $f$
+        - **formal def**
+          - Takes additional tape, **oracle tape** , and 2 additional states, **oracle invocation**, **oracle spoke**
+          - Execution
+            - $d'$, where $d'(q, m) = d(q, m)$, if $q = invoke$, then $d(q, m) = q', m'$, where q' is spoke, and the oracle tape holds the answer to the query
+  - ### Non-Uniform Models
+    - Collection of finite machines (TMs), one for each input length
+      - Useful for developing lower bounds on time / space complexity of algo?
+      - Possibly infinite description, infinite sequence of finitely described TMs
+    - **two models**
+      - Boolean circuits
+      - Machines that take advice
+    - ***boolean circuits**
+      - **description**
+        - DAG w/ labels on leaves (inputs)
+        - gates internal nodes (have in, out-degree > 1)  (gates)
+        - Sinks (output), have in-degree = 1
+      - Operation of BC is computable by TM poly. in input size
+      - fan-in: max number of inputs to gates
+      - Let $f : \{0,1\}^* \rightarrow \{0,1\}^m$, can define $\{C_i \}_n$, where $C_{|x|}(x) = f(x)$ (non-uniform family of circuits)
+        - Uniform family: if each circuit $C_n$ can be computed in time poly. in $n$, and size is poly. in $n$ then $f$ is computable by TM
+    - ### Machines That Take Advice
+      - Rather than making circuit size non-uniform (non predictable function of input length), have algorithm take **advice**, length of which is determined by input size
+      - **definition**
+        - Algorithm $A$ computes $f$, w/ length $l : \mathbb{N} \rightarrow \mathbb{N}$, if $\exists (a_n)_{n \in \mathbb{N}}$ s.t
+          - For each $x \in \{0, 1\}^*$, $A(a_{|x|}, x) = f(x)$ (taking element $|x|$ of advice sequence)
+          - $\forall n \in \mathbb{N}$, $|a_n| = l(n)$
+    - ### Complexity Classes
+      - Set of functions $f$, such that $M_f$ computes $f$ and the resource consumptions (tape size, number of steps, etc.) satisfy constrains $T : \N \to \N$, on $T(|x|) \leq \alpha$ 
+    - ### Problems
+      - Prove that any fn. that can be computed by a TM, can be computed by TM that never moves left of tape
+        - Suppose original TM moves $n$ units from left of tape, and $m$ units to right, add 2 additional symbols, $L, R$, where the left-most boundary, takes $L$, and rightmost boundary $n + m$ to right, takes $R$. Have sub-query (oracle), that moves to right-limit (notice, will also have to reverse directions after moving to rightmost boundary), and vice-versa for left-most
+        - Can also construct via 2-tape?
+      - Prove that fn. that can be computed by a single tape TM iff it can be computed by a 2-tape (multi-tape) TM
+        - Multi-tape TM
+          - $k$ tapes + $k$ independent heads, $\delta(q, x_1, \cdots, x_k) = (q', \sigma_1, d_1, \cdots, \sigma_k, d_k)$
+          - Reads and transitions based upon current head positions, 
+        - Reverse - triv.
+        - Forward
+          - Simplest case is two, compress multi-tape into single tape as follows, the $i$-th cell of the single tape contains $i$-th cells of multi-tapes (extend alhabet to $\Sigma^m$)
+          - Also have to store-head positions + read from head
+            - Could also store every possible combination of tapes? How to create computable mapping between states / head positions?
+          - Tape also stores indication of which head is on which tape (modifies tape symbols accordingly)
+            - One step of single tape, involves finding other heads, marking tapes accordingly, etc.
+      - Multi-tape addition
+        - 3 heads + 2 states (carry, not carry), write to third state 1, 0 depending on binary addition of inputs ... 
+      - RAM w/ TM?
+        - Multi-tape
+          - One for memory
+            - Memory holds input?
+          - One for registers
+          - Instructions are encoded in state-transition fn. ?
+            - Also can have tape for instructions + symbol marking current PC?
+          - What states are held?
+            - Can have sub-states for each of the instructions, i.e identify machine what to do / where in instruction execution it is
+      - Let $\mathcal{F}$, $\mathcal{S}_{\mathcal{F}}$ be in definition of Rice's Theorem, present Turing reduction of $d$ from HP, to $\mathcal{S}_{\mathcal{F}}$
+        - I.e $d(M) = h(M, \langle M \rangle) = \begin{cases} 1 & \text{h halts} \\ 0 \end{cases}$
+        - If $A_S$ exists solving $\mathcal{S}_{\mathcal{F}}$, then $A_d$ exists determining $d$.
+          - Let $A_S$ be a alg. computing $\mathcal{S}_{\mathcal{F}}$, define $f \in \mathcal{F}$, and $f_{\bot} \not \in \mathcal{F}$ (i.e not defined on any inputs)
+          - Given $M$, transform $M \rightarrow M'$, where $M'$ executes $M(\langle M \rangle)$
+            - if $M'$ halts, on $\langle M \rangle$, then output $f(x)$, thus if $M(\langle M \rangle)$ halts, then $M' \sim f$, and $A_S(M') = 1$, and $d(M(\langle M \rangle)) = 1$
+      - **Post Correspondence Problem**
+        - Given two sequences of strings in $\Sigma$, $(\alpha_1, \cdots, \alpha_N), (\beta_1, \cdots, \beta_N)$, determine if there is any sequence $(i_j)_j$, where $i_j \in \{1, \cdots, N\}$, where  $\alpha_{i_1} \cdots \alpha_{i_j} = \beta_{i_1} \cdots \beta{i_j}$
+        - Present Turing reduction to $h$ from HP, i.e $h(M, x) = 1$ iff $M(x)$ halts
+          - Given $M$, construct sequences of words s.t the only solution to PCP is full sequence of configurations of $M$ on $x$, where $M$ halts, thus $h$ is solved
+        - 
+      - Define TM $M$ to be **oblivious** if head-movement does not depend on input but input length (i.e for each step, must index all of memory (similar to 1.9))
+        - Show that for each $T$ (TC), if $L \in DTIME(T(n))$ ($\exists M_L , steps(M_L(x)) \leq T(n)$), there is oblivious $TM$ that decides $L$ in $T(n)^2$
+          - Let $M_L$ be TM for $L$, that halts in $T(|x|)$ steps. Transform to single tape TM via $AB$ transform
+            - i.e mark head positions, read head symbols into state (registers), apply state-transitions (move heads independently)
+              - Key consequence - Additional complexity moved into state-blowup, for each state (have to store new state for each symbol per-tape, have to store each progress of finding each symbol in state + steps)
+          - Can tweak $\mathcal{U}$ to be oblivious
+      - Two dimensional TM, each tape is infinite grid, suppose that machine takes $T(n)$ steps (can represent as $T(n)$-tape machine?, and apply AB / OG-transform to single-tape?
+# NP / NP-Completeness
+- **NP** - Class of problems whose solutions can be efficiently verified
+  - **definition**
+    - $L \subset \{0,1\}^*$ is in NP, if $\exists p : \N \to \N$, and $M_L, x \in L \iff \exists u \in \{0,1 \}^{p(|x|)}, M_L(x, u) = 1$ (i.e poly. sized advice string)
+- **relationships**
+  - $P \subset NP \subset \bigcup_{c \geq 1} DTIME(2^{n^c})$
+  - **proof**
+    - $P \subset NP$ - triv. take advice to be $\empty$
+    - $NP \subset DTIME(2^{n^c})$, suppose $x \in L \iff M(x, u) = 1$, where $|u| \leq p(|x|)$, then for $x$, enumerate $u$ (there are $2^{p(|x)|}$) such $u$, and evaluate $M(x, u)$
+- ## Non-Deterministic Turing Machines
+  - Alternative def. for $NP$ (non-deterministic poly. time)
+  - TM w/ two transition fns. $\delta_1, \delta_2$ (each transition steps randomly chooses one-or-the other)
+    - $M(x) = 1$, if on input 1, some sequence of $\delta_1 \cdots, \delta_2$ outputs 1
+    - $M(x) = 0$, if every sequence of choices makes $M$ halt (w/o reaching $q_{accept}$)
+    - $M$ runs in time $T(n)$ if each input $x$ and all ND choices, $M$ halts in $T(|x|)$ steps
+  - **NTIME**
+    - For each $T : \N \to \N$, and $L \subset \{0,1\}^*$, $L \in NTIME(T(n))$ if $\exists M_L$ s.t $\forall x, M_L(x) = f(x)$, and $M$ (NDTM) runs in time $cT(|x|)$
+  - View witness to $M \in NTIME(T(n))$, as sequence of $\delta_i$ such that $M(x)$ w/ the given sequence outputs $1$
+  - $NP = \bigcup_{c \in \N}NTIME(n^c)$
+    - $NP \subset \bigcup_{c \in \N}NTIME(n^c)$
+      - Suppose $L \in NP$, then $x \in L \iff \exists c \in \N, u \in \{0,1\}^{|x|^c}, M(x, u) = 1$, then transform into $M'$ (NDTM), where on $M'(x)$, at step $i$, $\delta_1$ acts as if $M(x, u')$, where $u'$ is $u$, but $u_i = 0$, and a similar case holds for $\delta_2$. Alternatively, $M'$ takes $n^c$ steps to write down $|u| \leq p(|x|)$, and executes $M(x, u)$ (i.e generate random advice and execute $M$).
+    - $\bigcup_{c \in \N}NTIME(n^c) \subset NP$
+      - Fix $c \in \N$, Suppose $L \in NTIME(n^c)$, then $\exists M$ (NDTM), s.t $M(x) = 1 \iff x \in L$. If $M(x) = 1$ in less than $T(n) = n^c$ steps, then there exist $|(a_i)_n| \leq |x|^c$, where $\delta_{a_i}$ is an accepting sequence. Take $M'(x, u)$, where $|u| \leq |x|^c$, where $M'$ emulates $M$ with $\delta_{u_i}$ for step $i$ in computation, and $L \in NP$
+- ## Reducibility / NP-completeness
+  - How to prove that $L_1$ is at least as **hard** as $L_2$, i.e $M_{L_1} \rightarrow M_{L_2}$
+  - **reduction**
+    - Language $A \subset \{0,1\}^*$ is **polynomial-time Karp reducible** to $B \subset \{0,1\}^*$ ($A \leq_p B$), if t.e $f : \{0,1\}^* \rightarrow \{0,1\}^*$, s.t $x \in A \iff f(x) \in B$
+      - **NP-hard** - B is NP-hard, if $\forall A \in NP$, $A \leq_p B$
+        - $B$ is at least as hard as any other language in $NP$
+      - **NP-complete** - If $B$ is NP-hard, and $B \in NP$
+  - **theorem**
+    - If $A \leq_p B \land B \leq_p C \to A \leq_p C$ 
+      - Suppose $A \leq_p B$ and $B \leq C$, then $\exists f_B, f_C : \{0,1\}^* \leq \{0,1\}^*$, s.t $x \in A \rightarrow f(x) \in B$, and $x \in B \rightarrow f_C(x) \in C$, thus $x \in A \rightarrow f_C(f_B(x)) \in C$, and $A \leq_p C$
+    - If $A$ is **NP-hard**, and $A \in P$, then $NP = P$
+      - Suppose $A$ is NP-hard, and $A \in P$, then fix $L \in NP$, then $L \leq_p A$, as such, $f : \{0,1\}^* \rightarrow \{0,1\}^*$ exists, where $x \in L \iff f(x) \in A$. Consider $M_L$, where $M_L(x)$ computes $f(x)$, and applies $M_A(x)$, and outputs $M_A(f(x))$, and $M_L \in P$, thus $NP \subset P$
+    - If $A$ is **NP-complete**, then $A \in P \iff NP = P$
+      - Converse - Triv, $A \in NP = P$
+      - Forward
+        - Suppose $A$ is NP-complete + $A \in P$ (apply thm. above)
+  - **theorem**
+    - TMSAT is NP-complete
+    - $TMSAT = \{(\alpha, x, 1^n, 1^t) : \exists u \in \{0,1\}^n \ni M_{\alpha}(x, u) = 1 \text{ within t steps}\}$
+      - NP-hard
+        - I.e show $f$, such that $x \in L \iff f(x) \in TMSAT$, and $f$ is poly. time constructible
+        - Fix $L \in NP$, then $\exists M$ (TM), where $x \in L \iff \exists u \in \{0,1\}^{p(|x|)}, M(x, u) = 1$, then $f(x) = (\lfloor M \rfloor, x, 1^{p(|x|)}, T(|x|)) \in TMSAT$. How to show that $f$ is poly. time constructible?
+      - $TMSAT \in NP$
+        - Take $M$ as universal TM, and witness as $u$ for $M_{\alpha}$
+        - $n$, $t$ may not be poly. in $|x|$? No actually, always will be $c = 1$ linear fn. of length of input 
+  - ## Cook-Levin THeorem
+    - ### Boolean Formulae + CNF
+      - let $\phi : \{0,1\}^* \rightarrow \{0,1\}$, then $\phi(u_1, \cdots, u_n) = \bigwedge_i \pi_i$, where $\pi_j = (\bigvee_i u_i)$ (i.e and of ors of variables), each sub-formula may consist of variable or negation (**CNF**)
+        - If $\exists z \in \{0,1\}^*, \phi(z) = 1$, then $\phi$ is satisfiable
+      - **expressiveness of boolean formulae**
+        - For every $f : \{0,1\}^l \rightarrow \{0,1\}$, there is an $l$-variate CNF $\phi$ of size $l 2^l$
+          - Let $C_v(u) = v == u$ (notice can be constructed in literal via) $C_v = \bigvee_i \bar{u}_i$, let $\mathcal{S} = \{u \in \{0,1\}^l : f(u) = 0\}$, $\mathcal{C} = \bigwedge_{s \in \mathcal{S}} C_s$
+      - **Cook-Levin Theorem**
+        - SAT (set of satisfiable CNF) / 3SAT (set of satisfiable CNF w/ only 2 conjunctions) are NP-complete
+          - NP-hard
+            - Have to display Karp Reduction for arbitrary $L \in NP$
+            - **SAT is NP-hard**
+              - Fix $L \in NP$, then must construct $f(x) = \phi_x$, s.t $x \in L \iff \phi_x \text{is satisfiable}$
+                - Can use $M_L$ and construct $\phi_x$ s.t certificate for $M_L$ satisfies $\phi_x$?
+              - Notice, $\exists, M_L$, such that $x \in L \iff \exists u \in \{0,1\}^{p(|x|)}$, thus take $\phi_x = M_L(x, \cdot) : \{0,1\}^{p(|x|)} \rightarrow \{0,1\}$
+                - This is incorrect, as transformation is of size $O(2^{|p(x)|})$ (not poly. time constructible)
+              - How to make smaller CNF from $M_L$?
+                - Consider snapshots (i.e state + input / output read), and function mapping snapshot to next snapshot
+                - Transform $M_L$ to be oblivious
+                  - advantage, head movement only determined by input-size / step in computation, still $T(M_L) \leq n^c$ (for some $c$)
+                    - Let $inputpos(i) \in \Sigma$ denote the input symbol at step $i$
+                    - $prev(i)$ denote the last step that the head was at the same pos. as step $i$
+                  - Then $z_i = F(z_{i - 1}, z_{prev(i)}, inputpos(i))$
+                    - i.e next config. depends on current-state, current symbol on work-tape (determined by prev. configuration ) + input\
+                - Must verify relation $z_1, \cdots, z_T$ satisfy above,
+            - **SAT is reducible to 3-SAT**
+          - NP
+            - Naturally, $u \in \{0,1\}^*$ is a witness to $\phi$ (evaluation of CNF in poly. time?), length of witness clearly sub linear in size of CNF formulation. Evaluation linear in size of each literal (maximally size of input)
+    - **Decision vs. Search**
+      - If $NP = P$, then for $L \in NP$, t.e pTM, $M_L'$ s.t $M_L(x, M_L'(x)) = 1$ (i.e poly. time to output certificate)
+        - Show for SAT
+          - Suppose $A$ decides SAT, i.e $A(\phi) = 1 \iff \phi \in SAT$, then construct $B$ s.t on $\phi$ (assume as $n$ input), outputs $u$ (satisfying assignment) in $2n + 1$ calls to $A$
+            - For each input $i$, call $\phi_i(0) = \phi(0, x_{i + 1}, \cdots, x_n)$ if decidable use $A$ on $\phi_i$ continue
+      - Use $f$ (Cook-Levin reduction for $L$), i.e $f(x) = \phi_x$ is poly. time computable, use $A$ + above algorithm to get $(2n + 1)T(SAT)$ time algo. $M$ for generating certificates
+      - **SAT is downward self reducible**
+        - Given algo. for solving inputs on length $\leq n$, can solve on inputs of length $n + 1$
+  - ## Alternative Complexity Classes
+    - **coNP**
+      - Let $L \subset \{0,1\}^*$, then $\bar{L} = \{0,1\}^* \backslash L$
+        - $coNP = \{L : \bar{L} \in NP\}$
+        - Alternative
+          - $L \in coNP$ if $\exists p : \N \to \N$ and PT $M$ (TM), s.t $x \in L \iff \forall u \in \{0,1\}^{p(|x|)}, M(x, u) = 1$
+        - Reductions
+          - $L = \{\phi : \text{satisfied by all inputs}\}$
+          - coNP completeness?
+            - $L \in coNP$
+              - $\bar{L} = \{\phi : \exists u \in \{0,1\}^*, \bar{\phi} = 1\}$
+            - $\forall L' \in coNP, L' \leq_p TAUTOLOGY$
+              - Fix $L' \in coNP$,  consider $\phi_x \in SAT \iff x \in \bar{L'}$ (LEVIN transform to SAT CNF), then consider $\bar{\phi_x} \in L$
+    - **EXP**
+      - $EXP = \bigcup_{c \geq 0}DTIME(2^{n^c})$
+    - **NEXP**
+      - $NEXP = \bigcup_{c \geq 0} NTIME(2^{n^c})$
+  - **problems**
+    - NDTM analog of $\mathcal{U}$?
+      - Add additional tape $\delta_1$, $\delta_2$, and have transition fn. randomly choose which to apply
+        - I.e adapt $\mathcal{U}$ w/ extra tape for $\delta_2$, random transition fn. for $\mathcal{NU}$ determines which transition fns. to reference
+      - More efficient? 
+        - 
+    - Halting problem NP?
+      - Let $Halt = \{(\alpha, x) : M_{\alpha}(x) \text{halts}\}$
+        - Show $NP-hard$  
+          - Fix $L \in NP$, then define $f : \{0,1\}^* \rightarrow \{0,1\}^*$, such that $x \in L \iff f(x) = (\alpha, x) \in HALT$
+            - Notice, $\exists M_L$, s.t $x \in L \iff \exists u \ni M_L(x, u) = 1$, then $\alpha = \langle M'_L \rangle$, where $M'_L$ generates all possible $u$, and executes $M_L$, and halts if $M_L(u, x) = 1$
+        - Show $NP-complete$
+          - Not NP-complete, otherwise halting problem is in $DTIME(2^{n^c})$ and is computable :(
+    -   $L_1, L_2 \in NP$, $L_1 \cup L_2 \in NP$, $L_1 \cap L_2 \in NP$
+        - $L_1 \cup L_2$
+          - Let $M_{L_1}$ be the machine s.t $x \in L_1 \iff \exists u \in \{0,1\}^{p(|x|)}, M_{L_1}(x, u) = 1$, similarly for $M_{L_2}$, thus define $M_{L_1 \cup L_2 }$, which runs $M_{L_1}(x, u)$, and $M_{L_2}(x, u)$ if the first execution fails (poly. time algo. + poly. sized witness)
+        - $L_1 \cap L_2$ 
+          - Define analogously
+    - Reflexivity of $\leq_p$
+      - Notice $\forall L \in NP$, $L \leq_p HALT$, suppose that $\leq_p$ is reflexive, then $HALT \leq L$, thus $\exists f \ni x \in HALT \iff f(x) \in L$, thus taking $M_{HALT}$ to compute $f$ then $M_L$ (taking as DTM in $EXP$), and HALT is computable (contradiction)
+    - $NP = coNP \iff 3SAT \leq_p TAUTOLOGY$
+      - Forward
+        - Suppose $NP = coNP$. Triv...., $Taut \in NP \rightarrow Taut \leq_p 3SAT$ (3SAT is NP-hard), $3SAT \in coNP \rightarrow 3SAT \leq_p TAUT$
+      - Reverse
+        - Suppose $Taut \leq_p 3SAT$, and $3SAT \leq_p Taut$. Triv, fix $L \in coNP$, then $x \in L \iff f(x) \in 3SAT$, then $M_{Taut}$ which computes $f(x)$, and applies $M_{3SAT}(f(x), u)$ is the TM for NP, vice-versa
+    - $P \subseteq NP \cap coNP$
+      - $L \in P$, then $\overline{P} \in P$ (i.e use $\overline{M_L}$), thus $\overline{P} \in NP$, and $P \in coNP$
+    - Suppose $L_1, L_2 \in NP \cap coNP$, then $L_1 \otimes L_2 \in NP \cap coNP$
+      - Where $L_1 \otimes L_2 = \{x : (x \in L_1 \land x \not \in L_2) \lor (x \in L_2 \land x \not \in L_1)\}$
+      - $L_1 \otimes L_2 \in NP$
+        - consider $L_1 \cup \overline{L_2}$
+          - First execute $M_{L_1}$ w/ witness for $M_{L_1}$ if it exists, or for $M_{L_2}$ w/ witness if it exists, and if $x \in L_2$, then output no
+        - Similar case as above
+- # Diagonalization
+  - Mechanism for separating Complexity Classes
+    - i.e construct $M$ in some class $\mathcal{C}$ s.t $M$ gives diff. answer than every machine $M'$ in class $\mathcal{C}'$, thus if $\mathcal{C} = \mathcal{C'}$, then $M_L \in \mathcal{C}'$, however, if $M_L', L' \in \mathcal{C}', M_L' = M_L$ (contradiction)
+  - **time-hierarchy theorem**
+    - Allowing TMs more computation time strictly increases set of decidable languages
+    - If $f, g : \N \to \N$, and $f(n)log(f(n)) = o(g(n))$, then $DTIME(f(n)) \subset DTIME(g(n))$
+      - Let $D$ be the machine where on input $x \in \{0,1\}^*$, runs $1 - \mathcal{U}(M_x, x)$ for $f(|x|)log(|x|)$ steps (if $M_x$ does not halt in time, then output 0), notice, $L = \{x: D(x) = 1\} \in DTIME(g(n))$. Suppose $L \in DTIME(f(n))$ then $M$ decides $L$, which on input $x$, runs for $c|x|$ timesteps, Thus $D$ which executes $\mathcal{U}$ coincides with $M$, i.e $\forall x \in L, D(x) = M(x)$, choose $|\langle M \rangle| = n$, then $D(\langle M \rangle) = 1 - M(\langle M \rangle)$ which does not coincide with $M(\langle M \rangle)$
+  - **space-hierarchy theorem**
+    - **space-constructible fn**
+      - I.e $f: \N \to \N$, s.t $\exists M_f$, where $M(x) = f(x)$, and uses maximally $f(x)$ memory cells
+    - $f, g$ are space constructible, and $f(n) = o(g(n))$, then $SPACE(f(n)) \subset SPACE(g(n))$
+      - $\mathcal{U}$ uses constant time space for simulating $M$
+  - **Non-deterministic Time Hierarchy Theorem**
+    - $f, g$ are TC, where $f(n + 1) = o(g(n))$
+      - $NTIME(f(n)) \subset NTIME(g(n))$
+        - Alternatively, show that $DTIME(2^{f(n)}) \subset DTIME(2^{g(n)})$, not necessarily clear that $log(2^{cf(n)})2^{cf(n)} = cf(n)2^{c(f(n))} = o(2^{g(n)})$ (apply deterministic time-hierarchy)
+    - Applying results from deterministic Time hierarchy won't work
+      - i.e - simulation requires $2^{O(f(n))}$ sims (one for each possible witness), certainly not in $NTIME(g(n))$ 
+    - **lazy diagonalization**
+      - Only have to flip on one output (don't have to determine $\overline{L}, \forall L \in NP$)
+      - Goal: Define $D \in NTIME(f(n))$, s.t forall $L \in NTIME(f(n))$, $\exists x \in \{0,1\}^*, D(x)\not= M_L(x)$ (i.e $D$ differs from all $M_L$ on some input)
+      - Define some fn. $h : \N \to \N$, where $h(1) = 2$, and $h(i + 1) = 2^{f(h(i) + 1)}$
+        - Assuming $f$ is monotonically increasing, goal is to map intervals $(h(i - 1), h(i)] \to M_i$ (NDTMs running in time $f(n)$)
+        - Thus for each possible input, 
+      - Define $D$ (decision process used for diag.), where on input $x, x \in 1^*$ (otherwise, reject)
+        - If $h(i - 1) < |x| < h(i)$ (that one can find such a $i$ is triv.) find corresponding $M_i \in NTIME(f(n))$, and return $M_i(1^{|x| + 1})$, execute non-deterministically, otherwise, reject (notice, shld halt in time allocated)
+          - Notice, $\mathcal{NU}$ simulates NDTM $m$ in $Ct$ steps
+        - If $|x| = h(i)$, deterministically execute $1 - M_i(h(i -1) + 1)$
+          - Notice, execution here takes $2^{O(f(h(i - 1) + 1))}$, thus on input, $|x| = h(i)$ (have to define bounds on g, f, s.t $g(h(i)) \geq 2^{f(h(i -1) + 1)}$)  
+      - Contradiction follows if $M \in NTIME(f)$, where $M = D$ (notice, take $D(\langle M \rangle)$)
+        - Then find $i$, where $M_i = M$ (from above), and execute w/ inputs $|x| \geq h(i)$, then $M(1^n) = M(1^{n + 1})$, thus $M(1^{h(i) + 1}) = M(1^{h(i + 1)}) \not= D(1^{h(i + 1)})$ (contradiction)
+      - Have to assume that $f$ is super-linear?
+  - **Ladner's Theorem**
+    - Suppose $P \not= NP$, then $\exists$ $L \in NP \backslash P$ that is not-NP complete
+      - i.e $L$ is not NP-hard, i.e $\exists L' \in NP$, where $L' \not\leq_p L$
+    - $SAT_H = \{\phi 0 1^{n^{H(n)}}: \phi \in SAT \land n = |\phi| \}$
+    - Define $H : \N \to \N$
+      - $H(n) = i$, where
+        - minimize $i < log (log (n))$, where $\forall x \in \{0,1\}^*, |x| \leq log(n)$, $M_i$ outputs $SAT_H(x)$ within $i|x|^i$ steps
+        - If no such $i$ exists, set $H(n) = log(log(n))$
+          - I.e if $SAT_H \in P$, there is some $i$ for which $M_i = SAT_H$, thus, $H(n) = i, \forall n \geq 2^{2^i}$, i.e $H(n) = O(1)$
+          - If $SAT_H \in NP$, then $H(n)$ increases w/o bound
+    - Proof
+      - $SAT_H \in P$
+        - Then $SAT \leq_p SAT_H$ (i.e each $\phi \in SAT \iff \phi0 1^{n^c} \in SAT_H$), and $P = NP$ (contradiction)
+      - $SAT_H$ is NP-complete
+        - Then $SAT \leq_p SAT_H$, i.e there is $f, \phi \in SAT \iff f(\phi) \in SAT_H$. If $SAT_H \in P$, then $|\phi| \rightarrow \infty$ (otherwise, there exists $c$, where $M_i = SAT_H$, and runs in time $c x^c$). 
+    - Alternative construction
+      - Define $L = \{x| x \in SAT \land 2 | f(|x|)\}$
+        - Define $f$. $\exists y, \forall_{x \geq y} f(x) = c$
+          - If $c$ is even, then there are infinitely many $x$, i.e $x, |x| \geq y$ where $x \in L$, thus, $L \in SAT$, $L$ is $SAT\backslash$ finitely many $\phi$
+          - If $c$ is odd, then $L \in P$, i.e there are only finitely many $x \in SAT, x \in L$, each $x$ can be evaluated in $P$ time
+        - Thus must define $f$, where
+          - $L \in P \rightarrow 2 | c$, thus $L \in NP$, notice, $SAT \leq_p L$, thus $NP = P$
+          - $L$ is NP-complete, then $f$ gets stuck on odd $c$, thus $NP = P$
+        - Let $M_i$ be enumeration of TMs where $M_i$, runs in $x^i$ steps, and $g_i$ be poly. reductions to SAT
+          - $f(n -1) = 2i$
+            - if $\exists x, |x| < log(n)$ where $M_i(x) \not= L(x)$, then $f(n) = f(n - 1) + 1$, otherwise $f(n) = f(n - 1)$
+              - Notice if $L \in P$ then some $M_i = L$, thus, this case is reached for some $n$, and $L \in NP$ (contradiction)
+          - $f(n - 1) = 2i + 1$
+            - If $\exists x, |x| < log(n)$ where $SAT(x) \not = L(g_i(x))$, then $f(n) = f(n - 1) + 1$, otherwise $f(n) = f(n - 1)$
+              - If $L \in NP$, then $SAT \leq_p L$, thus there exists some $g_i$ reduction, and $f(n) = c$ (which is odd), thus $L \in P$
+        - Use bound of $log(n)$ to ensure that $f$ is poly. time computable?
+          - Doesn't really matter anyway, in either case, there is infinite repetition and theorem holds
+  - **Oracle Machines**
+    - **oracle Turing Machines**
+      -**** 
+  - **problems**
+    - Show that the following language $L = \{\langle M \rangle : M \text{ runs in time } 100n^2 + 200n \}$
+      - Let $M$ be a machine deciding $L$, then fix $M'$ where $M'(x)$ takes $100n^2 + 200$ time, if $M(\langle M' \rangle) = 0$, and vice. versa. if not, thus $M(\langle M \rangle) = 1 \rightarrow$ $M'$ does not halt in $100n^2 + 200$ time (contradiction)
+      - Construction of $M'$
+        - Execute $M$ on $M'$, for each input (only for large enough input)? i.e input of size $T(M(\langle M' \rangle))$ (does not affect over-all runtime)
+          - Only need to find single input
+    - $SPACE(n) \not= NP$
+      - $NP \subset \bigcup_{c \in \N} SPACE(n^c)$
+      - Diagonalization?
+      - Suppose $SPACE(n) = NP$
+        - Choose $L \in SPACE(n) \cap NP$, then fix $M_L'$, which on $x$, for each write to work-tape, pads write w/ $|x|, 1s$ (runtime only increased by factor of $n$), but space used is $n^2$
+    - 
+- # Space Complexity
+  - Let $S : \N \to \N$, and $L \subset \{0,1\}^*$, then $L \in SPACE(S(n))$ (resp. $L \in NSPACE(S(n))$) if $\exists M$ a $TM$ (resp. NDTM) s.t execution on $x$ takes at most $c |x|$ tape cells
+    - All branches of NDTM halt
+    - $S$ must be space constructible, i.e $\exists M$ (TM) computing $S$ requiring $S(n)$ tape cells (at most)
+      - Analog to TC bounds, i.e TM can understand bounds it is operating under
+  - $DTIME(S(n)) \subset SPACE(S(n))$
+    - TM can re-use tape-cells, any TM / NDTM can only access one tape cell per time-step
+  - **$DTIME(S(n)) \subset SPACE(S(n)) \subset NSPACE(S(n)) \subset DTIME(2^{S(n)})$**
+    - **Configuration Graphs**
+      - Sequence of objects, where each object contains
+        - Contents of all non-blank tape entries
+        - state + head pos.
+    - **Configuration Graphs**
+      - Each node is configuration, edges between configurations reachable via single step of $\delta$
+        - DTM has out-degree 1
+        - NDTM has out-degree 2
+  - Let $G_{M, x}$ be the CG of a space-$S(n)$ machine $M$ on input $x, |x| = n$
+    - Does it matter if $M$ is TM or M?
+  - $G$'s nodes can be described in $cS(n)$ bits
+    - i.e given alphabet $\Sigma$, then $c = log_2(|\Sigma|)$ (convert alphabet into bits)
+    - State + head map to constant size bit string?
+      - Max number of states? 
+  - $G_{M, x}$ has at most $2^{cS(n)}$ nodes
+    - Triv. $2^{cS(n)}$ combinations of configurations (possible cycles in configuration graph?)
+  - $$NSPACE(S(n)) \subset DTIME(2^{S(n)})$$
+    - Construct configuration graph in $2^{(O(S(n)))}$ time (size of CG bound above), and search for path from start to accept
+- $$NP \subset PSPACE$$
+  - Notice, $3SAT \in PSPACE$, where $n$ is size of $\phi \in 3SAT$ execute $\phi$ on all $x \in \{0,1\}^k$ ($\phi$ is over $k$ variables).
+    - Notice $3SAT$ is NP-complete, thus if $L \in NP$, then there exists $f$, s.t $x \in NP \iff f(x) \in 3SAT$
+  - Use same idea for $L \in NP$, take $M_L$ and execute $M_L(x, \omega)$ for each possible witness, erasing $\omega$ after checking
+- ### Space Hierarchy Theorem
+  - If $f,g$ are spac -constructible where $f(n) = o(g(n))$, then $SPACE(f(n)) \not \subset SPACE(g(n))$
+# Randomized Computation
+## Probablistic Turing Machines
+- Analogous to TMs for NDTMs / DTMs
+- **Probablistic Turing Machine**
+  - TM w/ $\delta_0, \delta_1$ transition fns. take each w/ prob. 1/2, thus on $x$, PTM $M$ has $2^{T(|x|)}$ outputs each w/ equal prob.
+    - Define acceptance via. prob of ending in accepting state.
+    - NDTM simply needs single possible accepting state
+- **BPTIME / BPP**
+  - Let $L$ be a language and $T: \N \rightarrow \N$, then PTM $M$ decides $L$ in $T(n)$ time if, it takes $T(n)$ steps (regardless of any sequence of choices of $\delta_i$), and $P[M(x) = L(x)]geq 2/3$
+    - $BPTIME(T(n))$, $BPP = \bigcup_{c > 0} BPTIME(n^c)$
+- $P \subset BPP \subset \bigcup_c DTIME(2^{n^c})$, $BPP \not \subset NP$ (possible $x\not \in L$ w/ certificate)
+  - Create DTM which generates $\delta_i$ choices at $T(n)$ steps, and executes PTM $M(x, \delta_i ...)$
+- **examples**
+  - Finding median (sort + index) $O(nlog(n))$ time (Merge-sort)
+      - Can use BPP algorithm for $O(n)$ time
+    - Given $(a_1, \cdots, a_n)$ find $k$-th largest element, median is $\lfloor n/2 \rfloor$ largest
+      - Randomly choose $a_j$ in list, Let $A_{<} = \{a \in (a_i), a < a_j \}$
+      - If $|A_{<}| < k$
+        - Find $k - |A_{<}|$-largest element of $A \backslash A_{<}$
+      - Otherwise
+        - Perform same algo. on $A_{<}$
+    - **complexity**
+      - Take $T(n) = max(T(k, a_1, \cdots, a_n))$ (i.e time complexity for lists on len $n$)
+      - Then $cn$ is complexity of search step (linear time)
+        - Recursive steps on lists len $< n$ assume $10cn$ time (recursive assumption), thus
+    - $T(n) \leq cn + \frac{1}{n}(\Sigma_{j > k} j + \Sigma_{j < k} T(n - j))$ (apply recursive assumption and simplify)
+  - Primality Testing
+    - Given $N \in \mathbb{Z}$ want to determine if $N$ is prime
+## One Sided / Zero-Sided Error
+- **two sided error**
+  - $M \in \mathcal{BPP}$, where $x \in L, M(x) = 0 \land x' \not \in L, M(x') = 1$
+    - i.e possible false negatives + positives
+- **one sided error**
+  - Most BPTIME $M$, will output $M(x) = 0 \iff x \not \in L$ (never false positive), but prob of $M(x) = 0 \land x \in L$ (i.e prob of false negatives)
+  - Known as $RPP$
+    - $x \in L \rightarrow Pr[M(x) = 1] \geq \frac{2}{3}$
+    - $x \not \in L \rightarrow Pr[M(x) = 0] = 1$
+  - Thus $RP \subset NP$ (i.e no certificates for $x \in L$)
+  - $RP \subset BPP$
+  - $coRP = \{L : \overline{L} \in RP \}$
+- **PTMs that never err**
+  - Always output correctly, but $T_{M, x}$ is random variable describing time taken over random choices of $M$ on $x$, then $T(M) = E[T_{M,x}]$
+- $ZPP = RP \cap coRP$
+  - Forward
+    - $L \in ZPP$, then $L \in RP \cap coRP$, i.e take $M_L$
+      - And $x \in L \iff Pr[M_L(x) = 1] = 1 \geq \frac{2}{3}$ $ZPP \subset RP$
+      - Then for $\overline{L}$ take $\overline{M_L}$, i.e $x \not \in \overline{L} \rightarrow x \in L \rightarrow M_L(x) = 1 \rightarrow \overline{M}_L(x) = 0$
+  - Reverse
+    - $L \in RP \cap coRP$
+      - Then $M_{RP}, M_{coRP}$ exist, have $M = \overline{M_{RP}} \lor \overline{M_{coRP}}$
+        - i.e $x \in L \rightarrow M_{coRP} = 0 \rightarrow M(x) = 1$
+        - $x \not \in L \rightarrow M_{RP} = 0 \rightarrow M(x) = 0$
+## Randomized Reductions
+- **reductions**
+  - Language $B$ reduces to $C$, i.e $B \leq_r C$ if $\exists$ TM $M$, where $\forall x \in \{0,1 \}^*, Pr[B(M(x)) = C(x)] \geq 2/3$
+    - I.e $f$ analog in deterministic reductions is now probablistic
+## Interactive Proofs
+-  
+## CRS (Blum, Feldman, Micali)
+- Zero-knowledge proof -> replaced by common random string
+- **components of proof**
+  - Interaction
+  - Hidden Randomization
+  - Computational Difficulty
+- Verifier utilizes Interaction + Hidden randomization -> Force non-adaptivity of prover
+  - Prove global properties (rather than local (can be forged)) 
+- Prover utilizes Computational Difficulty
+  - Prevent Verifier from learning anything
+- **Indistinguishability**
+
+## GGPR
+- Use PCPs to construct Interactive-proofs for NP, verification in time poly-log in input size
+- Use ECRHs (extractable CRHs) instead of random-oracles to enable knowledge-extraction. i.e given $h(w)$ there exists an algorithm to determine $w$
+  - SNARGs of knowledge (SNARKs)
+  - possible knowledge extraction of PCP (witness) to NP TM $M$
+- **QSPs**
+  - Characterization of NP that allows construction of efficient SNARKs w/o PCPs
+  - **Span Programs**
+    - SP over field $F$ consists of $t \in F^m$ (target vector), $\{v_1, \cdots, v_n\} \in F^m$, and partition of indices $\mathcal{I}_{free}, \mathcal{I}_{labelled}$
+      - Further partition of $\mathcal{I}_{labelled} = \bigcup_{i \in \{0,1\}^n} \mathcal{I}_i$
+    - Computes $f : \{0,1\}^n \rightarrow \{0,1\}$, if $\forall u \in \{0,1\}^n$, $t \in \mathcal{I}_{free} \bigcup_{i} \mathcal{I}_{i, u_i}$
+  - **QSPs**
+    - $Q$ over $F$, contains two sets of polynomials $\mathcal{V} = \{v_k(x) : k \in \{0, \cdots, m\}\}, \mathcal{W} = \{w_k(x) : k \in \{0, \cdots, m\}\}$, and $t \in F[X]$, and partition of indices $\mathcal{I} = \{0,\cdots, m\}$, into $\mathcal{I}_{free}, \mathcal{I}_{labeled} = \bigcup_{i \in \mathbb{Z}_n , j \in \{0,1\}} \mathcal{I}_{i, j}$
+    - for $u \in \{0,1\}^n$, let $\mathcal{I}_u = \mathcal{I}_{free} \cup \bigcup_{i \in \mathbb{Z}_n} \mathcal{I}_{i, u_i}$
+      - $Q$ computes $f : \{0,1\}^n \rightarrow \{0,1\}$, iff $\forall u, f(u) = 1$, $\exists (a_1, \cdots, a_m), (b_1, \cdots, b_m)$, where $a_k = b_k = 0, k \not \in \mathcal{I}_u$, s.t
+        $$ t(x) | (v_0 + \Sigma_{k = 1}^m a_k v_k(x))(w_0 + \Sigma_{k = 1}^m b_k w_k(x))$$
+      - I.e target vector is in ideal generated by $v_k, w_k$
+- 
+### Quadratic Span Programs
+- Construction of QSP $Q$ for function $f$
+  - Given $C$ circuit supposedly computing $f$, can construct SP that verifies an assignment of $C$'s wires (a la NP-deterministic verifier)
+    - Notice, SP has non-free vectors for internal wires of $C$, i.e it does not compute $C$ rather it checks its computation
+  - I.e given assignment of internal wires that are non-conflicting, $S$ checks that the assignment is valid for given input
+- **construction of SP** (circuit-checker)
+  - Let $f : \{0,1\}^n \rightarrow \{0,1\}$, where $C_f$ has $s$ gates, let $\phi : \{0,1\}^{n + s} \rightarrow \{0,1\}$ that given an assignment of $C$'s wires (i.e value at each gate) is valid (i.e results from the input $u$)
+  - Suppose that gates in $C$ come from finite set $\Gamma$ (eg $\{AND, OR, NAND, XOR, \cdots\}$), suppose that for each $g \in \Gamma$ there is SP $m'$ that determines given input / output assignments, if they are consistent, i.e $m(x_1, x_2, x_3) = 1 \iff x_1 \land x_2 = x_3$
+  - Given $C$, and $m_i$ ($|\Gamma|$ possible SPs), there is SP $S$ computing $\phi$ of size $s * m$ (for each gate need sub-SP)
+  - **construction** ($N = n + s$)
+    - **assumptions**
+      - Each gate $g \in gates(C)$ has two inputs $g_l, g_r \in \{0,1\}$, and output $g_0 \in \{0,1\}$ (also used as indices of assignments in input to $\phi$), notice is $g$ is a feeder into $g'$, then $g_o = g'_l$ (i.e there is a wire between them)
+        - let $m^{(g)}, d^{(g)}$ denote the rows / columns of $S_g$, i.e $|\mathcal{I}_{free} \cup \mathcal{I}_{labeled}| = m$, ($m$ possible vectors) $S_g$, and $\mathcal{V}_g \subset F^{d^{(g)}}$ (each vector has dimension $d^{(g)}$) 
+    - $S = (t, \mathcal{V}, \mathcal{I}_{free}, \mathcal{I}_{labelled})$ 
+      - $|\mathcal{V}| = \Sigma_{g}m^{(g)}$, and $\mathcal{V} \subset F^d, d = \Sigma_g d^{(g)}$
+      - Can view $\mathcal{I}_{free} \cup \mathcal{I}_{labelled}$ as a $m \times d$ matrix
+        - Each $S_g$'s vectors will be composed of first $m^{(g)}$ rows, and $d^{(g)}$ columns (i.e $S$'s matrix is sparse)
+      - Consider the sub-matrix of $S$, for $S_g$, consider $\mathcal{I}_{free} \cup \mathcal{I}_{labelled} = \bigcup_{i \in \{g_r, g_l, g_o\}, j \in \{0,1\}} \mathcal{I}_{ij}^{(g)}$
+    - For $S$, $t = t^{g_1} \| \cdots \| t^{g_s}$
+      - If $v_k \in \mathcal{I}^{(g)}$, then $\hat{v}_k \in \mathcal{I}_S$, is $v_k$ but holding $0$s in all columns of $S$ not owned by $g$
+    - Proof
+      - Take $x, \phi(x) = 1$, then for each $g \in C$, with input $x_{g_l}, x_{g_r}, x_{g_o}$, there is a lin comb. of vectors in $\mathcal{I}_{free}^{(g)} \cup \mathcal{I}_{g_l, x_{g_l}}^{(g)} \cup \mathcal{I}_{g_r, x_{g_r}}^{(g)} \cup \mathcal{I}_{g_o, x_{g_o}}^{(g)}$ that equals $t^(g)$, taking the combination over all of these combinations yields $t$
+      - Similarly if $\phi(x) = 0$ there is no such combination...
+  - Translation of SP to polynomials
+- **construction of QSP (Consistency Checker)**
+  - Since the QSP is computing $f$, it must be the case that the interior wires can be used as free vectors (how to ensure that choice of free vectors is internally consistent w/ circuit)?
+    - QSP checks consistency of free vectors (i.e internal wires)
+  - Let $S = (t, \mathcal{V} = (v_1, \cdots, v_m), \mathcal{I}_{free}, \mathcal{I}_{labeled})$
+    - suppose $S$ has dimension $d$, fix $r_1, \cdots, r_d \in F$, set each $\hat{v_k} \in F[X], deg(\hat{v_k}) = d -1$, where $v_k(r_i) = v_{k_i}$ (i.e LGP on $r_i$), let $t(x) = \Pi_i (x - r_i)$, and $v_0(r_i) = -t_i$, then $S_{poly} = (t(x), \mathcal{V} = (v_0, \cdots, v_m), \mathcal{I}_{free}, \mathcal{I}_{labeled})$
+      - Where $S$ is sat iff $\exists (a_1,\cdots,a_m)$ where $t(x) | v_0(x) + \Sigma_k a_k v_k(x)$
+        - i.e $v(x) = v_0(x) + \Sigma_k a_k v_k(x) = p(x) * \Pi_i (x - r_i)$, suppose $S$ is satisfied by $(a_i)$, then $-t + \Sigma_k a_k v_k = 0$, thus $\forall r_i, v(r_i) = v_0(r_i) + \Sigma_k a_k v_k(r_i) = 0$, and $t(x) | v(x)$
+  -  **consistency checker**
+     - Why do we need this?
+       - Double assignment, let $\mathcal{I}_{i0}, \mathcal{I}_{i1} \in \mathcal{I}_{labelled}$, then for $\exists k_1 \in \mathcal{I}_{i1} a_{k_1} \not =0, \forall k_0 \in \mathcal{I}_{i0}, a_{k_0} = 0$
+     - weak version, single assigment from either set
+     - Fix $L$, let $\mathcal{I}_0 = \{1, \cdots, L\}, \mathcal{I}_1 = \{L + 1, \cdots, 2L \}$, let $\mathcal{I} = \mathcal{I}_0 \cup \mathcal{I}_1$ 
+       - Consistent, fix bit $B$, $\{a_k\}, \{b_k\}$ are consistent if, $a_k = b_k = 0, \forall k \in \mathcal{I}_{\overline{B}}$ (i.e a_k, b_k are assigned non-zero values in same partition of $\mathcal{I}$)
+       - Non-consistent
+         - $\exists k_0 \in \mathcal{I}_0, k_1 \in \mathcal{I}_1, a_{k_0} \not= 0, a_{k_1} \not= 0$, and $\exists k, b_k \not = 0$
+         - $\exists k_0 \in \mathcal{I}_0, k_1 \in \mathcal{I}_1, b_{k_0} \not= 0, b_{k_1} \not= 0$, and $\exists k, a_k \not = 0$ 
+    - **construction (for single wire)**
+      - Fix $L' = 3L - 2$, select $\mathcal{R}^{0} = \{r_1, \cdots, r_{L'}\}, \mathcal{R}^{1} = \{r'_1,\cdots, r'_{L'}\}$, and $\mathcal{R} = \mathcal{R}^0 \cup \mathcal{R}^1$, let $t(x) = \Pi_{r \in \mathcal{R}} (x - r)$
+      - Consider $\{a_i\}, \{b_i\}$, checker is
+        - $t(x)$, $\mathcal{V} = \{v_k(x) : k \in \mathcal{I}\}$, and $\mathcal{W} = \{w_k(x) : k \in \mathcal{I}\}$, where
+        $$ t(x) | (\Sigma_{k \in \mathcal{I}} a_k v_k(x)) (\Sigma_{k \in \mathcal{I}} b_k w_k(x))$$
+        - Forall $v \in \mathcal{V}, \mathcal{W}, deg(v_k) = deg(w_k) = L' + L -1$
+          - For $k \in \mathcal{I}_0$, $v_k(r) = 0, \forall r \in \mathcal{R}^0 \cup \{r_1^{(1)}, \cdots, r_L^{(1)}\}$, except $v_k(r^{(1)}_k) = 1$
+            - $w_k(r) = 0, \forall r \in \mathcal{R}^{1} \cup \{r_1^{(0)}, \cdots, r_L^{(0)}\}$, and $w_k(r_k^{(0)}) = 1$
+        - For $k \in \mathcal{I}_1$, $v_k(r) = 0 \forall r \in \mathcal{R}^{(1)} \cup \{r^{(0)}_1, \cdots, r^{(0)}_L\}$, and $v_{k - L}(r_{k -L}^{(0)}) = 1$
+          - $w_k(r) = 0, \forall r \in \mathcal{R}^{(0)} \cup \{r_1^{(1)}, \cdots, r_L^{(1)}\}$ and $w_{k - L}(r^{(1)}_{k -L}) = 1$
+      - Checks to consider?
+        - Two assignments of same series in conflicting wires
+          - 
+        - Two assignments of diff series in conflicting wires
+        - Non-conflicting assigment
+## PLONK
+- **definitions**
+  - Assume $F$ is field of prime order, i.e $\mathbb{Z}$ mod prime-ideal
+  - $\mathbb{G}_1, \mathbb{G}_2, \mathbb{G}_t$ grps of size $r$, and $e$ is efficiently computable + non-degenerate pairing $e : \mathbb{G}_1 \times \mathbb{G}_2 \rightarrow \mathbb{G}_t$, $g_1 \in \mathbb{G}_1, g_2 \in \mathbb{G}_2, e(g_1, g_2) = g_t \in \mathbb{G}_t$
+  - **Algebraic Group Model**
+    - 

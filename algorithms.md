@@ -50,6 +50,8 @@
         - For eahc node $j$, $A[Parent(i)] \leq A[i]$
   - **Height** - number of edges on the longest down-part path from node to a leaf
     - Number of elements $[2^{height}, 2^{height + 1}]$
+  - **max-heapify**
+    - 
 # Algorithms
 - ## Minimax
   - Goal, given two players $p_1$, $p_2$, with a 
