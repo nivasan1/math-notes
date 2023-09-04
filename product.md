@@ -43,16 +43,6 @@
     - All methods returning a validator, return the `consumer_cons_address` in the ConsAddress field
     - All methods expecting a ConsAddress expect the ConsAddress to be the `consumer_address`, use that as the idx into validators and make appropriate relationships w/ the `cons_address` field
       - Intuitively, the cons_address used externally from the data-layer is the consumer_cons_address, but the cons_address used in the DB is the provider_cons_address. We do this to maintain relational integrity (the provider cons_address is immutable)
-- ## Tasks
-1. Update Schema to include `consumer_address` field
-    - Perform necessary backfilling in prod / test sentinels
-2. Make `consumer_address`  non-nullable + unique constraints in DB
-3. Update data-layer methods
-   - At this point the sentinel has no knowledge of update consumer_addresses yet, but it will have the logic to be updated when the `consumer_cons_address`es are updated
-4. Update validator-registration to update `consumer_cons_address` on successful sign-in for validators on consumer chains 
-- What happens when a validator updates their consumer_address? How is sentinel made aware?
-  - Validator will have to re-register?
-  - 
 ## Testing
  - For testing data-layer changes
    - Spin-up local-testnet, change cons_address of validator behind sentry, have both vals sign-in again
@@ -139,7 +129,8 @@
     - 1/3 nodes are controlled by adversary
     - Rest of nodes are rational (i.e can be corrupted if reward is high enough)
   - Second-tier is **credible threat** (similar to additional penalty on lier / lesser penalty on teller in prisoner's dilemma)
-  - 
+## Milady / Charlotte Fang
+- 
 # Ideas
  - **creating blue oceans**
    - Value innovation
@@ -202,6 +193,8 @@
     - General framework for developing revenue-share from entity (generalized friend.tech)
   - Tokenization of trading (indexes)
     - Creators of indexes commit to basket in index first
+  - Social-graph networks?
+    - 
   - Tokenization of reputation
   - Patreon version of friend.tech
   - Make arbitrary the object ur buying shares in
@@ -210,7 +203,49 @@
     - Advertisements / making shit viral seems useful w/ DLT?
       - What is primary alpha here?
     - What are necessary components?
-  - 
+## Any p2p Medicine ideas?
+- Telemedicine
+- Online consulting, etc.
+  - This will continue growing in future
+# Ideation
+ - Follow YC practice
+ - Good startups follow from good ideas
+   - Have to be able to monopolize at some point
+   - Have to want to work on it > 10 years
+   - Has to be a product I'd use / want to exist
+ - Build for distressed users (users w/ their hair on fire)
+   - Who, other startups?
+ - What do I like to think abt?
+   - Crypto
+     - Crypto-currencies
+     - Security
+     - etc.
+   - Databases / Distributed systems
+   - mathematics
 # Why did ETH dump
 - Recession alr. happened?
 - Recession is going to be delayed significantly
+## Living in Future
+  - Constantly be re-defining end-state for society
+    - What will society look like in 10 yrs 
+      - p2p Interactions
+        - Transactions
+      - Governments
+        - What wil be abstracted away?
+      - Data?
+      - Services / Goods?
+        - Delivery
+        - Mode of comms?
+      - Commodities
+        - Trading
+  - **generate ideas naturally** (noticing)
+    - Ideas shld be noticed
+      - Notice what is missing
+    - Don't evaluate immediately. Just build, talk to customers, and iterate
+  - **Don't take the current state of the world for granted**
+    - Question
+      - Why can't I get a larger credit line?
+      - Why do ACH payments take so long?
+      - Etc.
+      - Where is my data?
+        - Do ppl really care about this? Or are we taking this stuff for granted

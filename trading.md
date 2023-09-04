@@ -80,7 +80,23 @@
     - **naive**
       - Arbitrage exists unless $F_0 = S_0e^{rT}$ ($T$ is time to expiry of forward contract)
   - **forward contract pricing (with dividends)**
-    -  
+
+## Perpetuals
+- **perpetual**
+  - Futures contract w/ no expiry
+- **maintenance-margin** - Required amt. of collateral required to increase position size
+- Accounts whose total value falls below maintenance margin have position closed by **liquidation engine**
+  - liquidator can take up to entire balance of portfolio, positions purchased at **liquidation** price
+- Users deposit collateral to act as buffer in price movements
+  - Say I deposit $c$ as collateral, then I will safe in $c - margin\_req$ price-movements in my position
+- **perpetual funding rate**
+  - **funding rate**
+    - Payments made between holders of perpetual contracts.
+    - Used to align spot-price w/ perpetual-price.
+      - Perpetual has no expiry, how to ensure that the perpetual price is aligned w/ spot?
+    - Directly dependent on spot / perp price
+    - Depends on interest of underlying
+      - i.e long = borrowing asset
 ## Interest Rate Derivatives
 ## Options
 ### Greeks

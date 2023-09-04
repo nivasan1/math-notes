@@ -2453,8 +2453,42 @@ type EventuallyPerfectFailureDetector interface {
           - High probability of high weight block in first slot of epoch
           - If high-weight block is found in first slot, subsequent slots increase weight of blocks descending -> high prob of justification (attestations are included in the subsequent blocks)
           - high justification prob -> high finalization prob
-      - ### Attestation Inclusion
+      - ### Attestation Inclusion Delay?
+        - Prevent attestations being included immediately (want to distribute attestation reward equally amongst vals w/ diff compute circumstances)
+      - ### Shard Transitions
+        - Packages of txs that attest to data w/in shard
+        - Shard data included in beacon-chain state via a **cross-link**
+        - Enable not all validators to be responsible for storing all data at all times
+          - More scalable architecture
+          - Requires nodes storing data to make it available (higher risk of censorship / lower cost-of-quorum attack)
+      - Each committee associated w/ a diff shard
+      - **block-structure**
+        - 
+## Why rollup centric architecture?
+- Several components to current DApp infra
+1. What is the definitive reference to know what the state of the DApp is at any point in time
+   1. Where do I definitively check to know how many tokens I have now. Historical state is not relevant here (only on case-by-case basis, and that can be centralized)
+   - Where is the final layer for persistence
+2. What is the infra required for reliably replicating txs?
+   1. tx-ingress + attestation (sequencing). Problem here is Byzantine Atomic Broadcast (i.e BB on order of inputs) (BAB different from SMR?)
+   2. tx-execution. What is the process of checking that the proposed final state (assuming well-defined ordering of inputs, and availability of initial state) is correct?
+3. w
+- One advantage
+  - Apps are independently scalable
+- Better gas-metering
+  - Specific operations introduced
+- What happens to ABCI++?
+  - Prepare / Process (handled)
+  - Vote-Extensions?
+    - Signed data from validators based on the incoming proposal (would have to delegate to the sequencer set)
+- What is purpose of launching a token then? 
 ## DA
+- **Intuition**
+  - Why implement data-availability? (why pre-req for scaling?)
+  - More data on L1 -> fewer nodes can participate -> make light-clients able to reliably verify state-transitions
+  - I.e consensus + execution proving, w/ sub-linear time message consumption
+    - Only need prev. state-root + current-header + attestation to txs
+    - Ensure that participating nodes are making the data-available tho (this is to ensure that at least 1 full-node will eventually verify all txs, etc. )
 - Make it possible for light-clients to receive and verify fraud proofs of invalid blocks
   - DA proofs also useful for sharding
 - Light-clients only verify blocks in accordance w/ consensus-rules (not tx-validity rules)
@@ -2551,7 +2585,32 @@ type EventuallyPerfectFailureDetector interface {
   - full-nodes can publish to accepting light-clients
 - **intuition**
   - Purpose of DA is to enforce that light-clients have the ability to verify execution of transactions
-    - To do so 
+    - To do so
+- ## Rollup intuition?
+  - Worried abt execution / hosting?
+    - I.e I want a Dapp (software that is reliable + verifiably executed)
+      - Components (what determines inputs?)
+      - How is the execution verified?
+        - Validity (need provers, etc.)
+        - Fraud Proofs (also complicated)
+    - Cloudflare-esque offering for chain-building
+      - Why not build on the EVM? utilities are limited, non-existent infra for other shit, i.e governance, token issuance, etc.
+## Celestia
+- Minimized state on-chain
+  - Simply used as a framework for providing data-availability
+    - I.e first stage toward making ecosystem amenable to rollup-centric roadmap
+- If data-availability is a commodity, what is advanatage of rolling up to ethereum?  
+  - Light-client security?
+    - Higher prob / more light-clients that are verifying headers, etc. (higher chance of getting fraud proof if one exists?)
+- Liveness preserving
+- **functional escape velocity**
+  - blockchains = maximally simple, infra, shld be unchanging, 
+  - layer 2s exist for complex functionality
+  - layer 1 needs **functional escape velocity** to permit layer 2 protocols
+    - functionality required for optimistic rollups
+    - functionality required for zk-validity rollups
+  - Need VM (not turing complete, must be able to terminate)
+  - 
 ## Packet bill-board (makes sense)
   - Node operators run sync-chain node + node for all other chains they are validating on?
     - Node operators forced to post packets for each of their chains to sync-chain, also forced to reap packets from sync-chain to other chains
@@ -2814,7 +2873,16 @@ type EventuallyPerfectFailureDetector interface {
   - **Posterior Corruption**
     - Multiple validators participate in fork, can be done if a val. on main chain unstakes (no longer disincentive to not participate), 
   - **Stake-Bleeding**
-    - 
+## Martin Van Steen Reading (Traditional Concepts)
+- **software architecture**
+  - Decomposition of task into sub-components
+- **architectures**
+  - **layered**
+  - **object-based**
+  - **resource-centered**
+  - **event-based**
+### Layered Architectures
+- 
 # Ethereum Reading
 ## Core Protocol (Serenity)
 - **networking**
@@ -2825,3 +2893,33 @@ type EventuallyPerfectFailureDetector interface {
 ### DAS
 ### Sharding
 ### Use of KZG Commits
+## Improving Tendermint p2p?
+- **concerns**
+  - What are factors to consider
+    - **bandwidth**
+    - How to benchmark?
+## Celestia
+- Minimize on-chain state
+## Purpose of a Rollup?
+- Simpler to manage?
+  - Maintenance of fraud-proof submission (optimistic)
+  - Prover decentralization?
+    - How to incentivize multiple nodes to submit validity proofs
+- What can be abstracted here?
+  - Examples of users
+    - MakerDAO
+    - DYDX
+    - Osmosis
+    - Lens
+    - Zorra
+    - Farcaster
+    - 1 inch
+- Separate tx execution from ordering / tx-aggregation
+  - Ideal properties of sequencer
+    - Scalable
+    - Censorship-resistance
+      - At odds w/ above
+  - ePBS
+  - PEPC?
+- rollup nodes have no introspection into PEPC commitments?
+  - IDK? Where to co-ordinate this?

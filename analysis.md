@@ -76,6 +76,8 @@
       - $x > 0$ apply axiom of ordered field
       - If $x < 0 \rightarrow (-x) > 0 \rightarrow (-x)^2 = x^2 > 0$
     - If $0 < x < y$ then $0 < 1/x < 1/y$
+      - $(1/y) > 0$ (contradiction), suppose otherwise, then $y(1/y) < 0 \rightarrow false$
+      - $(1/y) < (1/x)$, $x < y \rightarrow x(1/x)(1/y) < y(1/y)(1/x) = 1/y < 1/x$
 - **There exists a set $R \supset \mathbb{Q}$ that has the lub-property**
   - If $x \in R, y \in R$, and $x > 0$, then there is a positive integer $n$, where $nx > y$ (**archimedian property of $\mathbb{R}$**)
     - Suppose otherwise, then consider $x \in L = \{nx : n \in \mathbb{N}\} \not= \emptyset$, and $y \geq nx, \forall x$. Therefore, via the lub property $\alpha \in sup(L)$ exists. Notice, fix $\beta \in L$, where $\alpha - \beta \leq x$ (notice, that this exists is triv. 
@@ -83,14 +85,51 @@
       - finding $\beta$? where $\alpha - \beta \leq x$
       - Consider $\alpha - x < \alpha$, thus $\exists m, mx > \alpha - x$ (how to find $\beta$)
   - If $x, y \in \mathbb{R}$, $x < y$, then there exists $p \in \mathbb{Q}$, where $x < p < y$ (**$\mathbb{Q}$ is dense in $\mathbb{R}$** )
-    - Strategy, can fix $p \in \mathbb{Q}$, where $p < x$, and find $n$, where $np > x$, how to fix $np < y$?
-      - Possible to choose $p \in \mathbb{Q}, p < x - y$, 
-      - Find $n \ni np > y$ (choose minimum), then $x < (n - 1)p < y$
+    - **Intuition**
+      - If $y > x$, then $(y - x) > 0$ -> we can expand this diff to be as large as we want, say 1. Then $\exists n \in \mathbb{Z}, ny - nx > 1$, thus WTS $\exists m \in \mathbb{Z}, m - 1 < nx < m$, 
+        - Identify set of $\mathbb{Z}$, where $m' < nx$, and take $m = m' + 1$
 - Proof of n-th root, take $x \in \mathbb{R}$, $\exists y \in \mathbb{R}, y^n = x$
-  - Take $L = \{y \in \mathbb{R}: y^n < x\}$, notice, $x$ is upper-bound of $L$, thus $\alpha = sup(L)$ exists. Notice $(1 + x)^n > x^n$
-    - $\alpha^n \leq x$
-      - Suppose $\alpha^n > x$, $x - \alpha^n$
+  - Take $\frac{x}{1 + x} = L = \{y \in \mathbb{R}: y^n < x\}$, notice, $x$ is upper-bound of $L$, thus $\alpha = sup(L)$ exists. Notice $(1 + x)^n > x^n$
+    - $\alpha^n < x$
+      - Intuitively, want to show that if $y^n < x$ (where $y$ is $sup(L)$) $\exists y' > y, y'^{n} < x$, fix $1 > \epsilon > 0$,
+        - Then $(y + \epsilon)^n - y^n < \epsilon n(y + \epsilon)^{n - 1} < \epsilon n(y + 1) < x - y^n$
+        - Thus $\epsilon < \frac{x - y^n}{n(y + 1)^{n - 1}}
     - $\alpha^n \geq x$
-        - Suppose $\alpha^n < x$
+        - Similar case, suppose $y^n > x$, then show for some $(y - k)^n > x$, thus $y \not= sup(L)$ (contradiction)
+- If $a, b \in \mathbb{R}$, and $n \in \mathbb{Z}$, then $(ab)^{1/n} = a^{1/n}b^{1/n}$
+  - Let $\alpha = a^{1/n}, beta = b^{1/n} \in \mathbb{R}$, that $\alpha, \beta \in \mathbb{R}$ exist / are unique and real is proven above.
+  - Then $ab = \alpha^n \beta^n = (\alpha \beta)^n$, then $(ab)^{1/n} = \alpha \beta = a^{1/n} b^{1/n}$
+- **decimals**
+  - Take $n_0 \leq x$, where $n_0 \in \mathbb{Z}$ is the largest such integer
+    - Then take $n_i \leq x - \Sigma_{j < i} \frac{n_i}{10^i}$ (be the largest such integer)
+  - Let $E = \{\alpha = \Sigma_{j < i} \frac{n_i}{10^i}\}$, then $x = sup(E)$
+- **complex field**
+  - Let $\alpha \in \mathbb{C}$, then $\alpha = (a, b)$ (ordered pair)
+    - Operations, $(a, b) + (c, d) = (a + c, b + d)$, $(a, b)(c, d) = (ac - bd, ad + bc)$
+  - **field axioms**
+    - Take $(0, 0)$ as additive identity, and $(1, 0)$ as multiplicative identity
+    - **addition grp.**
+      - Triv, $-(a, b) = (-a, -b)$, $(a, b) + (0, 0) = (a, b)$ (inverse)
+      - $(a, b), (c, d) \in \mathbb{C} \rightarrow (a, b) + (c, d) = (a + c, b + d) = (c + a, d + b) = (c,d) + (a, b)$ (commutative)
+        - Fix $(a,b), (c, d), (e, f) \in \mathbb{C}$, then $(a, b) + ((c, d) + (e, f)) = (a, b) + (c + e, d + f) = (a + c + e, b + d + f) = ((a, b) + (c, d)) + (e, f)$
+    - **multiplicative**
+      - Arithmetic
+  - $i = (0, 1)$, $(0, 1)^2 = (-1, 0)$
+  - **conjugation**
+    - Let $z \in \mathbb{C}, z = a + bi, \overline{z} = a - bi$
+    - $\overline{z + w} = \overline{z} + \overline{w}$
+    - $\overline{zw} = \overline{z} \overline{w}$
+    - $\overline{z} + z = 2Re(z)$ (similar for $z - \overline{z}$)
+  - $|z| = \sqrt{z \overline{z}}$
+- Order $<$ on set $E$ is relation (i.e $\subset E \times E$)
+  - Where $x < y \lor x = y \lor y < x$ (where $\lor$ is XOR) (def)
+  - $x < y \land y < z \rightarrow x < z$ (transitive)
 - **problems**
   - Fix $b > 1$
+  - Let $E \not= \emptyset$ is ordered, suppose $\alpha = lub(E)$, $\beta = glb(E)$
+    - Notice $\forall x \in E, \alpha \leq x \land x \leq \beta \rightarrow \alpha \leq \beta$
+  - Let $A \subset R, A \not= \emptyset$, where $A$ is bounded below (thus $\alpha = inf(A) \in R$), let $-A = \{-x : x \in A\}$. Prove $inf(A) = -sup(-A)$
+    - Take $\alpha = inf(A)$, notice, $-A$ is then bounded above, i.e $-\alpha$, as $\forall x \in A, x \geq \alpha \rightarrow -\alpha \geq -x$, take $\beta = sup(-A)$, and $\beta \leq -\alpha$ (def of lub). Similar case follows for $-\beta \leq \alpha \rightarrow \beta \geq -\alpha \rightarrow \beta = -\alpha$
+  - Fix $b > 1$
+    - If $m, n, p, q \in \mathbb{Z}$, $n > 0, q > 0$, and $r = m/n = p/q$
+      - $(b^m)^{1/n}$
