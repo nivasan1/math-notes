@@ -80,7 +80,9 @@
     - **naive**
       - Arbitrage exists unless $F_0 = S_0e^{rT}$ ($T$ is time to expiry of forward contract)
   - **forward contract pricing (with dividends)**
-
+## Large selling Event?
+- How stable is US economy?
+  - Seems like it may not be? Commercial housing market?
 ## Perpetuals
 - **perpetual**
   - Futures contract w/ no expiry

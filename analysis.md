@@ -88,14 +88,16 @@
     - **Intuition**
       - If $y > x$, then $(y - x) > 0$ -> we can expand this diff to be as large as we want, say 1. Then $\exists n \in \mathbb{Z}, ny - nx > 1$, thus WTS $\exists m \in \mathbb{Z}, m - 1 < nx < m$, 
         - Identify set of $\mathbb{Z}$, where $m' < nx$, and take $m = m' + 1$
-- Proof of n-th root, take $x \in \mathbb{R}$, $\exists y \in \mathbb{R}, y^n = x$
+- Proof of n-th root, take $x \in \mathbb{R}$, $\exists y \in \mathbb{R}, y^n = x$. I.e $\forall x \in \mathbb{R}, x > 0 \rightarrow \forall n \in \mathbb{Z}_{>0}, \exists y \in \mathbb{R}_{>0}, y^n = x$ (and each such $y$ is unique, denoted $^n\sqrt{x}$)
   - Take $\frac{x}{1 + x} = L = \{y \in \mathbb{R}: y^n < x\}$, notice, $x$ is upper-bound of $L$, thus $\alpha = sup(L)$ exists. Notice $(1 + x)^n > x^n$
     - $\alpha^n < x$
       - Intuitively, want to show that if $y^n < x$ (where $y$ is $sup(L)$) $\exists y' > y, y'^{n} < x$, fix $1 > \epsilon > 0$,
         - Then $(y + \epsilon)^n - y^n < \epsilon n(y + \epsilon)^{n - 1} < \epsilon n(y + 1) < x - y^n$
-        - Thus $\epsilon < \frac{x - y^n}{n(y + 1)^{n - 1}}
-    - $\alpha^n \geq x$
-        - Similar case, suppose $y^n > x$, then show for some $(y - k)^n > x$, thus $y \not= sup(L)$ (contradiction)
+        - Thus $\epsilon < \frac{x - y^n}{n(y + 1)^{n - 1}}$, apply similar logic above, i.e
+        $$y^n - (y - k)^n = (y - (y - k))(y^{n - 1} + y^{n - 2}(y -k) + \cdots + (y -k)^{n - 1}) < kny^{n -1} < y^n - x^n$$
+        - Thus, $0 < k < \frac{y^n - x^n}{ny^{n - 1}}$, and $(y - k) < y$, and $(y - k)$ is an upper-bound of $E$, a contradiction
+    - $\alpha^n > x$
+      - Show there exists $k > 0, y - k$ is upper bound of $E$ (contradicting earlier statement)
 - If $a, b \in \mathbb{R}$, and $n \in \mathbb{Z}$, then $(ab)^{1/n} = a^{1/n}b^{1/n}$
   - Let $\alpha = a^{1/n}, beta = b^{1/n} \in \mathbb{R}$, that $\alpha, \beta \in \mathbb{R}$ exist / are unique and real is proven above.
   - Then $ab = \alpha^n \beta^n = (\alpha \beta)^n$, then $(ab)^{1/n} = \alpha \beta = a^{1/n} b^{1/n}$
@@ -121,6 +123,21 @@
     - $\overline{zw} = \overline{z} \overline{w}$
     - $\overline{z} + z = 2Re(z)$ (similar for $z - \overline{z}$)
   - $|z| = \sqrt{z \overline{z}}$
+    - $|z| > 0$, unless $(a, b) = (0, 0)$, naturally $z \overline{z} > 0$, thus $\sqrt{x}$ exists (see above)
+    - $|\overline{z}| = \sqrt{\overline{\overline{z}} \overline{z}} = \sqrt{z \overline{z}} = |z|$
+    - $|zw| = |z||w|$
+    - $|Re(z)| \leq |z|$ (triangle inequality)
+      - $z = a + bi$, then $Re(z) = a$, then $|Re(z)| = \sqrt{aa} = a \leq \sqrt{a^2 + b^2} = |z|$
+    - $|z + w| \leq |z| + |w|$
+      $$|z + w|^2 = z\overline{z} + w\overline{z} + \overline{w}z + \overline{w}w = z \overline{z} + w \overline{w} + 2 Re(z \overline{w}) \leq |z|^2 + |w|^2 + 2|z \overline{w}| = |z|^2 + |w|^2 + 2|z||w| = (|z| + |w|)^2$$
+  - **schwartz**
+    - If $a_1, \cdots, a_n, b_1, \cdots, b_n \in \mathbb{C}$, then $|\Sigma_i a_i \overline{b_i}|^2 \leq \Sigma_i |a_i|^2 \Sigma_i |b_i|^2$ (i.e $\|xy\|\leq \|x \| \|y \|$)
+    - **solution 1**
+      - Set $A = \Sigma_i |a_i|^2, B = \Sigma_i |b_i|^2, C = \Sigma_i a_i \overline{b_i}$
+      - Consider $\Sigma_i |Ba_i - Cb_i|^2 = \Sigma_i (Ba_i - Cb_i)(B\overline{a_i} - \overline{C b_i}) = B^2\Sigma_i |a_i|^2 - B\overline{C}\Sigma_i a_i \overline{b_i} - CB\Sigma_ib_i \overline{a_i} + |C|^2 \Sigma_i |b_i|^2 = B^2A - B|C|^2 = B(AB - |C|^2) > 0$. Thus $(AB - |C|^2) > 0$ (as desired)
+    - **solution 2**
+      - 
+
 - Order $<$ on set $E$ is relation (i.e $\subset E \times E$)
   - Where $x < y \lor x = y \lor y < x$ (where $\lor$ is XOR) (def)
   - $x < y \land y < z \rightarrow x < z$ (transitive)
@@ -131,5 +148,120 @@
   - Let $A \subset R, A \not= \emptyset$, where $A$ is bounded below (thus $\alpha = inf(A) \in R$), let $-A = \{-x : x \in A\}$. Prove $inf(A) = -sup(-A)$
     - Take $\alpha = inf(A)$, notice, $-A$ is then bounded above, i.e $-\alpha$, as $\forall x \in A, x \geq \alpha \rightarrow -\alpha \geq -x$, take $\beta = sup(-A)$, and $\beta \leq -\alpha$ (def of lub). Similar case follows for $-\beta \leq \alpha \rightarrow \beta \geq -\alpha \rightarrow \beta = -\alpha$
   - Fix $b > 1$
-    - If $m, n, p, q \in \mathbb{Z}$, $n > 0, q > 0$, and $r = m/n = p/q$
-      - $(b^m)^{1/n}$
+    - If $m, n, p, q \in \mathbb{Z}$, $n > 0, q > 0$, and $r = m/n = p/q$, thus $(b^m)^{1/n} = b^{m/n}$
+      - $(b^m)^{1/n} = (b^p)^{1/q}$, notice $((b^m)^{1/n})^{nq} = b^{mq} = b^{np} = ((b^{p})^{1/q})^{nq}$, thus since $nq$-th roots are unique $(b^{m})^{1/n} = (b^p)^{1/q}$ 
+      - Let $r, s \in \mathbb{Q}, b^{r + s} = b^r + b^s$
+        - Let $r = m/n, s = p/q$, then $b^{r + s} = b^{\frac{mp + nq}{np}} = (b^{mp + nq})^{1/np} = (b^{mp}b^{nq})^{1/np} = b^{m/n}b^{q/p} = b^rb^s$
+          - Notice, the 2nd equality follows from the above definition, and the 2nd to last follows from the proof that $ab^{1/n} = a^{1/n}b^{1/n}$
+      - If $x \in \mathbb{R}$, define $B(x) = \{b^t: t \leq x, t \in \mathbb{Q}\}$
+        - When $r \in \mathbb{Q}, b^r = sup(B(r))$
+          - Notice, $b^{r - 1} \in B(r)$, thus $B(r) \not= \emptyset$, furthermore, $b^r$ is an upper-bound, thus $sup(B(r))$ exists, naturally $sup(B(r)) \leq b^r$. Furthermore, since $b^r \in B(r)$, $b^r \leq sup(B(r))$, thus $b^r = sup(B(r))$
+        - Naturally, for $x \in \mathbb{R}$, $B(r) \not= \emptyset$ ($\mathbb{Q}$ is dense in $\mathbb{R}$), similarly, $B(r)$ has an upper-bound (apply archimedian prop. for some $r \in \mathbb{Q}$), and $sup(B(x))$ exists
+      - Prove that $b^{x + y} = b^x b^y$ $\forall x, y \in \mathbb{R}$
+        - Notice, for $t \in \mathbb{Q}, t \leq x + y \rightarrow \exists s \leq x, r \leq y, t = s + r \leq x + y$
+          - Trivial, i.e take $t - y, x$ (apply density of rationals) set this as $r, s = t - r$
+        - Strategy
+          - Show that $B(x + y) = B(x)B(y)$
+            - Fix, $\alpha \in B(x + y)$, then $\alpha = b^t, t \in \mathbb{Q}, t = r + s \leq x + y$, and $b^r \in B(x), b^s \in B(y), b^{r + s} \in B(x)B(y)$
+            - Fix $b^r \in B(x), b^s \in B(y)$, naturally $b^rb^s = b^{r + s} \in B(x + y)$ ($r + s \leq x + y$)
+          - Then show that $sup(A) = sup(B)sup(c)$ (for all such sets having the above property)
+            - Consider $\alpha \in B(x)B(y)$, then $\alpha = b^rb^s, b^r \in B(x), b^s \in B(y)$, thus $b^rb^s \leq sup(B(x))sup(B(y))$
+  - Fix $b > 1$, $y > 0$, and prove that there is a unique $x \in \mathbb{R}$, $b^x = y$
+    - For $n \in \mathbb{Z}_{>0}$, $b^n - 1 \geq n(b - 1)$
+      - Notice $b^n - 1 = (b - 1)(b^{n - 1} + \cdots + 1) \geq (b - 1)n$, notice, $\forall n \in \mathbb{Z}_{\geq 0}, b^n \geq 1$ (from hyp.)
+      - $b' - 1 \geq n(b'^{1/n} - 1)$
+        - Take above w/ $b' = b^{1/n}$
+      - If $t > 1$, and $n > \frac{b - 1}{t - 1}$
+        - Apply above, i.e $(t - 1)n < b -1 < n(b^{1/n} -1)$
+      - If $w \in \mathbb{R}$, where $b^w > y$, then $b^{w - 1/n} > y$
+        - Notice $\frac{b^w}{y} > 1$, thus apply above to find $n$, specifically $\frac{b -1}{\frac{b^w}{y} - 1}$, thus $b^{1/n} < b^{w}/y$, and $y < b^w/b^{1/n}
+      - If $b^w < y$, then there exists $n$, where $b^{w + 1/n} < y$,
+        - Same principle w/ $t = \frac{y}{b^w}$
+      - Let $A = \{w : b^w < y\}$, and show that $x = sup(A), b^x = y$
+        - Suppose $b^x  < y$, then $x + 1/n \in A$ (contradiction)
+        - Similarly $b^x > y$ is also a contradiction, thus $b^x = y$
+      - Uniqueness of $x$?
+        - Then $b^{x - x'} = 1$, thus $x - x' = 0$, and $x = x'$
+  - No order can be defined on $\mathcal{C}$
+    - Notice, $1 > 0$, thus $-1 < 0$, and $i < 0$, however, $i^2 < 0$?
+    - Suppose $i > 1$, then $-1 > 0$, thus $0 > 0$? ($1 > 0$)
+  - Suppose $z = a + bi$, $w = c + di$, define $z < w$ if $a < c$ or $a = c$, and $b < d$
+    - Notice, fix $z, w \in \mathbb{C}$, then WLOG $a > c$ ($z > w$) or $a = c$, $b = d$ or WLOG $b < d$
+    - Suppose $x < w$, and $w < z$ (transitive)
+      - Notice if $w.1 = z.1$, then, since $x.1 \leq w.1$ $x.1 \leq z.1$ (thus $x < z$)
+    - Subset w/ no lub? 
+  - If $z \in \mathbb{C}$, prove that there exists $r \geq 0$, and $w \in \mathbb{C}, |w| = 1$
+    - Suppose $z = a + bi$, then $w = \frac{a}{\sqrt{a^2 + b^2}} + \frac{b}{\sqrt{a^2 + b^2}}i$
+  - Suppose $k \geq 3$, $\bold{x}, \bold{y} \in \mathbb{R}^k$, $|\bold{x} - \bold{y} = d > 0$, and $r > 0$, then
+    - $2r > d$, there are infinitely many $\bold{z} \in \mathbb{R}^k$, where $|\bold{z} - \bold{x}| = | \bold{z} - \bold{y}| = r$
+      - Consider all scalar multiples?
+    - $2r = d$
+      - Then $|z - y| + |x - z| = d = |x - y|$
+        - Thus there is only one soln
+    - $2r < d$
+      - Cannot be satisfied (triangle ineq. violated)
+## Topology
+- **cardinalities**
+  - For $n \in \mathbb{Z}_{>0}$, let $J_n$ be the set $\{1, \cdots, n \}$, let $J = \cup_{n \in \mathbb{Z}_{>0}} J_n$
+  - For set $A$
+    - $A$ is **finite** if $\exists n \in \mathbb{Z}_{n}$, where $A \sim J_n$ ($A$ is isomorphic to) $J_n$
+    - $A$ is **infinite** if $A$ is not finite
+    - $A$ is **countable** if $A \sim J$
+    - $A$ is **uncountable** if $A$ is neither finite nor countable
+    - $A$ is **at most countable** if $A$ is not **uncountable**
+- Every infinite subset of a countable set $A$ is countable
+- Countable union over countable sets is countable
+- Let $A$ be a countable set, and let $B_n = A^n = \{(a_1, \cdots, a_n) : a_i \in A \}$, then $B_n$ is countable
+  - $B_1 = A$ thus $n = 1$ holds. Assume that $B_n$ is countable, then $B_{n + 1} = \bigcup_{a \in A} \bigcup_{b \in B_n} (b_1, \cdots, b_n, a)$, thus $B_{n +1}$ is a countable union of countable sets, and is thus countable
+- The set of all rationals is countable
+  - Apply above to $\mathbb{Z}$, i.e $\mathbb{Q} = \mathbb{Z} \times \mathbb{Z}$
+### Metric Spaces
+- Let $X$ be a set, and $x \in X$ is a **point**
+  - $X$ is a **metric space** if for $p, q \in X$, $\exists d(p, q) \in \mathbb{R}$ where
+    - $d(p, q) > 0$ ($p \not= q$) or $d(p,p) = 0$
+    - $d(p, q) = d(q, p)$
+    - $d(p, q) \leq d(p, r) + d(r, q)$
+- **$k$-cell** - $A \subset \mathbb{R}^k$, where $x \in A \rightarrow \forall i, a_i \leq x_i \leq b_i$ (i.e each coord lines w/in given bounds)
+- $A \subset \mathbb{R}^k$ is a **ball** centered at $x \in \mathbb{R}^k$, where $\forall y \in A, |y - x| < r$ (open), $|y - x| \leq r$ (closed)
+- Balls are convex
+  - Let $\alpha, \beta \in A$, where $A$ is a ball around $x \in \mathbb{R}^k$, w/ radius $r$, then $|\alpha - x| \leq r$ and $|\beta - x| \leq r$
+  - Consider $|\lambda \alpha - (1 - \lambda)\beta - x| \leq \lambda | \alpha - x| + (1 - \lambda)|\beta - x| \leq r$ (notice, $0 < \lambda < 1$)
+- Same results hold for k-cells.
+  - take $\alpha, \beta \in A$, then $\forall i, a_i \leq \alpha_i \leq b_i, a_i \leq \beta_i \leq b_i$, then $a_i \leq \lambda \alpha_i + (1 - \lambda)\beta_i \leq b_i$
+- Let $X$ be a metric space
+  - **neighbourhood** - $N_r(p) = \{x \in X : |p - x| < r \} \subset X$, where $r > 0$
+  - **limit point** - $E \subset X$, then $p$ is limit point of $E$, if $\forall r \in \mathbb{R}_{> 0}, N_r(p) \backslash \{p\} \cap E \not= \emptyset$ every neighbourhood of $p$ intersects $E$ (outside of itself)
+    - **intuition** - $p$ is as close to being a part of $E$ as one can get, $p \in \overline{E}$
+  - If $p \in E$, and $p$ is not a limit point of $E$, then $p$ is an **isolated point**
+    - I.e there is a neighbourhood of $p$ that does not intersect $E$ apart from itself
+    - Think of a set of finite points, each spread $r > 0$ away from each other
+  - $E$ is **closed** if all limit points of $E$ are in $E$
+  - $p \in E$ is an **interior point** of $E$, if $\exists r > 0, N_r(p) \subset E$
+  - $E$ is **open** if $\forall p \in E$ $p$ is an interior point
+  - $E$ is **perfect** if $E$ is closed, and if every point of $E$ is a limit point
+    - $E$ must be infinite? Closed ball in $\mathbb{R}^k$
+  - $E$ is **bounded** if $\exists M \in \mathbb{R}, q \in X$, where $\forall x \in X, d(x, q) < M$
+  - $E \subset X$ is **dense** in $X$ if $\forall x \in X$ $x$ is a limit point of $E$ or $x \in E$
+- Every neighbourhood is an open set
+  - Consider $N_r(p)$, where $r > 0$. Fix $q \in N_r(p)$, then $d(q, p) < r$, thus $r - d(q, p) = \epsilon > 0$. Notice, $\forall x \in N_{\epsilon}(q)$, $d(q, x) < \epsilon$, thus $d(p, q) < d(p, q) + d(q, x) < r$, and $x \in N_r(p)$, thus $N_{\epsilon}(q) \subset N_r(p)$, and $q$ is interior.
+- If $p$ is a limit point of a set $E$, then every neighbourhood of $p$ contains infinitely many points of $E$
+  - Suppose $p$ is a limit point of $E$, then consider $N_r(p)$ where $r > 0$, naturally (since $p$ is a limit point), $N_r(p) \cap E \backslash \{p\} \not = \emptyset$, if this is finite, i.e $a_1, \cdots, a_n$, take $r' < min_{a_i}(d(p, a_i))$, and $N_{r'}(p) \cap E \backslash \{p\} = \emptyset$ (contradiction).
+- A set $E$ is open iff its complement is closed
+  - Forward
+    - Suppose $E$ is open, and suppose $x$ is a limit point of $E^c$, that is, $\forall r > 0$, $N_r(x) \backslash \{p\} \cap E^c \not = \emptyset$, and $x \not \in E$ ($x$ is not interior point), thus $x \in E^c$, and $E^c$ is closed
+  - Reverse
+    - Suppose $E^c$ is closed. Consider $p \in E$, then $\exists r > 0$, where $N_r(p) \cap E^c = \emptyset$ ($p$ is not a limit point of $E^c$), thus $N_r(p) \subset E$, and $p$ is an interior point. Thus $E$ is open
+- Let $\{G_{\alpha}\}$ be a collection of open sets, then $B = \cup_{\alpha} G_{\alpha}$ is open
+  - Suppose $x \in B$, then $\exists \alpha, x \in G_{\alpha}$, thus $\exists r > 0$, where $N_r(x) \subset G_{\alpha} \subset B$, and $B$ is open.
+- Let $\{G_{\alpha}\}$ be a collection of closed sets, then $\cap_{\alpha} G_{\alpha}$ is closed.
+  - consider $(\cap_{\alpha} G_{\alpha})^c = \cup_{\alpha} G_{\alpha}^c$ is open, thus $\cap_{\alpha} G_{\alpha}$ is closed.
+- For any finite collection of open sets $G_1, \cdots, G_n$ $\cap_i G_i$ is open.
+  - Suppose $x \in \cap_i G_i$, then $\forall i \exists r_i > 0, N_{r_i}(x) \subset G_i$ (each $G_i$ is open), then take $r = min_i(r_i)$, and $N_r(x) \subset G_i, \forall i$, thus $N_r(x) \subset \cap_i G_i$
+  - Notice, above does not hold for infinite collections, i.e $\cap_{n \in \mathbb{N}} (-1/n, 1/n) = 0$ (closed)
+- If $X$ is metric space, and $E \subset X$, then $\overline{E} = E \cup E'$, where $E'$ is the set of all limit-points of $E$
+  - $\overline{E}$ is closed
+  - $\overline{E} = E$ iff $E$ is closed
+  - $\overline{E} \subset F$ for every closed $F \subset X$ where $E \subset F$
+    - fix $F$ (closed), where $E \subset F$
+      - WTS: a limit point of $E$ is a limit point of $F$, and is thus in $F$
+    - Suppose $x$ is a limit point of $E$, then $\forall r > 0$, $N_r(x) \backslash \{x\} \cap E \not= \emptyset$, similarly, $N_r(x) \backslash \{x\} \cap F \not= \emptyset$, thus $x$ is a limit point of $F$, and $x \in F$. Thus $\overline{E} = E \cup E' \subset F$

@@ -203,6 +203,33 @@
     - Advertisements / making shit viral seems useful w/ DLT?
       - What is primary alpha here?
     - What are necessary components?
+  - Tokenization of compute credit
+    - Startups passively generate revenue by outsourcing unused compute
+    - Question: how do people obtain compute today, how will this change in the future?
+  - Terraform like interface for IAM
+    - How do startups do this today, how will this change in the future?
+
+## ML / infra
+- GPU shortage?
+  - Access to compute for most startups is going to get [hard](https://signalfire.com/ai-compute-shortage/)
+    - How to democrotize
+- **why is it hard to acquire**?
+  - Many are locked in contracts (model-flop utilization)
+    - Optimally utilize compute instances (GPUs, CPUs, etc.)
+  - Too much vendor lock-in?
+    - Multiplex over multiple providers?
+  - Fee structure / plans built to where startups forced to move entire stack (+ depend upon) single cloud provider
+- What workloads will teams specifically be optimizing for?
+  - Who is the ideal customer? Enterprises, start-ups?
+    - Enterprises: concerned w/ legal / regulatory concerns
+  - Instrumentation w/ LLMs
+    - Predictability? Want to at least have predictable outputs, trust can only be set to the lowest bar of predicted outputs, [**consistency is most important**](https://signalfire.com/sell-ai-to-enterprise/)
+- Low hanging fruit first
+  - Internal tooling
+- Complete solutions
+## Data Privacy?
+## Other Crypto stuff
+## Medical Billing
 ## Any p2p Medicine ideas?
 - Telemedicine
 - Online consulting, etc.
@@ -238,6 +265,14 @@
         - Mode of comms?
       - Commodities
         - Trading
+  - Compute as a commodity?
+    - What does this mean?
+    - Railway.app
+    - Tokenizing compute credits
+      - What does this enable? That otherwise isn't?
+    - data-storage as a commodity
+  - Aggregation over could service providers
+    - Snowflake, hadoop, apache spark / airflow, hive=
   - **generate ideas naturally** (noticing)
     - Ideas shld be noticed
       - Notice what is missing
