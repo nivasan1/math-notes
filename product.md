@@ -265,6 +265,8 @@
         - Mode of comms?
       - Commodities
         - Trading
+    - How is the meta-verse integrated here?
+      - Human-Computer-Interaction?
   - Compute as a commodity?
     - What does this mean?
     - Railway.app

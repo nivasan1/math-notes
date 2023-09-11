@@ -265,3 +265,82 @@
     - fix $F$ (closed), where $E \subset F$
       - WTS: a limit point of $E$ is a limit point of $F$, and is thus in $F$
     - Suppose $x$ is a limit point of $E$, then $\forall r > 0$, $N_r(x) \backslash \{x\} \cap E \not= \emptyset$, similarly, $N_r(x) \backslash \{x\} \cap F \not= \emptyset$, thus $x$ is a limit point of $F$, and $x \in F$. Thus $\overline{E} = E \cup E' \subset F$
+- Let $E \not= \empty, E \subset \mathbb{R}$, where $E$ is bound above (thus $sup(E) \in \mathbb{R}$), then $y \in \overline{E}$
+  - Suppose otherwise, then $\exists r > 0, N_r(y) \backslash \{y\} \cap E = \emptyset$, as such, $y - r' < y \in N_r(y)$, and $y - r'$ is upper-bound (contradiction)
+- Suppose $Y \subset X$, then $E$ is open relative to $Y$ when $\forall x \in E, \exists r \ni d(x, q) < r \land q \in Y \rightarrow q \in E$ (what if $q \not \in Y$?)
+  - Take $X = E \cup \{y\}$ (where $y$ is isolated), then $E$ is open rel. $Y$ but not $X$
+- Finite sets can be open....
+- Suppose $Y \subset X$, $E \subset Y$ is open rel. $Y$ iff $E = Y \cap G$ for some open $G \subset X$
+  - Forward
+    - Notice, for all $x \in E$, there exists $r_x > 0, \forall p \in N_{r_x}(x) \land p \in Y \rightarrow p \in E$. For each $x \in E$, denote $V_x = N_{r_x}(x)$, let $G = \bigcup_{x \in E}V_x$ (naturally, $G$ is open), furthermore, $E \subset G \cap Y$. Fix $p \in G \cap Y$, then $\exists x \in E, p \in N_{r_x}(x)$, and $p \in Y$, thus $p \in E$, and $E = G \cap Y$
+  - Reverse 
+    - Suppose $E = Y \cap G$, where $G \subset X$ is open in $X$. Fix $x \in E \rightarrow x \in G \land x \in Y$, naturally, $\exists r > 0, N_r(x) \subset G$, thus, $p \in N_r(x) \in E \iff p \in Y$. As such, $\forall x \in E$, for $r_x, p \in N_{r_x}(x) \land p \in Y \rightarrow p \in E$, and $E$ is open rel. $Y$.
+### Compactness
+- Let $X$ be a metric space, an **open cover** of $E \subset X$, is a collection of open sets $\{G_{\alpha}\subset X\}$, where $E \subset \bigcup_{\alpha} G_{\alpha}$.
+- **compactness** - $E$ is compact, if every open cover $\{G_{\alpha}\}$ has a finite sub-cover
+- **intuition**
+  - As noticed above, openness / closedness of $E$ depends on the space in which $E$ is enclosed, (i.e a subset of $E$ can be closed if $E$ is open and vice-versa). However, **compactness** is a property that is independent of the set in which $E$ is enclosed. I.e if $E$ is compact, all subsets of $E$ are compact
+- Suppose $K \subset Y \subset X$, then $K$ is compact rel. $X$ iff $K$ is compact rel. $Y$
+  - Forward
+    - Suppose $K$ is compact rel. $X$, then for each open-cover $\{G_{\alpha}\}$ there is a finite sub-cover. Let $\{F_{\alpha}\}$ be an open cover of $K$ in $Y$, that is $K = \bigcup_{\alpha} F_{\alpha}$, notice, for each $F_{\alpha} = Y \cap G_{\alpha}$, where $G_{\alpha} \subset X$ is open in $X$, then consider $\{G_{\alpha}\}$, a cover of $K$ in $X$, thus a finite-subcover $\{G_{\alpha}'\}$ exists, where $L \subset \bigcup_{\alpha} G_{\alpha}'$, and $K \subset \bigcup_{\alpha} G_{\alpha}' \cap Y = \bigcup_{\alpha} F_{\alpha}'$, a finite sub-cover in $Y$!!
+  - Reverse
+    - Suppose $K$ is compact in $Y$, then consider, $\{G_{\alpha}\}$, an open-cover in $X$, notice, consider $G_{\alpha} \cap Y = F_{\alpha}$, an open-set in $Y$, and $K \subset \bigcup_{\alpha} F_{\alpha}$, and $K \subset \bigcup_{\alpha'} F_{\alpha'}$ (a finite-subcover of $\{F_{\alpha}\}$), and $\{G_{\alpha'}\}$ is an open-cover in $X$!!!
+- Compact subsets of metric spaces are closed
+  - Suppose $K$ is compact, prove that $K^c$ is open. Fix $p \in K^c$, and denote $\forall q \in K, r_{q} < d(p, q) /2, W_{q} = N_{r_q}(q), V_q = N_{r_q}(p)$. Notice, $K \subset \bigcup_{q \in K} W_q$ (open cover), thus identify finite $(q_i)$, where $\{W_{q_i}\}$ is finite open cover. and take $r = min_{q_i}(r_{q_i})$, then $N_r(p) \cap K = \emptyset$, thus, $N_r(p) \subset K^c$, and $K^c$ is open, thus $K$ is closed
+- Closed subsets of compact sets are compact
+  - Suppose $L \subset K$, and $\{G_{\alpha}\}$ is an open cover of $L$, then $\bigcup_{\alpha} G_{\alpha} \cup L^c \supset K$, and $L^c$ is open $L$ is closed, thus $\{G_{\alpha}'\} \cup L^c$ has a finite sub-cover (since $K$ is covered). Notice, even if $L^c$ is included in the finite-subcover $\{G_{\alpha}'\}$ it can be covered, and $L \subset \bigcup_{\alpha'} G_{\alpha'}$
+- If $F \subset X$ is closed, and $K$ is compact then $F \cap K$ is closed
+  - Notice, $K$ is closed, and $F \cap K \subset K$ is closed, and by the above thm. $F \cap K$ is compact.
+- If $\{K_{\alpha}\}$ is a collection of compact subsets of metric space $X$, such that the intersection of any finite collection of sets i non-empty, then $\cap_{\alpha} K_{\alpha}$ is non-empty
+  - Suppose otherwise, take $K \in \{K_{\alpha}\}$, and suppose $K \cap \bigcap_{\alpha} K_{\alpha} = \emptyset$, then $K \subset \bigcup_{\alpha}K_{\alpha}^c$, notice, $\{K_{\alpha}^c\}$ is an open-cover of $K$, and thus there are a finite number of $K_{\alpha'}$, where $K \cap \bigcap_{\alpha'} K_{\alpha'} = \emptyset$, a contradiction.
+- If $E$ is an infinite subset of compact $K$, then $E$ has a limit point in $K$
+  - Suppose otherwise, then no $p \in K$ is a limit point of $E$, that is, $\forall p \in K, \exists r_p > 0, N_{r_p}(p) \backslash \{p\} \cap E = \emptyset$. Notice, $E \subset K \subset \bigcup_{p \in K} N_{r_p}(p)$, thus there are finite $\{p_i\}$, where $E \subset K \subset \bigcup_{p_i} N_{r_{p_i}}(p_i)$, naturally, $\exists p_i, N_{r_{p_i}}(p_i) \backslash \{p_i\} \cap E \not=\emptyset$ (otherwise, $E$ is at most finite), a contradiction.
+- If $\{I_n\}$ is a sequence of intervals in $R^1$, where $I_n \supset I_{n + 1}$, then $\cap_i I_i \not= \emptyset$ 
+  - If $I_n = [a_n, b_n]$, then consider the set $B = \{b_i\}$, notice, $B$ is non-empty, and bound below, by $a_1$, as $a_i \leq a_{i + 1}$, and $a_i \leq b_i$, thus $\beta = inf(B)$ exists in $R$. Notice, $\forall i, b_i \geq \beta$, similatly, $\forall m, a_i \leq a_{i + m} \leq b_{i + 1} \leq b_m$, thus $a_i \leq \beta$. As such, $\forall n, \beta \in I_n$
+- Let $k > 0$, and suppose each $I_n$ is a k-cell, where $I_n \supset I_{n + 1}$, then $\bigcap_i I_i \not = \emptyset$
+  - Apply same theorem above, noticing that each $I_n = I_1 \times \cdots \times I_k$ (intervals), and apply above thm. component-wise
+- Every $k-cell$ is compact
+  - Suppose $I = I_1 \times \cdots \times I_k \subset \mathbb{R}^k$, where $I_n = [a_n, b_n]$. Suppose that $\{G_{\alpha}\}$ is an open-cover of $I$ for which no finite sub-cover exists. That is, for each finite sub-cover of $\{G_{\alpha}\}$, there exists a sub-k-cell of $I$, defined as follows, for each $I_n = [a_n, b_n]$ take the mid-point of each to obtain, $I_n = [a_n, c_n] \cup [c_n, b_n]$ ($c_n = \frac{a_n + b_n}{2}$), notice, this division returns $2^k$ k-cells whose union is $I$, take $I_1$ as one of the k-cells not covered by any finite sub-cover of $\{G_{\alpha}\}$ (otherwise $I$ is compact). Also notice that for each, $x, y \in I, |x - y| \leq \begin{bmatrix}\Sigma_i (b_n - a_n)^2 \end{bmatrix}^{1/2}$. 
+  - Notice, $I_1$ is also covered by $\{G_{\alpha}\}$ but not by any finite-sub cover, thus we can infinitely recurse yielding $\{I_i\}$ k-cells, where
+    - $I_n \supset I_{n + 1}$
+    - $I_n$ is covered by $\{G_{\alpha}\}$ but not by any finite sub-cover
+    - $x, y \in I_n$, $|x - y| < 2^{-n} \delta$ (prove by induction or manually), 
+  - Furthermote, no $I_n$ is empty, thus take $x \in I_n$, notice, for some $G_{\alpha}$, $x \in G_{\alpha} \rightarrow \exists r > 0, N_r(x) \subset G_{\alpha}$, take $n$ where $2^{-n} \delta < r$, and $I_n \subset G_{\alpha}$ (a contradiction, this is a finite sub-cover).
+- **heine-borel**
+  - The following statements are equivalent for some subset $E \subset R^k$
+    - $E$ is closed and bounded
+    - $E$ is compact
+    - Every infinite subset of $E$ has a limit point in $E$
+  - 1 -> 2
+    - If $E$ is closed and bounded, then $E \subset I$ where $I$ is a k-cell, and is thus compact. Notice $E$ is closed and is a subset of a compact set, and is thus closed.
+  - 2 -> 3
+    - Follows since $E$ is compact
+  - 3 -> 1
+    - Closed?
+      - Suppose otherwise, then take $p$ which is limit point of $E$, and construct the set $E' = \{x \in E: |x - p| < 1/n\}$, this set is infinite as $p$ is limit point of $E$, whose only limit point is $p$, thus $p \in E$ (contradiction).
+    - Bounded?
+      - Take $x_n \in E, |x_n| > n$ (that this set is infinite follows from it not being bounded), notice, the set of $x_i$ does not have a limit point in $E$, contradiction.
+- **weierstass**
+  - Every bounded infinite subset of $R^k$ has a limit point in $R^k$
+    - Notice, suppose $E \subset R^k$, is bounded, then $E$ is contained in a k-cell which is compact, thus $E$ being infinite subset of a compat set has a limit point in $R^k$ (corollary of above)
+## Perfect Sets
+- Let $P$ be a non-empty perfect set in $R^k$, then $P$ is uncountable
+  - Notice, $P$ is closed and has limit points, thus $P$ is infinite. Label each $x_i \in P$, then for each $x_i$, define $V_i$, where $V_i = N_{r_i}(x_i)$, $V_{i + 1} \subset V_i$, and $V_{i} \cap P \not= \emptyset$, and $x_i \not \in \overline{V_{i + 1}}$
+    - Notice, the 2nd to last prop. holds as each $x_i \in P$ is a limit point of $x_i$
+    - The last thm. hold again, as all $r > 0$, $N_r(x_i) \cap P \not = \emptyset$, so one can take $r_{i + 1} < d(x_i, x_{i + 1})$
+  - As such, $\overline{V_i} \supset \overline{V_{i + 1}}$, thus $K_n = \overline{V_n} \cap P$ is compact, and $K_n \supset K_{n + 1}$, and $x_n \not \in K_{n + 1}$, thus $\cap_i K_n = \emptyset$, a contradicton
+- **connected sets**
+  - **separated sets** - elet $A, B \subset X$, where $X$ is a metric space. Then $A, B$ are separated if $\overline{A} \cap B = \overline{B} \cap A = \emptyset$, then $A, B$ are separated
+  - **Connected sets**- $A$ is connected, if it is not the union of 2 separated sets
+- $E \subset \mathbb{R}$ is connected iff $x, y \in E, x < z < y \rightarrow z \in E$
+  - Forward
+    - Suppose $E$ is connected, and that $x, y \in E, z \in \mathbb{R}$, where $x < z < y$. Then take $E_1 = \{x \in E, x < z\}, E_2 = \{x \in E, x > z\}$
+    - Notice $E = E_1 \cup E_2$, and $\overline{E_1} \cap E_2 = \overline{E_2} \cap E_1 = \emptyset$
+      - Suppose $x \in \overline{E_1} \cap E_2$, then $x > z$, and $N_{x - z}(x) \cap E_1 = \emptyset$ (similarly in other dir.)
+  - Reverse
+    - Prove contrapositive ($E$ separated, then implicant does not hold)
+
+- **problems**
+  - $\emptyset \subset A$ (where $A$ is any set)
+    - Notice, contrapositive always true, i.e $x \not \in A \rightarrow x \not \in \emptyset$
+  - 
